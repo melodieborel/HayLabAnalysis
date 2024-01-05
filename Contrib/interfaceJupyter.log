@@ -1,0 +1,54 @@
+2023-12-24:17:56:33 :: mainGUI.py :: handle_exception :: line 195 :: ERROR :: Uncaught exception
+Traceback (most recent call last):
+  File "/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/Contrib/mainGUI.py", line 226, in <module>
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    ^^^^^^^^^^^^^
+AttributeError: module 'ctypes' has no attribute 'windll'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/Contrib/mainGUI.py", line 230, in <module>
+    ui = mainGUI()
+         ^^^^^^^^^
+  File "/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/Contrib/mainGUI.py", line 126, in __init__
+    self.basewebview = CustomWebView(self, main=True)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/Contrib/mainGUI.py", line 35, in __init__
+    self.loadFinished.connect(self.onpagechange)
+                              ^^^^^^^^^^^^^^^^^
+AttributeError: 'CustomWebView' object has no attribute 'onpagechange'
+2023-12-24:17:57:32 :: mainGUI.py :: handle_exception :: line 195 :: ERROR :: Uncaught exception
+Traceback (most recent call last):
+  File "/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/Contrib/mainGUI.py", line 226, in <module>
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    ^^^^^^^^^^^^^
+AttributeError: module 'ctypes' has no attribute 'windll'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/Contrib/mainGUI.py", line 230, in <module>
+    ui = mainGUI()
+         ^^^^^^^^^
+  File "/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/Contrib/mainGUI.py", line 126, in __init__
+    self.basewebview = CustomWebView(self, main=True)
+                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/Contrib/mainGUI.py", line 35, in __init__
+    self.loadFinished.connect(self.onpagechange)
+                              ^^^^^^^^^^^^^^^^^
+AttributeError: 'CustomWebView' object has no attribute 'onpagechange'
+2023-12-24:18:14:38 :: mainGUI.py :: handle_exception :: line 196 :: ERROR :: Uncaught exception
+Traceback (most recent call last):
+  File "/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/Contrib/mainGUI.py", line 227, in <module>
+    ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+    ^^^^^^^^^^^^^
+AttributeError: module 'ctypes' has no attribute 'windll'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/Contrib/mainGUI.py", line 41, in onpagechange
+    log("on page change: %s, %s" % (self.url(), ok))
+    ^^^
+NameError: name 'log' is not defined
