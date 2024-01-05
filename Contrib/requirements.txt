@@ -2,3 +2,4 @@ Numpy
 xarray
 matplotlib
 openpyxl
+PyQt6

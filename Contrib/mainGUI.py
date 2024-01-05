@@ -2,7 +2,7 @@
 from PyQt6.QtCore import pyqtSlot, QSettings, QTimer, QUrl, Qt
 from PyQt6.QtGui import QCloseEvent
 from PyQt6.QtWidgets import QApplication, QMainWindow, QMessageBox, QDockWidget, QPlainTextEdit, QTabWidget
-#from PyQt6.QtWebEngineWidgets import QWebEngineView
+from PyQt6.QtWebEngineWidgets import QWebEngineView
 #from IPython import get_ipython
 
 import os
