@@ -3,3 +3,9 @@ xarray
 matplotlib
 openpyxl
 PyQt6
+iPython
+qtconsole
+jupyterlab
+ipyfilechooser
+ipywidgets
+pickleshare

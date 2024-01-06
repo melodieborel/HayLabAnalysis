@@ -1,5 +1,5 @@
-from PyQt6.QtCore import pyqtSlot, QSettings, QTimer, QUrl, QDir
-from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QApplication
+from PyQt6.QtCore import pyqtSlot, QSettings, QTimer, QUrl, QDir, Qt
+from PyQt6.QtWidgets import QMainWindow, QFileDialog, QMessageBox, QApplication, QDockWidget, QPlainTextEdit
 from PyQt6.QtWebEngineWidgets import QWebEngineView
 
 import sys
@@ -8,27 +8,47 @@ import signal
 import logging
 import threading
 
-#logfileformat = '[%(levelname)s] (%(threadName)-10s) %(message)s'
-#logging.basicConfig(level=logging.DEBUG, format=logfileformat)
-
-
-
+global logger, app, ui
+    
 #define UI elements
+class LoggerDock(QDockWidget):
 
-class MainWindow(QMainWindow):
+    def __init__(self, *args):
+        super(LoggerDock, self).__init__(*args)
+        self.textview = QPlainTextEdit(self)
+        self.textview.setReadOnly(True)
+        self.setWidget(self.textview)
 
-    def __init__(self, parent=None, homepage=None):
-        super(MainWindow, self).__init__(parent)
+    @pyqtSlot(str)
+    def log(self, message):
+        self.textview.appendPlainText(message)
+        
+class mainGUI(QMainWindow):
+
+    def __init__(self, parent=None, homepage=None, *args, **kwargs):
+        super(mainGUI, self).__init__(*args, **kwargs)
         self.homepage = homepage
         self.windows = []
 
+        self.loggerdock = LoggerDock("Log Message", self)
+        self.addDockWidget(Qt.DockWidgetArea.BottomDockWidgetArea, self.loggerdock)
+        
         settings = QSettings()
         val = settings.value("net.fishandwhistle/JupyterQt/geometry", None)
         if val is not None:
             self.restoreGeometry(val)
 
-        self.basewebview = CustomWebView(self, main=True)
+        self.basewebview = JupyterView(self, main=True)
         self.setCentralWidget(self.basewebview)
+        #self.windows.append(self.basewebview)
+        #self.tabs = QTabWidget(self)
+        #self.tabs.setTabsClosable(True)
+        #self.tabs.setMovable(True)
+        #self.tabs.tabCloseRequested.connect(self.destroyBrowserTab)
+        
+        #self.setCentralWidget(self.tabs)
+        self.show()
+        
         QTimer.singleShot(0, self.initialload)
 
     @pyqtSlot()
@@ -50,10 +70,10 @@ class MainWindow(QMainWindow):
         settings = QSettings()
         settings.setValue("net.fishandwhistle/JupyterQt/geometry", self.saveGeometry())
 
-class CustomWebView(QWebEngineView):
+class JupyterView(QWebEngineView):
 
     def __init__(self, mainwindow, main=False):
-        super(CustomWebView, self).__init__(None)
+        super(JupyterView, self).__init__(None)
         self.parent = mainwindow
         self.main = main
         self.loadedPage = None
@@ -69,7 +89,7 @@ class CustomWebView(QWebEngineView):
         self.loadedPage.windowCloseRequested.connect(self.close)
 
     def createWindow(self, windowtype):
-        v = CustomWebView(self.parent)
+        v = JupyterView(self.parent)
         windows = self.parent.windows
         windows.append(v)
         v.show()
@@ -87,7 +107,33 @@ class CustomWebView(QWebEngineView):
         event.accept()
 
 
+def initializeJupyterLab():
+    #start jupyter notebook and wait for line with the web address
+    log("Starting Jupyter notebook process")
+    notebookp = startnotebook()
 
+    log("Waiting for server to start...")
+    webaddr = None
+    while webaddr is None:
+        line = str(notebookp.stderr.readline())
+        log(line)
+        if "http://" in line:
+            start = line.find("http://")
+            end = line.find("\n", start+len("http://"))
+            webaddr = line[start:end-2]
+            print(webaddr)
+        log("Server found at %s, migrating monitoring to listener thread" % webaddr)
+
+    #pass monitoring over to child thread
+    def process_thread_pipe(process):
+        while process.poll() is None: #while process is still alive
+            log(str(process.stderr.readline()))
+
+    notebookmonitor = threading.Thread(name="Notebook Monitor", target=process_thread_pipe,
+                                       args = (notebookp,))
+    notebookmonitor.start()
+    return notebookp, webaddr
+    
 
 def startnotebook(notebook_executable="jupyter-lab", port=8888, directory='/Users/mb/Documents/Syntuitio/AudreyHay/PlanB/python/'): #QDir.homePath()
     return subprocess.Popen([notebook_executable,
@@ -105,6 +151,10 @@ def handle_exception(exc_type, exc_value, exc_traceback):
     
 def log(message):
     logger.debug(message)
+    try:
+        ui.loggerdock.log(message)
+    except NameError:
+        pass
     
 if __name__ == '__main__':
     global logger, app, ui#, pr
@@ -130,30 +180,7 @@ if __name__ == '__main__':
 
     sys.excepthook = handle_exception
     
-    
-    #start jupyter notebook and wait for line with the web address
-    log("Starting Jupyter notebook process")
-    notebookp = startnotebook()
-
-    log("Waiting for server to start...")
-    webaddr = None
-    while webaddr is None:
-        line = str(notebookp.stderr.readline())
-        log(line)
-        if "http://" in line:
-            start = line.find("http://")
-            end = line.find("/n", start+len("http://"))
-            webaddr = line[start:end-2]
-        log("Server found at %s, migrating monitoring to listener thread" % webaddr)
-
-    #pass monitoring over to child thread
-    def process_thread_pipe(process):
-        while process.poll() is None: #while process is still alive
-            log(str(process.stderr.readline()))
-
-    notebookmonitor = threading.Thread(name="Notebook Monitor", target=process_thread_pipe,
-                                       args = (notebookp,))
-    notebookmonitor.start()
+    notebookp, webaddr=initializeJupyterLab()
 
     #setup application
     log("Setting up GUI")
@@ -162,7 +189,7 @@ if __name__ == '__main__':
     app.setOrganizationDomain("fishandwhistle.net")
 
     #setup webview
-    view = MainWindow(None, homepage=webaddr)
+    ui = mainGUI(None, homepage=webaddr)
 
     log("Starting Qt Event Loop")
     result = app.exec()
