@@ -2,4 +2,20 @@
 ipyfilechooser
 jupyter_bokeh
 
+#pour ephysviewer:
+ephyviewer
+PyQt6
+pyqtgraph
+numpy
+scipy
+matplotlib
+Neo
+PyAV
+pandas
+spikeinterface
 
+dask
+xarray
+quantities
+pickleshare
+open-ephys-python-tools
