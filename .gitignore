@@ -3,6 +3,9 @@
 ExampleRedLines
 recording8
 #minian
+
+ephyviewer
+
 .DS_Store
 python/.ipynb_checkpoints
 python/dask-worker-space
