@@ -6,7 +6,7 @@ ipykernel
 
 #pour ephysviewer:
 ephyviewer
-PyQt6
+PySide6
 pyqtgraph
 numpy
 scipy
