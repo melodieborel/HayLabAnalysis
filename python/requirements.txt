@@ -1,6 +1,8 @@
+ipykernel
 
 ipyfilechooser
 jupyter_bokeh
+ipykernel
 
 #pour ephysviewer:
 ephyviewer
@@ -19,5 +21,3 @@ xarray
 quantities
 pickleshare
 open-ephys-python-tools
-
-ipykernel
