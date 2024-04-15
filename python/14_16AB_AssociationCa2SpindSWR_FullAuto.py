@@ -1,6 +1,5 @@
 # # Associate Ca2+ signal with spindles for each session & subsessions using crossregistration
 
-
 # Load packages
 
 import os
@@ -128,11 +127,18 @@ for micename in MiceList:
     # Cross registration results
 
     B = mapping['session']
+    if os.path.basename(folder_base) == 'Purple':
+        index = B.columns
+        B.columns = index.str.replace('part', 'session2')
+            
     for c in range(len(B)):
         print('unit n°', c)
         for sess in list(dict_Stamps.keys()):
             print('= unit', int(B[sess][c]), 'in', sess) if math.isnan (float(B[sess][c])) == False else None
 
+
+
+    # Define functions
     from bisect import bisect_left
 
     def take_closest(myList, myNumber):
@@ -186,7 +192,6 @@ for micename in MiceList:
         return IsTrue
 
     # Distribute Ca2+ intensity & spikes to vigilance state for each sessions/subsessions
-
     data = {}
     Struct = "PFC"
     before = 1000 # Max distance in ms between a SWR and a spindle to be considered as Precoupled
@@ -209,6 +214,9 @@ for micename in MiceList:
     dict_All_ActivityCa_swr_Precoupled={}
     dict_All_ActivityCa_swr_Postcoupled={}
     dict_All_ActivityCa_swr_Uncoupled={}
+
+    previousEndTime=0
+    InitialStartTime=0
 
     for i in list(dict_Stamps.keys()):
         cPreCoupled=0
@@ -240,12 +248,26 @@ for micename in MiceList:
         rec_dur = Cupd.shape[1]
         S=dict_Spike[i] 
         Supd = C.loc[:, :] #S.loc[:, :]
-        
-        if len(list_droppedframes) > 0:
-            numbdropfr = len(list(item for item in range(numbdropfr) if list_droppedframes[item] < rec_dur))
+
+        if InitialStartTime==0:
+            InitialStartTime=StartTime    
         else:
-            numbdropfr = 0
+            if StartTime == InitialStartTime:
+                StartTime = previousEndTime + 1/minian_freq #  +1 frame in seconds 
+            else:  
+                InitialStartTime=StartTime   
+
+        if len(list_droppedframes) > 0:
+            numbdropfr = sum(1 for item in list_droppedframes if item < (int(StartTime*minian_freq) + rec_dur) and item > int(StartTime*minian_freq))
+            #print(numbdropfr, 'num droppped frames')
+            #print(int(StartTime*minian_freq), 'Min', int(StartTime*minian_freq) + rec_dur, 'Max')
+        else:
+            numbdropfr = 0   
+
         EndTime = StartTime + ((rec_dur + numbdropfr)/minian_freq) # in seconds
+        previousEndTime=EndTime     
+
+        print(i, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round((rec_dur + numbdropfr)/minian_freq,1), 's duration, ', numbdropfr, 'dropped frames)...') 
 
         PFCspipropO=dict_Spindleprop[i]
         PFCspipropM=PFCspipropO.copy()
@@ -268,43 +290,49 @@ for micename in MiceList:
         C_upd_unit_id = Cupd['unit_id'].values
         Sseries = Supd.to_series()
 
-        sentence1= f"In {i} kept values = {C_upd_unit_id}"
+        sentence1= f"... kept values = {C_upd_unit_id}"
         print(sentence1)
 
         time = range(int(duration*2*minian_freq))
         Half = int(duration*minian_freq)
         TimeStamps_miniscope=list(dict_StampsMiniscope[i]["Time Stamp (ms)"]) # + (StartTime*1000))
 
-
         PFCspipropTrunc = PFCspipropM[PFCspipropM["start time"]>0]
-        PFCspipropTrunc = PFCspipropTrunc[PFCspipropTrunc["start time"]< TimeStamps_miniscope[-1]]
+        PFCspipropTrunc = PFCspipropTrunc[PFCspipropTrunc["start time"]< (EndTime-StartTime)*1000]
         SWRpropTrunc = SWRpropM[SWRpropM["start time"]>0]
-        SWRpropTrunc = SWRpropTrunc[SWRpropTrunc["start time"] < TimeStamps_miniscope[-1]]
+        SWRpropTrunc = SWRpropTrunc[SWRpropTrunc["start time"] < (EndTime-StartTime)*1000]
     
         units = range(nb_unit)
         nb_spindle = PFCspipropTrunc.shape[0]
         nb_swr = SWRpropTrunc.shape[0]
         for ii, unit in enumerate(units): # for each kept units (cause Cseries/Sseries only have kept units)
-            lCseries = np.array(Cseries)[(unit)*rec_dur:(unit+1)*rec_dur]
-            lSseries = np.array(Sseries)[(unit)*rec_dur:(unit+1)*rec_dur]
+            lCseries = np.array(Cseries)[(unit)*(rec_dur + numbdropfr):(unit+1)*(rec_dur + numbdropfr)]
+            lSseries = np.array(Sseries)[(unit)*(rec_dur + numbdropfr):(unit+1)*(rec_dur + numbdropfr)]
             ActivityCa_PFCspin = [] #For each unit  
             ActivityCa_PFCspin_Precoupled= [] #For each unit 
             ActivityCa_PFCspin_Postcoupled= [] #For each unit 
             ActivityCa_PFCspin_Uncoupled= [] #For each unit 
             startSpiList = list(pd.Series(PFCspipropTrunc["start time"]))
             endSpiList = list(pd.Series(PFCspipropTrunc["end time"]))
-            for Pspin in range(nb_spindle): 
 
+            for Pspin in range(nb_spindle): 
+                
                 # Get the calcium and spike trace associated with the spdl
                 startSpi=startSpiList[Pspin]
+                #print(startSpi, 'startSpi')
                 endSpi=endSpiList[Pspin]
-
+                #print(endSpi, 'endSpi')
                 Frame_Spindle_start = take_closest2(TimeStamps_miniscope, startSpi)
+                #print(Frame_Spindle_start, 'Frame_Spindle_start')
                 index = TimeStamps_miniscope.index(Frame_Spindle_start)
+                #print(index, 'index')
                 CaTrace = list(lCseries[index-Half:index+Half])
-                SpTrace = list(lSseries[index-Half:index+Half])            
+                SpTrace = list(lSseries[index-Half:index+Half])   
+                #print(len(CaTrace), 'len CaTrace')      
+                #print(len(time), 'len(time)')
+
                 if len(CaTrace)<len(time): 
-                    print("Spindle too close to the begining/end of the recording,", i, ", Spdl n°", Pspin, ", Start Spdl =", int(startSpi), "ms, Start Rec =", int(Frame_Spindle_start), 'ms')
+                    print(" /!\ Spindle too close to the begining/end of the recording,", i, ", Spdl n°", Pspin, ", Start Spdl =", int(startSpi), "ms, Start Rec =", int(Frame_Spindle_start), 'ms') if ii==0 else None            
                 else:
                     ActivityCa_PFCspin.append(CaTrace)
 
@@ -329,6 +357,8 @@ for micename in MiceList:
                     Spindles_GlobalResults.loc[counter, 'Mice'] = os.path.basename(folder_base)
                     Spindles_GlobalResults.loc[counter, 'Session'] = i 
                     Spindles_GlobalResults.loc[counter, 'Session_Time'] = None 
+                    mapping['session'].columns.tolist()
+
                     indexMapp = np.where(B[i] == C_upd_unit_id[unit])[0]
                     Spindles_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
                     Spindles_GlobalResults.loc[counter, 'UnitNumber'] = unit 
@@ -387,8 +417,8 @@ for micename in MiceList:
                             dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(resampled_data)
                     sentence1bis=""
                 else: 
-                    sentence1bis=f"Cell idx {unit} not in the cross registration!!!"
-                    print(sentence1bis)
+                    sentence1bis=f"/!\ Cell idx {unit} not in the cross registration" if it==1 else ""
+                    print(sentence1bis) if it==1 else None
             
             ActivityCa_swr = [] #For each unit  
             ActivityCa_swr_Precoupled= [] #For each unit 
@@ -406,7 +436,7 @@ for micename in MiceList:
                 CaTrace = list(lCseries[index-Half:index+Half])
                 SpTrace = list(lSseries[index-Half:index+Half])     
                 if len(CaTrace)<len(time): 
-                    print("SWR too close to the begining/end of the recording,", i, ", SWR n°", Pswr, ", Start SWR =",  int(startSwr), "ms, Start Rec =", int(Frame_SWR_start), 'ms')
+                    print("/!\ SWR too close to the begining/end of the recording,", i, ", SWR n°", Pswr, ", Start SWR =",  int(startSwr), "ms, Start Rec =", int(Frame_SWR_start), 'ms') if ii==0 else None 
                 else:
                     ActivityCa_swr.append(CaTrace) 
 
@@ -492,7 +522,7 @@ for micename in MiceList:
                             resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
                             dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(resampled_data)
         
-        sentence2=f"... with {nb_spindle} spindles ({cPreCoupled} Pre, {cPostCoupled} Post & {cUnCoupled} Uncoupled Spdl) and {nb_swr} SWR detected ({cPreCoupledSWR} Pre, {cPostCoupledSWR} Post & {cUnCoupledSWR} Uncoupled SWR)"
+        sentence2=f"... {nb_spindle} spindles ({cPreCoupled} Pre, {cPostCoupled} Post & {cUnCoupled} Uncoupled Spdl) and {nb_swr} SWR detected ({cPreCoupledSWR} Pre, {cPostCoupledSWR} Post & {cUnCoupledSWR} Uncoupled SWR)"
         print(sentence2)
     sentence3=f"Nb of unique units for {os.path.basename(folder_base)} = {len(dict_All_ActivityCa_PFCspin)}"
     print(sentence3)
