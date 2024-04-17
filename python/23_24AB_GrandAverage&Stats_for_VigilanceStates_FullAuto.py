@@ -1,0 +1,172 @@
+# Stats on Ca2+ imaging with miniscope and Vigilance States
+
+import statsmodels.api as sm
+import quantities as pq
+import numpy as np
+import math 
+import neo
+import json
+from pathlib import Path
+import xarray as xr
+import pandas as pd
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Slider, Button, Cursor
+import pickle
+import os
+import statsmodels.api as sm
+import statsmodels.formula.api as smf
+
+
+########################################################################
+        # SCRIPT 23AB_GrandAverages&Stats_for_VigilanceStates
+########################################################################
+
+# Specify the directory containing the Excel files
+directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/"
+
+NrSubtypeList=['All', 'L1']
+
+for NrSubtype in NrSubtypeList:  
+
+    # Initialize an empty list to store the dataframes
+    dfs = []
+    df=[]
+
+    if NrSubtype=='L1':
+        MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'RedLinesOK']
+    else:
+        MiceList=['Purple', 'ThreeColDotsOK', 'ThreeBlueCrossesOK']
+    
+    nametofind='VigilanceState_GlobalResults'
+
+    # Recursively traverse the directory structure
+    for root, _, files in os.walk(directory):
+        for filename in files:
+            # Check if the file is an Excel file and contains the specified name
+            if filename.endswith('.xlsx') and nametofind in filename : 
+                if any(name in root for name in MiceList): 
+                    print(root)                
+                    # Construct the full path to the file
+                    filepath = os.path.join(root, filename)
+                    # Read the Excel file into a dataframe and append it to the list
+                    df = pd.read_excel(filepath, index_col=0)      
+                    dfs.append(df)
+
+    # Concatenate all dataframes into a single dataframe
+    combined_df = pd.concat(dfs, ignore_index=True)
+
+    #Remove non defined Unique Units 
+    combined_df = combined_df[combined_df['Unique_Unit'] != '[]']
+    combined_df['Unique_Unit'] = combined_df['Unique_Unit'].astype(str)
+    combined_df['UnitNumber'] = combined_df['UnitNumber'].astype(str)
+    combined_df['UnitValue'] = combined_df['UnitValue'].astype(str)
+
+    combined_df['NormalizedAUC_calcium'] = combined_df['AUC_calcium'] / combined_df['DurationSubstate']
+    combined_df['NormalizedAUC_spike'] = combined_df['AUC_spike'] + combined_df['DurationSubstate']
+
+    combined_df['Unit_ID'] = combined_df['Mice'] + combined_df['Unique_Unit']
+    combined_df['Substate_ID'] = combined_df['Mice'] + combined_df['Session'] + combined_df['Substate'] + combined_df['SubstateNumber'].astype(str)
+
+    # Save big dataset for stats
+
+    filenameOut = f'{directory}{NrSubtype}_VigilanceStates_GrandGlobalAB.xlsx'
+    writer = pd.ExcelWriter(filenameOut)
+    combined_df.to_excel(writer)
+    writer.close()
+
+########################################################################
+    # SCRIPT 24AB_Load&Stats_for_VigilanceStates
+########################################################################
+
+for NrSubtype in NrSubtypeList:
+
+    analysisfile='VigilanceStates_GrandGlobalAB'
+    directory="//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/"
+    combined_df = pd.read_excel(f'{directory}{NrSubtype}_{analysisfile}.xlsx', index_col=0)
+
+    combined_df = combined_df[combined_df['DurationSubstate'] >= 20]
+
+    def max_column_name(row):
+        return row.idxmax()
+
+    def normalize_row(row):
+        max_col = row.idxmax()  # Find the column with the maximum value
+        max_val = row[max_col]  # Get the maximum value
+        return row / max_val   # Normalize the row by dividing by the maximum value    
+
+    # AUC CALCIUM
+
+    resultNormalizedAUC_calcium_perUnit = combined_df.pivot_table(index='Unit_ID', columns='Substate', values='NormalizedAUC_calcium', aggfunc='mean')
+    desired_order = ['Wake', 'N2','NREM', 'REM']  # Example order
+    resultNormalizedAUC_calcium_perUnit = resultNormalizedAUC_calcium_perUnit[desired_order]
+
+    max_values_per_row = resultNormalizedAUC_calcium_perUnit.max(axis=1)
+    Diff_resultNormalizedAUC_calcium_perUnit = (resultNormalizedAUC_calcium_perUnit.sub(max_values_per_row, axis=0) +100)
+    Diff_resultNormalizedAUC_calcium_perUnit['Activated_by'] = resultNormalizedAUC_calcium_perUnit.apply(max_column_name, axis=1)
+
+    # Add a new column with the column name that has the maximum value
+    resultNormalizedAUC_calcium_perUnit['Activated_by'] = resultNormalizedAUC_calcium_perUnit.apply(max_column_name, axis=1)
+
+    # Save  df
+    filenameOut = f'{directory}{NrSubtype}_VigSt_AUC_perUnitAB_N_min20s.xlsx'
+    writer = pd.ExcelWriter(filenameOut)
+    resultNormalizedAUC_calcium_perUnit.to_excel(writer)
+    writer.close()
+
+    # Save  df
+    filenameOut = f'{directory}{NrSubtype}_DiffVigSt_AUC_perUnitAB_N_min20s.xlsx'
+    writer = pd.ExcelWriter(filenameOut)
+    Diff_resultNormalizedAUC_calcium_perUnit.to_excel(writer)
+    writer.close()
+
+    proportions = resultNormalizedAUC_calcium_perUnit['Activated_by'].value_counts(normalize=True)*100
+
+    resultNormalizedAUC_calcium_perMouse = combined_df.pivot_table(index='Mice', columns='Substate', values='NormalizedAUC_calcium', aggfunc='mean')
+    desired_order = ['Wake', 'N2','NREM', 'REM']  # Example order
+    resultNormalizedAUC_calcium_perMouse = resultNormalizedAUC_calcium_perMouse[desired_order]
+
+    filenameOut = f'{directory}{NrSubtype}_VigSt_AUC_perMouseAB_min20s.xlsx'
+    writer = pd.ExcelWriter(filenameOut)
+    resultNormalizedAUC_calcium_perMouse.to_excel(writer)
+    writer.close()
+
+    # SPIKE ACTIVITY
+
+    resultSpikeActivity_perUnit = combined_df.pivot_table(index='Unit_ID', columns='Substate', values='SpikeActivity', aggfunc='mean')
+    desired_order = ['Wake','N2', 'NREM', 'REM']  # Example order
+    resultSpikeActivity_perUnit = resultSpikeActivity_perUnit[desired_order]
+
+    max_values_per_row = resultSpikeActivity_perUnit.max(axis=1)
+    Diff_resultSpikeActivity_perUnit = (resultSpikeActivity_perUnit.sub(max_values_per_row, axis=0) +100)
+    Diff_resultSpikeActivity_perUnit['Activated_by'] = resultSpikeActivity_perUnit.apply(max_column_name, axis=1)
+
+    # Add a new column with the column name that has the maximum value
+    resultSpikeActivity_perUnit['Activated_by'] = resultSpikeActivity_perUnit.apply(max_column_name, axis=1)
+
+    # Save  df
+    filenameOut = f'{directory}{NrSubtype}_VigSt_Spike_perUnitAB_min20s.xlsx'
+    writer = pd.ExcelWriter(filenameOut)
+    resultSpikeActivity_perUnit.to_excel(writer)
+    writer.close()
+
+    # Save  df
+    filenameOut = f'{directory}{NrSubtype}_DiffVigSt_Spike_perUnitAB_N_min20s.xlsx'
+    writer = pd.ExcelWriter(filenameOut)
+    Diff_resultSpikeActivity_perUnit.to_excel(writer)
+    writer.close()
+
+    resultSpikeActivity_perMouse = combined_df.pivot_table(index='Mice', columns='Substate', values='SpikeActivity', aggfunc='mean')
+    desired_order = ['Wake', 'N2', 'NREM','REM']  # Example order
+    resultSpikeActivity_perMouse = resultSpikeActivity_perMouse[desired_order]
+
+    filenameOut = f'{directory}{NrSubtype}_VigSt_Spike_perMouseAB_min20s.xlsx'
+    writer = pd.ExcelWriter(filenameOut)
+    resultSpikeActivity_perMouse.to_excel(writer)
+    writer.close()
+
+    proportions = resultSpikeActivity_perUnit['Activated_by'].value_counts(normalize=True)*100
+
+
+
+
+
