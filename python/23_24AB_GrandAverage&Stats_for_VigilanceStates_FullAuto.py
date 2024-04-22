@@ -15,7 +15,8 @@ import pickle
 import os
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
-
+from datetime import datetime
+import shutil
 
 ########################################################################
         # SCRIPT 23AB_GrandAverages&Stats_for_VigilanceStates
@@ -23,6 +24,18 @@ import statsmodels.formula.api as smf
 
 # Specify the directory containing the Excel files
 directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/"
+
+# Get the current date and time
+FolderNameSave=str(datetime.now())
+FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}"
+os.makedirs(destination_folder)
+folder_to_save=Path(destination_folder)
+
+# Copy the script file to the destination folder
+source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/interfaceJupyter/python/23_24AB_GrandAverage&Stats_for_VigilanceStates_FullAuto.py"
+destination_file_path = f"{destination_folder}/23_24AB_GrandAverage&Stats_for_VigilanceStates_FullAuto.txt"
+shutil.copy(source_script, destination_file_path)
 
 NrSubtypeList=['All', 'L1']
 
@@ -44,7 +57,7 @@ for NrSubtype in NrSubtypeList:
         for filename in files:
             # Check if the file is an Excel file and contains the specified name
             if filename.endswith('.xlsx') and nametofind in filename : 
-                if any(name in root for name in MiceList): 
+                if any(name in filename for name in MiceList): 
                     print(root)                
                     # Construct the full path to the file
                     filepath = os.path.join(root, filename)
@@ -69,7 +82,7 @@ for NrSubtype in NrSubtypeList:
 
     # Save big dataset for stats
 
-    filenameOut = f'{directory}{NrSubtype}_VigilanceStates_GrandGlobalAB.xlsx'
+    filenameOut = f'{folder_to_save}{NrSubtype}_VigilanceStates_GrandGlobalAB.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     combined_df.to_excel(writer)
     writer.close()
@@ -108,13 +121,13 @@ for NrSubtype in NrSubtypeList:
     resultNormalizedAUC_calcium_perUnit['Activated_by'] = resultNormalizedAUC_calcium_perUnit.apply(max_column_name, axis=1)
 
     # Save  df
-    filenameOut = f'{directory}{NrSubtype}_VigSt_AUC_perUnitAB_N_min20s.xlsx'
+    filenameOut = f'{folder_to_save}{NrSubtype}_VigSt_AUC_perUnitAB_N_min20s.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     resultNormalizedAUC_calcium_perUnit.to_excel(writer)
     writer.close()
 
     # Save  df
-    filenameOut = f'{directory}{NrSubtype}_DiffVigSt_AUC_perUnitAB_N_min20s.xlsx'
+    filenameOut = f'{folder_to_save}{NrSubtype}_DiffVigSt_AUC_perUnitAB_N_min20s.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     Diff_resultNormalizedAUC_calcium_perUnit.to_excel(writer)
     writer.close()
@@ -125,7 +138,7 @@ for NrSubtype in NrSubtypeList:
     desired_order = ['Wake', 'N2','NREM', 'REM']  # Example order
     resultNormalizedAUC_calcium_perMouse = resultNormalizedAUC_calcium_perMouse[desired_order]
 
-    filenameOut = f'{directory}{NrSubtype}_VigSt_AUC_perMouseAB_min20s.xlsx'
+    filenameOut = f'{folder_to_save}{NrSubtype}_VigSt_AUC_perMouseAB_min20s.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     resultNormalizedAUC_calcium_perMouse.to_excel(writer)
     writer.close()
@@ -144,13 +157,13 @@ for NrSubtype in NrSubtypeList:
     resultSpikeActivity_perUnit['Activated_by'] = resultSpikeActivity_perUnit.apply(max_column_name, axis=1)
 
     # Save  df
-    filenameOut = f'{directory}{NrSubtype}_VigSt_Spike_perUnitAB_min20s.xlsx'
+    filenameOut = f'{folder_to_save}{NrSubtype}_VigSt_Spike_perUnitAB_min20s.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     resultSpikeActivity_perUnit.to_excel(writer)
     writer.close()
 
     # Save  df
-    filenameOut = f'{directory}{NrSubtype}_DiffVigSt_Spike_perUnitAB_N_min20s.xlsx'
+    filenameOut = f'{folder_to_save}{NrSubtype}_DiffVigSt_Spike_perUnitAB_N_min20s.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     Diff_resultSpikeActivity_perUnit.to_excel(writer)
     writer.close()
@@ -159,7 +172,7 @@ for NrSubtype in NrSubtypeList:
     desired_order = ['Wake', 'N2', 'NREM','REM']  # Example order
     resultSpikeActivity_perMouse = resultSpikeActivity_perMouse[desired_order]
 
-    filenameOut = f'{directory}{NrSubtype}_VigSt_Spike_perMouseAB_min20s.xlsx'
+    filenameOut = f'{folder_to_save}{NrSubtype}_VigSt_Spike_perMouseAB_min20s.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     resultSpikeActivity_perMouse.to_excel(writer)
     writer.close()

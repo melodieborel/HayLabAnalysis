@@ -16,6 +16,8 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, Cursor
 import pickle
 import sys 
+from datetime import datetime
+import shutil
 
 from itertools import groupby
 from IPython.display import display
@@ -34,6 +36,19 @@ from minian.utilities import (
 )
 
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
+
+# Get the current date and time
+FolderNameSave=str(datetime.now())
+FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/AB_Analysis/Analysis_VigStates_{FolderNameSave}"
+os.makedirs(destination_folder)
+folder_to_save=Path(destination_folder)
+
+# Copy the script file to the destination folder
+source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/interfaceJupyter/python/12_13AB_AssociateMinianSleepScore_FullAuto.py"
+destination_file_path = f"{destination_folder}/12_13AB_AssociateMinianSleepScore_FullAuto.txt"
+shutil.copy(source_script, destination_file_path)
+
 
 for micename in MiceList:
     # Load sleep score and Ca2+ time series numpy arrays
@@ -126,6 +141,33 @@ for micename in MiceList:
         StartTime = list(dict_Stamps[i][0])[0]
         minian_freq=list(dict_Stamps[i][0])[2]
 
+        # start time session 2
+        def Convert(string):
+            li = list(string.split(", "))
+            li2 = len(li)
+            return li2
+        stri = dict_Stamps[i][0][3]
+        numbdropfr = Convert(stri)
+
+        from ast import literal_eval
+        list_droppedframes = literal_eval(dict_Stamps[i][0][3])
+
+        if InitialStartTime==0:
+            InitialStartTime=StartTime    
+        else:
+            if StartTime == InitialStartTime:
+                StartTime = previousEndTime + 1/minian_freq #  +1 frame in seconds 
+            else:  
+                InitialStartTime=StartTime   
+
+        if len(list_droppedframes) > 0:
+            numbdropfr = sum(1 for item in list_droppedframes if item < (int(StartTime*minian_freq) + rec_dur) and item > int(StartTime*minian_freq))
+        else:
+            numbdropfr = 0   
+
+        EndTime = StartTime + ((rec_dur + numbdropfr)/minian_freq) # in seconds
+        previousEndTime=EndTime     
+
         First_frame = StartTime*minian_freq
         C=dict_Calcium[i]
         Cupd = C.loc[:, :] #C.loc[:, First_frame:]
@@ -159,8 +201,8 @@ for micename in MiceList:
         array=SleepScoredTS_upscaled_ministart
         substates_duration = [len(list(group)) for key, group in groupby(array)]
         substates_identity = [key for key, _ in groupby(array)]
-        substates_end = np.array(substates_duration).cumsum()
-        substates_start =np.append([1],substates_end+1)
+        substates_end = np.array(substates_duration).cumsum()        
+        substates_start =np.append([0],substates_end[:-1]) #substates_start =np.append([1],substates_end+1) create 1 second gap
         mapp = {0: 'NREM', 0.5: 'N2', 1: 'REM', 1.5: 'Wake'}
         substates_identity = [mapp[num] for num in substates_identity]
         substates = pd.DataFrame(list(zip(substates_identity, substates_duration, substates_start, substates_end)), columns=['Identity', 'Duration', 'Start','End'])
@@ -203,7 +245,7 @@ for micename in MiceList:
                 counter+=1
 
     mice=os.path.basename(folder_base) 
-    filenameOut = folder_base / f'VigilanceState_GlobalResultsAB_{mice}.xlsx'
+    filenameOut = folder_to_save / f'VigilanceState_GlobalResultsAB_{mice}.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     VigilanceState_GlobalResults.to_excel(writer)
     writer.close()
