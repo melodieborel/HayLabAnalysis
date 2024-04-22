@@ -1,5 +1,0 @@
-
-ipyfilechooser
-jupyter_bokeh
-
-
