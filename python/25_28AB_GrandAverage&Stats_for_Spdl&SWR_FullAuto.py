@@ -17,14 +17,27 @@ import os
 import statsmodels.api as sm
 import statsmodels.formula.api as smf
 from scipy.stats import zscore
-
+from datetime import datetime
+import shutil
 
 ########################################################################
         # SCRIPT 27AB_GrandAverages&Stats_for_Osc
 ########################################################################
 
 # Specify the directory containing the Excel files
-directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/"
+directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/AB_Analysis/Analysis_Oscillations_2024_04_22_16_37_21_655676"
+
+# Get the current date and time
+FolderNameSave=str(datetime.now())
+FolderNameSave = FolderNameSave.replace(" ", "").replace(".", "").replace(":", "")
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/AB_Analysis/Analysis_AVG_Oscillations_{FolderNameSave}/"
+os.makedirs(destination_folder)
+folder_to_save=Path(destination_folder)
+
+# Copy the script file to the destination folder
+source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/interfaceJupyter/python/25_28AB_GrandAverage&Stats_for_Spdl&SWR_FullAuto.py"
+destination_file_path = f"{destination_folder}/25_28AB_GrandAverage&Stats_for_Spdl&SWR_FullAuto.txt"
+shutil.copy(source_script, destination_file_path)
 
 NrSubtypeList=['All', 'L1']
 CortexList=['PFC', 'S1']
@@ -68,14 +81,15 @@ for o, Osc in enumerate(OscList):
                 for filename in files:
                     # Check if the file is an Excel file and contains the specified name
                     if filename.endswith('.xlsx') and nametofind in filename:
-                        if any(name in root for name in MiceList):  
+                        if any(name in filename for name in MiceList):  
                             # Construct the full path to the file
                             filepath = os.path.join(root, filename)
                             # Read the Excel file into a dataframe and append it to the list
                             df = pd.read_excel(filepath, index_col=0)
                             dfs.append(df)
+                            print(filename)
                     if filename.endswith('.xlsx') and nametofind2 in filename: 
-                        if any(name in root for name in MiceList): 
+                        if any(name in filename for name in MiceList): 
                             # Construct the full path to the file
                             filepath = os.path.join(root, filename)
                             # Read the Excel file into a dataframe and append it to the list
@@ -87,9 +101,9 @@ for o, Osc in enumerate(OscList):
                                         dfs2_per_sheet[sheet_name] = updated_matrix               
                                 else:        
                                     dfs2_per_sheet[sheet_name] = df2 #one average trace per unique unit, len(df2)==nb unit recorded for that mouse
-
+                            print(filename)
                     if filename.endswith('.xlsx') and nametofind3 in filename: 
-                        if any(name in root for name in MiceList): 
+                        if any(name in filename for name in MiceList): 
                             # Construct the full path to the file
                             filepath = os.path.join(root, filename)
                             # Read the Excel file into a dataframe and append it to the list
@@ -100,6 +114,9 @@ for o, Osc in enumerate(OscList):
                                     dfs3_per_sheet[sheet_name] = updated_matrix                    
                                 else:                    
                                     dfs3_per_sheet[sheet_name] = df3 #one average trace per unique unit, len(df3)==nb unit recorded for that mouse
+                            print(filename)
+
+            # GLOBAL
 
             # Concatenate all dataframes into a single dataframe
             combined_df = pd.concat(dfs, ignore_index=True)
@@ -123,17 +140,20 @@ for o, Osc in enumerate(OscList):
             unique_count = combined_df[f'{Osc}_ID'].nunique()
             print(unique_count, f'{Osc} recorded in total in the {Cortex}')
 
-            # GLOBAL
-
-            filenameOut = f'{directory}{NrSubtype}_{Osc}_{Cortex}_ABdetection_GrandGlobalAB.xlsx'
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_ABdetection_GrandGlobalAB.xlsx'
             writer = pd.ExcelWriter(filenameOut)
             combined_df.to_excel(writer)
             writer.close()
 
             # CALCIUM traces
 
-            filenameOut = f'{directory}{NrSubtype}_{Osc}_{Cortex}_ABdetection_CalciumGrandAverageAB.xlsx'
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_ABdetection_CalciumGrandAverageAB.xlsx'
             excel_writer = pd.ExcelWriter(filenameOut)
+
+            Array=[]
+            ArrayUn=[]
+            ArrayPre=[]
+            ArrayPost=[]
 
             Array=pd.DataFrame(dfs2_per_sheet[f'All_{OscillationList[o]}'])
             ArrayUn=pd.DataFrame(dfs2_per_sheet[f'Uncoupled_{OscillationList[o]}'])
@@ -149,10 +169,9 @@ for o, Osc in enumerate(OscList):
 
             # CALCIUM traces Z-score normalization
 
-            filenameOut = f'{directory}{NrSubtype}_{Osc}_{Cortex}_ABdetection_Zscored_CalciumGrandAverageAB.xlsx'
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_ABdetection_Zscored_CalciumGrandAverageAB.xlsx'
             excel_writer = pd.ExcelWriter(filenameOut)
 
-            Array=Array.T
             Array = Array.apply(zscore)
             ArrayUn=ArrayUn.apply(zscore)
             ArrayPre=ArrayPre.apply(zscore)
@@ -167,8 +186,13 @@ for o, Osc in enumerate(OscList):
 
             # SPIKE
 
-            filenameOut = f'{directory}{NrSubtype}_{Osc}_{Cortex}_ABdetection_SpikeGrandAverageAB.xlsx'
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_ABdetection_SpikeGrandAverageAB.xlsx'
             excel_writer = pd.ExcelWriter(filenameOut)
+
+            Array=[]
+            ArrayUn=[]
+            ArrayPre=[]
+            ArrayPost=[]
 
             Array=pd.DataFrame(dfs3_per_sheet[f'All_{OscillationList[o]}'])
             ArrayUn=pd.DataFrame(dfs3_per_sheet[f'Uncoupled_{OscillationList[o]}'])
@@ -195,17 +219,17 @@ for o, Osc in enumerate(OscList):
             # Load the Excel file into a DataFrame
 
             analysisfile=f'{Osc}_{Cortex}_ABdetection_GrandGlobalAB'
-            combined_df = pd.read_excel(f'{directory}{NrSubtype}_{analysisfile}.xlsx', index_col=0)            
+            combined_df = pd.read_excel(f'{folder_to_save}/{NrSubtype}_{analysisfile}.xlsx', index_col=0)            
 
             analysisfile2=f'{Osc}_{Cortex}_ABdetection_CalciumGrandAverageAB'
-            excel_file = f'{directory}{NrSubtype}_{analysisfile2}.xlsx'        
+            excel_file = f'{folder_to_save}/{NrSubtype}_{analysisfile2}.xlsx'        
             excel_data = pd.read_excel(excel_file, sheet_name=None, index_col=0, header=None) 
             dict_Osc_average = {}
             for sheet_name, sheet_data in excel_data.items():
                 dict_Osc_average[sheet_name] = sheet_data
 
             analysisfile3=f'{Osc}_{Cortex}_ABdetection_SpikeGrandAverageAB'
-            excel_file = f'{directory}{NrSubtype}_{analysisfile3}.xlsx'
+            excel_file = f'{folder_to_save}/{NrSubtype}_{analysisfile3}.xlsx'
             excel_data = pd.read_excel(excel_file, sheet_name=None, index_col=0, header=None) 
             dict_Osc_Spikeaverage = {}
             for sheet_name, sheet_data in excel_data.items():
@@ -218,7 +242,7 @@ for o, Osc in enumerate(OscList):
             combined_df[f'{Osc}Statut'] = combined_df[f'{Osc}Statut'].apply(clean_string)
 
             Oscdurmean = combined_df.groupby(f'{Osc}_ID')[f'{Osc}Duration (ms)'].mean()
-            filenameOut = f'{directory}{NrSubtype}_{Osc}durations_AB.xlsx'
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_durations_AB.xlsx'
             writer = pd.ExcelWriter(filenameOut)
             Oscdurmean.to_excel(writer)
             writer.close()
@@ -260,7 +284,7 @@ for o, Osc in enumerate(OscList):
                 AUCdata_dict_ActiveOnly[key] = filtered_rows
 
 
-            filenameOut = f'{directory}{NrSubtype}_{Osc}_{Cortex}_AUC_perUnitAB.xlsx'
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_AUC_perUnitAB.xlsx'
             with pd.ExcelWriter(filenameOut) as writer:
                 # Iterate over each key-value pair in the dictionary
                 for sheet_name, data_list in AUCdata_dict.items():
@@ -269,7 +293,7 @@ for o, Osc in enumerate(OscList):
                     # Write the DataFrame to a separate sheet
                     df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-            filenameOut = f'{directory}{NrSubtype}_{Osc}_{Cortex}_AUC_perUnit_Active OnlyAB.xlsx'
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_AUC_perUnit_Active OnlyAB.xlsx'
             with pd.ExcelWriter(filenameOut) as writer:
                 # Iterate over each key-value pair in the dictionary
                 for sheet_name, data_list in AUCdata_dict_ActiveOnly.items():
@@ -321,7 +345,7 @@ for o, Osc in enumerate(OscList):
                 SPdata_dict_ActiveOnly[key] = filtered_rows
 
 
-            filenameOut = f'{directory}{NrSubtype}_{Osc}_{Cortex}_SpikeAct_perUnitAB.xlsx'
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_SpikeAct_perUnitAB.xlsx'
             with pd.ExcelWriter(filenameOut) as writer:
                 # Iterate over each key-value pair in the dictionary
                 for sheet_name, data_list in SPdata_dict.items():
@@ -330,7 +354,7 @@ for o, Osc in enumerate(OscList):
                     # Write the DataFrame to a separate sheet
                     df.to_excel(writer, sheet_name=sheet_name, index=False)
 
-            filenameOut = f'{directory}{NrSubtype}_{Osc}_{Cortex}_SpikeAct_perUnit_Active OnlyAB.xlsx'
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_SpikeAct_perUnit_Active OnlyAB.xlsx'
             with pd.ExcelWriter(filenameOut) as writer:
                 # Iterate over each key-value pair in the dictionary
                 for sheet_name, data_list in SPdata_dict_ActiveOnly.items():
