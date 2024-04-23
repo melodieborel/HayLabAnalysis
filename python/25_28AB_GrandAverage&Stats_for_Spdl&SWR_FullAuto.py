@@ -29,7 +29,7 @@ directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch202
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())
-FolderNameSave = FolderNameSave.replace(" ", "").replace(".", "").replace(":", "")
+FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/AB_Analysis/Analysis_AVG_Oscillations_{FolderNameSave}/"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
@@ -66,6 +66,10 @@ for o, Osc in enumerate(OscList):
             dfs3 = []
             df3=[]
             dfs3_per_sheet = {}
+            dfs4 = []
+            df4=[]
+            dfs4_per_sheet = {}
+            combined_df=[]
 
             if NrSubtype=='L1':
                 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'RedLinesOK']
@@ -75,6 +79,7 @@ for o, Osc in enumerate(OscList):
             nametofind=f'{OscillationList[o]}_{Cortex}_ABdetection_GlobalResultsAB'
             nametofind2=f'{OscillationList[o]}_{Cortex}_ABdetection_CalciumAvgResultsAB'
             nametofind3=f'{OscillationList[o]}_{Cortex}_ABdetection_SpikeAvgResultsAB'
+            nametofind4=f'{OscillationList[o]}_{Cortex}_ABdetection_SpikeSumResultsAB'
 
             # Recursively traverse the directory structure
             for root, _, files in os.walk(directory):
@@ -115,6 +120,20 @@ for o, Osc in enumerate(OscList):
                                 else:                    
                                     dfs3_per_sheet[sheet_name] = df3 #one average trace per unique unit, len(df3)==nb unit recorded for that mouse
                             print(filename)
+                    if filename.endswith('.xlsx') and nametofind4 in filename: 
+                        if any(name in filename for name in MiceList): 
+                            # Construct the full path to the file
+                            filepath = os.path.join(root, filename)
+                            # Read the Excel file into a dataframe and append it to the list
+                            excel_data = pd.read_excel(filepath, sheet_name=None, index_col=0, header=None)           
+                            for sheet_name, df4 in excel_data.items():
+                                if sheet_name in dfs4_per_sheet:   
+                                    updated_matrix = pd.concat((dfs4_per_sheet[sheet_name],df4), ignore_index=True, axis=0)                
+                                    dfs4_per_sheet[sheet_name] = updated_matrix                    
+                                else:                    
+                                    dfs4_per_sheet[sheet_name] = df4 #one average trace per unique unit, len(df4)==nb unit recorded for that mouse
+                            print(filename)
+
 
             # GLOBAL
 
@@ -167,15 +186,20 @@ for o, Osc in enumerate(OscList):
 
             excel_writer.close()
 
-            # CALCIUM traces Z-score normalization
+            # CALCIUM traces Normalization
 
-            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_ABdetection_Zscored_CalciumGrandAverageAB.xlsx'
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_ABdetection_Normalized_CalciumGrandAverageAB.xlsx'
             excel_writer = pd.ExcelWriter(filenameOut)
 
-            Array = Array.apply(zscore)
-            ArrayUn=ArrayUn.apply(zscore)
-            ArrayPre=ArrayPre.apply(zscore)
-            ArrayPost=ArrayPost.apply(zscore)
+
+            row_sums = Array.sum(axis=1)
+            Array = Array.div(row_sums, axis=0)
+            row_sums = ArrayUn.sum(axis=1)
+            ArrayUn = ArrayUn.div(row_sums, axis=0)
+            row_sums = ArrayPre.sum(axis=1)
+            ArrayPre = ArrayPre.div(row_sums, axis=0)
+            row_sums = ArrayPost.sum(axis=1)
+            ArrayPost = ArrayPost.div(row_sums, axis=0)
 
             Array.to_excel(excel_writer, sheet_name=f'All_{OscillationList[o]}', index=True, header=False)
             ArrayUn.to_excel(excel_writer, sheet_name=f'Uncoupled_{OscillationList[o]}', index=True, header=False)
@@ -205,18 +229,64 @@ for o, Osc in enumerate(OscList):
             ArrayPost.to_excel(excel_writer, sheet_name=f'Postcoupled_{OscillationList[o]}', index=True, header=False)
 
             excel_writer.close()
+            
+            # SPIKE
 
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_ABdetection_SpikeGrandSumAB.xlsx'
+            excel_writer = pd.ExcelWriter(filenameOut)
+
+            Array=[]
+            ArrayUn=[]
+            ArrayPre=[]
+            ArrayPost=[]
+
+            Array=pd.DataFrame(dfs4_per_sheet[f'All_{OscillationList[o]}'])
+            ArrayUn=pd.DataFrame(dfs4_per_sheet[f'Uncoupled_{OscillationList[o]}'])
+            ArrayPre=pd.DataFrame(dfs4_per_sheet[f'Precoupled_{OscillationList[o]}'])
+            ArrayPost=pd.DataFrame(dfs4_per_sheet[f'Postcoupled_{OscillationList[o]}'])
+
+            Array.to_excel(excel_writer, sheet_name=f'All_{OscillationList[o]}', index=True, header=False)
+            ArrayUn.to_excel(excel_writer, sheet_name=f'Uncoupled_{OscillationList[o]}', index=True, header=False)
+            ArrayPre.to_excel(excel_writer, sheet_name=f'Precoupled_{OscillationList[o]}', index=True, header=False)
+            ArrayPost.to_excel(excel_writer, sheet_name=f'Postcoupled_{OscillationList[o]}', index=True, header=False)
+
+            excel_writer.close()
+
+            # Spike traces Normalization
+
+            filenameOut = f'{folder_to_save}/{NrSubtype}_{Osc}_{Cortex}_ABdetection_Normalized_SpikeGrandSumAB.xlsx'
+            excel_writer = pd.ExcelWriter(filenameOut)
+
+            row_sums = Array.sum(axis=1)
+            Array = Array.div(row_sums, axis=0)
+            row_sums = ArrayUn.sum(axis=1)
+            ArrayUn = ArrayUn.div(row_sums, axis=0)
+            row_sums = ArrayPre.sum(axis=1)
+            ArrayPre = ArrayPre.div(row_sums, axis=0)
+            row_sums = ArrayPost.sum(axis=1)
+            ArrayPost = ArrayPost.div(row_sums, axis=0)
+
+            Array.to_excel(excel_writer, sheet_name=f'All_{OscillationList[o]}', index=True, header=False)
+            ArrayUn.to_excel(excel_writer, sheet_name=f'Uncoupled_{OscillationList[o]}', index=True, header=False)
+            ArrayPre.to_excel(excel_writer, sheet_name=f'Precoupled_{OscillationList[o]}', index=True, header=False)
+            ArrayPost.to_excel(excel_writer, sheet_name=f'Postcoupled_{OscillationList[o]}', index=True, header=False)
+
+            excel_writer.close()
         
-    ########################################################################
-            # SCRIPT 28AB_GrandAverages&Stats_for_Osc
-    ########################################################################
-
+########################################################################
+        # SCRIPT 28AB_GrandAverages&Stats_for_Osc
+########################################################################
+"""
+for o, Osc in enumerate(OscList): 
 
     for NrSubtype in NrSubtypeList:  
+    
 
         for Cortex in CortexList:
 
-            # Load the Excel file into a DataFrame
+            combined_df=[]
+
+            # Load the Excel file into a DataFrame            
 
             analysisfile=f'{Osc}_{Cortex}_ABdetection_GrandGlobalAB'
             combined_df = pd.read_excel(f'{folder_to_save}/{NrSubtype}_{analysisfile}.xlsx', index_col=0)            
@@ -362,3 +432,4 @@ for o, Osc in enumerate(OscList):
                     df = pd.DataFrame(data_list, columns=['Before', 'After'])
                     # Write the DataFrame to a separate sheet
                     df.to_excel(writer, sheet_name=sheet_name, index=False)
+"""
