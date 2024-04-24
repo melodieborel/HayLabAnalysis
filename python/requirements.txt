@@ -21,3 +21,5 @@ xarray
 quantities
 pickleshare
 open-ephys-python-tools
+
+ipympl
