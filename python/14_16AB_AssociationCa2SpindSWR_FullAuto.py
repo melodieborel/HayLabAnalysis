@@ -1,9 +1,10 @@
 # # Associate Ca2+ signal with spindles for each session & subsessions using crossregistration
 
-# Load packages
+#######################################################################################
+                                # Load packages #
+#######################################################################################
 
 import os
-
 import quantities as pq
 import numpy as np
 import math 
@@ -23,6 +24,7 @@ import logging
 import sys 
 import shutil
 from bisect import bisect_left
+from ast import literal_eval
 
 from itertools import groupby
 from ephyviewer import mkQApp, MainViewer, TraceViewer
@@ -43,9 +45,78 @@ from minian.utilities import (
     save_minian,
 )
 
-# Perform analysis for each mouse
+#######################################################################################
+                                # Define functions #
+#######################################################################################
+
+def take_closest(myList, myNumber):        
+    #Assumes myList is sorted. Returns closest value to myNumber.
+    #If two numbers are equally close, return the smallest number.        
+    pos = bisect_left(myList, myNumber)
+    if pos == 0:
+        return 0
+    if pos == len(myList):
+        return len(myList)
+    before = myList[pos - 1]
+    after = myList[pos]
+    if after - myNumber < myNumber - before:
+        return after
+    else:
+        return before
+
+def take_closest2(myList, myNumber):
+    value2 = 10000000
+    for ind in range(len(myList)):
+        value = abs(myList[ind]-myNumber)
+        if value < value2:
+            value2 = value
+            index = myList[ind]
+    return index
+
+def take_closest3(myList, myNumber):
+    pos = bisect_left(myList, myNumber)
+    if pos == 0:
+        return myList[0]
+    if pos == len(myList):
+        return myList[-1]
+    before = myList[pos - 1]
+    after = myList[pos]
+    if after - myNumber < myNumber - before:
+        dummy = myList.index(after)
+        return dummy
+    else:
+        dummy = myList.index(before)
+        return dummy
+
+def is_between(myList, starttime, endtime):
+    IsTrue='False'
+    for ind in range(len(myList)):
+        if starttime <= myList[ind] <= endtime:
+            IsTrue='True'
+    return IsTrue
+
+def is_overlapping(starttime, endtime, starttimeList, endtimeList):
+    IsTrue='False'
+    for ind in range(len(starttimeList)):
+        if starttime<=starttimeList[ind] and starttimeList[ind]<=endtime: # event n°2 begins after the start n°1               
+            if (endtime-starttimeList[ind])>=int(0.5*(endtime-starttime)): # overlapp > to 50% of the duration of the event n°1
+                IsTrue='True'
+        elif starttime<=endtimeList[ind] and endtimeList[ind]<=endtime: # event n°2 ends before the end n°1 
+            if (endtimeList[ind]-starttime)>=int(0.5*(endtime-starttime)): # overlapp > to 50% of the duration of the event n°1
+                IsTrue='True'
+    return IsTrue
+
+def Convert(string):
+    li = list(string.split(", "))
+    li2 = len(li)
+    return li2
+    
+#######################################################################################
+                # Load sleep score and Ca2+ time series numpy arrays #
+#######################################################################################
 
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
+MiceList=['GreenDotsOK']
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())
@@ -61,11 +132,12 @@ shutil.copy(source_script, destination_file_path)
 
 for micename in MiceList:
 
-    # Load sleep score and Ca2+ time series numpy arrays
-
     dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
     dpath=dpath0 + micename
-    print(dpath)
+    print(f"####################################################################################")
+    print(f"################################### {micename} ####################################")
+    print(f"####################################################################################")
+    print(f"Path to the folder : {dpath}")
     folder_base = Path(dpath)
 
     nb_sessions = sum(1 for p in folder_base.iterdir() if p.is_dir() and p.name.startswith("session"))
@@ -140,72 +212,14 @@ for micename in MiceList:
                 with open(TodropFile, 'r') as f:
                     unit_to_drop = json.load(f)
                     dict_TodropFile[session]  = unit_to_drop
-
-
-    # Define functions
-
-    def take_closest(myList, myNumber):        
-        #Assumes myList is sorted. Returns closest value to myNumber.
-        #If two numbers are equally close, return the smallest number.        
-        pos = bisect_left(myList, myNumber)
-        if pos == 0:
-            return 0
-        if pos == len(myList):
-            return len(myList)
-        before = myList[pos - 1]
-        after = myList[pos]
-        if after - myNumber < myNumber - before:
-            return after
-        else:
-            return before
-
-    def take_closest2(myList, myNumber):
-        value2 = 10000000
-        for ind in range(len(myList)):
-            value = abs(myList[ind]-myNumber)
-            if value < value2:
-                value2 = value
-                index = myList[ind]
-        return index
-
-    def take_closest3(myList, myNumber):
-        pos = bisect_left(myList, myNumber)
-        if pos == 0:
-            return myList[0]
-        if pos == len(myList):
-            return myList[-1]
-        before = myList[pos - 1]
-        after = myList[pos]
-        if after - myNumber < myNumber - before:
-            dummy = myList.index(after)
-            return dummy
-        else:
-            dummy = myList.index(before)
-            return dummy
-
-    def is_between(myList, starttime, endtime):
-        IsTrue='False'
-        for ind in range(len(myList)):
-            if starttime <= myList[ind] <= endtime:
-                IsTrue='True'
-        return IsTrue
     
-    def is_overlapping(starttime, endtime, starttimeList, endtimeList):
-        IsTrue='False'
-        for ind in range(len(starttimeList)):
-            if starttime<=starttimeList[ind] and starttimeList[ind]<=endtime: # event n°2 begins after the start n°1               
-                if (endtime-starttimeList[ind])>=int(0.5*(endtime-starttime)): # overlapp > to 50% of the duration of the event n°1
-                    IsTrue='True'
-            elif starttime<=endtimeList[ind] and endtimeList[ind]<=endtime: # event n°2 ends before the end n°1 
-                if (endtimeList[ind]-starttime)>=int(0.5*(endtime-starttime)): # overlapp > to 50% of the duration of the event n°1
-                    IsTrue='True'
-        return IsTrue
+    #######################################################################################
+                             # Detect Overlapping Spindles #
+    #######################################################################################
     
-    # Detect Overlapping Spindles
-
-    for i in list(dict_Stamps.keys()):    
-        listSpdlPFC= dict_Spindleprop_PFC[i]
-        listSpdlS1= dict_Spindleprop_S1[i]
+    for session in sessions:
+        listSpdlPFC= dict_Spindleprop_PFC[session]
+        listSpdlS1= dict_Spindleprop_S1[session]
         listSpdlPFCstarts=listSpdlPFC["start time"]
         listSpdlPFCends=listSpdlPFC["end time"]
         listSpdlS1starts=listSpdlS1["start time"]
@@ -215,32 +229,37 @@ for micename in MiceList:
             endPFC=listSpdlPFCends[ss]
             Istrue=is_overlapping(startPFC, endPFC, listSpdlS1starts, listSpdlS1ends)
             listSpdlPFC.loc[ss, 'GlobalSpindle'] =Istrue
-        dict_Spindleprop_PFC[i]=listSpdlPFC
+        dict_Spindleprop_PFC[session]=listSpdlPFC
         filenameOut = folder_base /session / f'OpenEphys/Spindlesproperties_PFC_sd5bis_AB.xlsx'
         print(filenameOut)
         writer = pd.ExcelWriter(filenameOut)
-        dict_Spindleprop_PFC[i].to_excel(writer)
+        dict_Spindleprop_PFC[session].to_excel(writer)
         writer.close()
         for ss in range(len(listSpdlS1starts)): # for S1 
             startS1=listSpdlS1starts[ss]
             endS1=listSpdlS1ends[ss]
             Istrue=is_overlapping(startS1, endS1, listSpdlPFCstarts, listSpdlPFCends)
             listSpdlS1.loc[ss, 'GlobalSpindle'] =Istrue       
-        dict_Spindleprop_S1[i]=listSpdlS1
+        dict_Spindleprop_S1[session]=listSpdlS1
         filenameOut = folder_base /session / f'OpenEphys/Spindlesproperties_S1_sd5bis_AB.xlsx'
         print(filenameOut)
         writer = pd.ExcelWriter(filenameOut)
-        dict_Spindleprop_S1[i].to_excel(writer)
+        dict_Spindleprop_S1[session].to_excel(writer)
         writer.close()
-  
-    # Cross registration results
+    
+    #######################################################################################
+                            # Cross registration results #
+    #######################################################################################
 
     B = mapping['session']
     if os.path.basename(folder_base) == 'Purple':
         index = B.columns
         B.columns = index.str.replace('part', 'session2')
 
-    # Distribute Ca2+ intensity & spikes to vigilance state for each sessions/subsessions
+
+    #######################################################################################
+      # Distribute Ca2+ intensity & spikes to oscillations for each sessions/subsessions #
+    #######################################################################################
 
     CortexList= ['PFC', 'S1']
 
@@ -256,8 +275,8 @@ for micename in MiceList:
 
         norm_freq=20 # final miniscope frequency used for all recordings
 
-        Spindles_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','SpdlStatut','SpdlNumber','SpdlDuration (ms)','SWR inside Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityAfter','AUC_spikeBefore', 'AUC_spikeAfter'])
-        SWR_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','SWRStatut','SWRNumber','SWRDuration (ms)','SWR inside Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityAfter','AUC_spikeBefore', 'AUC_spikeAfter'])
+        Spindles_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','SpdlStatut','SpdlNumber','SpdlDuration (ms)','SWR inside Spdl','GlobalSpindle','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityAfter'])
+        SWR_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','SWRStatut','SWRNumber','SWRDuration (ms)','SWR inside Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityAfter'])
 
         dict_All_ActivityCa_spin={}
         dict_All_ActivityCa_spin_Precoupled={}
@@ -288,7 +307,7 @@ for micename in MiceList:
         previousEndTime=0
         InitialStartTime=0
 
-        for i in list(dict_Stamps.keys()):    
+        for session in sessions: #i in list(dict_Stamps.keys()):    
             cPreCoupled=0
             cPostCoupled=0
             cUnCoupled=0
@@ -300,28 +319,19 @@ for micename in MiceList:
             cUnCoupledSWR=0
             
             # Start time & freq miniscope
-            StartTime = list(dict_Stamps[i][0])[0] # in seconds
-            minian_freq=list(dict_Stamps[i][0])[2] # in Hz
 
-            if minian_freq>=20: # should only remove 1 session 
+            StartTime = list(dict_Stamps[session][0])[0] # in seconds
+            minian_freq=list(dict_Stamps[session][0])[2] # in Hz
 
-                # start time session 2
-                def Convert(string):
-                    li = list(string.split(", "))
-                    li2 = len(li)
-                    return li2
-                stri = dict_Stamps[i][0][3]
-                numbdropfr = Convert(stri)
+            if minian_freq>=20: # should only remove 1 session                
 
-                from ast import literal_eval
-                list_droppedframes = literal_eval(dict_Stamps[i][0][3])
-
-                First_frame = 0 
-                C=dict_Calcium[i]
+                C=dict_Calcium[session]
                 Cupd = C.loc[:, :]
                 rec_dur = Cupd.shape[1]
-                S=dict_Spike[i] 
+                S=dict_Spike[session] 
                 Supd = S.loc[:, :] 
+
+                # Adjust the StartTime if subsessions
 
                 if InitialStartTime==0:
                     InitialStartTime=StartTime    
@@ -331,46 +341,64 @@ for micename in MiceList:
                     else:  
                         InitialStartTime=StartTime   
 
-                if len(list_droppedframes) > 0:
-                    numbdropfr = sum(1 for item in list_droppedframes if item < (int(StartTime*minian_freq) + rec_dur) and item > int(StartTime*minian_freq))
-                else:
-                    numbdropfr = 0   
+                # Deal with dropped frames (failure to acquire miniscope images)
 
-                EndTime = StartTime + ((rec_dur + numbdropfr)/minian_freq) # in seconds
+                list_droppedframes = literal_eval(dict_Stamps[session][0][3])    
+
+                numbdropfr= 0   
+                upd_rec_dur=rec_dur
+                droppedframes_inrec=[]
+                for item in list_droppedframes: 
+                    if item < (int(StartTime*minian_freq) + upd_rec_dur) and item > int(StartTime*minian_freq):
+                        droppedframes_inrec.append(item)
+                        upd_rec_dur+=1 #add the dropped frame to the recording length
+                        numbdropfr+=1                        
+
+                EndTime = StartTime + (upd_rec_dur/minian_freq) # in seconds
                 previousEndTime=EndTime     
 
-                print(i, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round((rec_dur + numbdropfr)/minian_freq,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, ')...') 
+                print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(upd_rec_dur/minian_freq,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, ')...') 
                 
+                # Remove bad units from recordings
+
                 AA = C['unit_id']
                 copyAA = list(AA.copy())
-                unit_to_drop=dict_TodropFile[i]    
-                for u in unit_to_drop:
+                unit_to_drop=dict_TodropFile[session]    
+                for u in unit_to_drop: # ugly way to do it, need to be improved to only use unit_to_drop
                     copyAA.remove(u)
                 unit_to_keep = copyAA
                 Cupd = Cupd.loc[unit_to_keep,:]
+                Carray = Cupd.values.T
                 Supd = Supd.loc[unit_to_keep,:]
+                Sarray = Supd.values.T
                 nb_unit = Cupd.shape[0]
                 units = range(nb_unit)
-                
-                Cseries = Cupd.to_series()
+                              
                 C_upd_unit_id = Cupd['unit_id'].values
-                Sseries = Supd.to_series()
-                #sentence1= f"... kept values = {C_upd_unit_id}"
-
                 kept_uniq_unit_List=[]
                 for unit in units:
-                    indexMapp = np.where(B[i] == C_upd_unit_id[unit])[0]
+                    indexMapp = np.where(B[session] == C_upd_unit_id[unit])[0]
                     kept_uniq_unit_List.append(str(indexMapp))
 
                 sentence1= f"... kept values = {kept_uniq_unit_List}"
-                print(sentence1) 
-                
+                print(sentence1)     
+
+                # Replace dropped frame in calcium and spike traces with the previous value
+
+                for droppedframe in droppedframes_inrec: 
+                    row_to_repeat = Carray[droppedframe]  
+                    Carray = np.vstack((Carray[:droppedframe], row_to_repeat, Carray[droppedframe:]))
+                    row_to_repeat = Sarray[droppedframe]  
+                    Sarray = np.vstack((Sarray[:droppedframe], row_to_repeat, Sarray[droppedframe:]))
+
+                # Align Oscillations to miniscope start 
+
                 dictnameSpdl=f'dict_Spindleprop_{Cortex}' #change dict according to the cortex 
                 dictSpdl = globals()[dictnameSpdl]
 
-                SpipropO=dictSpdl[i]
+                SpipropO=dictSpdl[session]
                 SpipropM=SpipropO.copy()
-                SWRpropO=dict_SWRprop[i]
+                SWRpropO=dict_SWRprop[session]
                 SWRpropM=SWRpropO.copy()
                 SpipropM[["peak time", "start time", "end time"]] = SpipropM[["peak time", "start time", "end time"]]-(StartTime*1000)
                 SWRpropM[["peak time", "start time", "end time"]] = SWRpropM[["peak time", "start time", "end time"]]-(StartTime*1000)        
@@ -381,7 +409,7 @@ for micename in MiceList:
                 timeSWR = range(int(durationSWR*2*minian_freq))
                 HalfSWR = int(durationSWR*minian_freq)
 
-                TimeStamps_miniscope=list(dict_StampsMiniscope[i]["Time Stamp (ms)"]) # + (StartTime*1000))
+                TimeStamps_miniscope=list(dict_StampsMiniscope[session]["Time Stamp (ms)"]) # + (StartTime*1000))
 
                 SpipropTrunc = SpipropM[SpipropM["start time"]>0]
                 SpipropTrunc = SpipropTrunc[SpipropTrunc["start time"]< (EndTime-StartTime)*1000]
@@ -391,12 +419,14 @@ for micename in MiceList:
                 nb_spindle = SpipropTrunc.shape[0]
                 nb_swr = SWRpropTrunc.shape[0]
 
-                for ii, unit in enumerate(units): # for each kept units (cause Cseries/Sseries only have kept units)
+                for unit in units: # for each kept units (cause Cseries/Sseries only have kept units)
 
-                    lCseries = np.array(Cseries)[(unit)*(rec_dur + numbdropfr):(unit+1)*(rec_dur + numbdropfr)]
-                    lSseries = np.array(Sseries)[(unit)*(rec_dur + numbdropfr):(unit+1)*(rec_dur + numbdropfr)]
+                    Carray_unit =Carray[:,unit]
+                    Sarray_unit =Sarray[:,unit]
 
-                    ### FOR SPDLs
+                    #######################################################################################
+                                                        # for SPDLs #
+                    #######################################################################################
 
                     ActivityCa_Spin = [] #For each unit  
                     ActivityCa_Spin_Precoupled= [] #For each unit 
@@ -423,13 +453,15 @@ for micename in MiceList:
                         endSpi=endSpiList[Pspin]                        
 
                         TooEarlySpdl=startSpi/1000<durationSpdl # too close to the begining of the recording
-                        TooLateSpdl=startSpi/1000+durationSpdl>round((rec_dur + numbdropfr)/minian_freq,1) # too close to the end of the recording
+                        TooLateSpdl=startSpi/1000+durationSpdl>round((upd_rec_dur)/minian_freq,1) # too close to the end of the recording
                         if TooEarlySpdl or TooLateSpdl:
-                            print(" /!\ Spindle too close to the begining/end of the recording,", i, ", Spdl n°", Pspin, ", Start Spdl =", int(startSpi/1000), "s") if ii==0 else None            
+                            print(" /!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit==0 else None            
                         else:
-                            Frame_Spindle_start = int(startSpi/1000*minian_freq)
-                            CaTrace = list(lCseries[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl])
-                            SpTraceO = list(lSseries[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl]) 
+
+                            Frame_Spindle_start = int(startSpi/1000*minian_freq)                            
+                            CaTrace = list(Carray_unit[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl])
+                            SpTraceO = list(Sarray_unit[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl]) 
+                            
                             peaks, _ = find_peaks(SpTraceO, height=np.std(SpTraceO))
                             SpTrace=np.zeros(len(SpTraceO))
                             SpTrace[peaks]=1
@@ -446,22 +478,22 @@ for micename in MiceList:
                                 distance = startClosest_SWR - startSpi
                                 if (distance > (- before)) and (distance <  0):
                                     Spdl_statut = ['PreCoupled']
-                                    cPreCoupled+=1 if ii==1 else 0
+                                    cPreCoupled+=1 if unit==0 else 0
                                     ActivityCa_Spin_Precoupled.append(CaTrace)
                                     ActivitySp_Spin_Precoupled.append(SpTraceO)
                                 elif (distance > (0)) and (distance <  after):
                                     Spdl_statut = ['PostCoupled']
-                                    cPostCoupled+=1 if ii==1 else 0
+                                    cPostCoupled+=1 if unit==0 else 0
                                     ActivityCa_Spin_Postcoupled.append(CaTrace)
                                     ActivitySp_Spin_Postcoupled.append(SpTraceO)
                                 else:
                                     Spdl_statut= ['UnCoupled']
-                                    cUnCoupled+=1 if ii==1 else 0
+                                    cUnCoupled+=1 if unit==0 else 0
                                     ActivityCa_Spin_Uncoupled.append(CaTrace)
                                     ActivitySp_Spin_Uncoupled.append(SpTraceO)
                             else:
                                 Spdl_statut= ['UnCoupled']
-                                cUnCoupled+=1 if ii==1 else 0
+                                cUnCoupled+=1 if unit==0 else 0
                                 ActivityCa_Spin_Uncoupled.append(CaTrace)
                                 ActivitySp_Spin_Uncoupled.append(SpTraceO)
 
@@ -470,20 +502,20 @@ for micename in MiceList:
                             if GlobalSpdlList[Pspin]=='True':
                                 ActivityCa_GlobalSpdl.append(CaTrace)
                                 ActivitySp_GlobalSpdl.append(SpTraceO)
-                                cGlobal+=1 if ii==1 else 0
+                                cGlobal+=1 if unit==0 else 0
                             else:
                                 ActivityCa_LocalSpdl.append(CaTrace)
                                 ActivitySp_LocalSpdl.append(SpTraceO)
-                                cLocal+=1 if ii==1 else 0
+                                cLocal+=1 if unit==0 else 0
 
                             # Fill the big summary table Spindles_GlobalResults
 
                             Spindles_GlobalResults.loc[counter, 'Mice'] = os.path.basename(folder_base)
-                            Spindles_GlobalResults.loc[counter, 'Session'] = i 
+                            Spindles_GlobalResults.loc[counter, 'Session'] = session
                             Spindles_GlobalResults.loc[counter, 'Session_Time'] = None 
                             mapping['session'].columns.tolist()
 
-                            indexMapp = np.where(B[i] == C_upd_unit_id[unit])[0]
+                            indexMapp = np.where(B[session] == C_upd_unit_id[unit])[0]
                             Spindles_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
                             Spindles_GlobalResults.loc[counter, 'UnitNumber'] = unit 
                             Spindles_GlobalResults.loc[counter, 'UnitValue'] = C_upd_unit_id[unit] 
@@ -525,10 +557,9 @@ for micename in MiceList:
                     list_dict_All_ActivityCa= ['dict_All_ActivityCa_spin', 'dict_All_ActivityCa_spin_Precoupled', 'dict_All_ActivityCa_spin_Postcoupled', 'dict_All_ActivityCa_spin_Uncoupled', 'dict_All_ActivityCa_GlobalSpdl', 'dict_All_ActivityCa_LocalSpdl']
                     for it, ActivityCaNames in enumerate(list_ActivityCa): # for each Spdl types
                         if len(indexMapp) > 0: #not empty --> cause some units are not in the cross registration..! Need to know why 
-
                             ActivityCa = locals()[ActivityCaNames]
                             dict_All_ActivityCa = locals()[list_dict_All_ActivityCa[it]]       
-                            if len(ActivityCa)>0 :    
+                            if len(ActivityCa)>0 :                                
                                 if np.shape(np.array(ActivityCa))[1] == int(norm_freq*durationSpdl*2):  #normalize traces to the same frequency rate         
                                     ActivityCa= np.reshape(np.array(ActivityCa), (-1, len(np.array(ActivityCa)))) if np.ndim(ActivityCa) == 1 else np.array(ActivityCa)    
                                     dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(ActivityCa), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(ActivityCa)
@@ -541,10 +572,8 @@ for micename in MiceList:
                                     resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
                                     resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
                                     dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(resampled_data)
-                            sentence1bis=""
                         else: 
-                            sentence1bis=f"/!\ Cell idx {unit} not in the cross registration" if it==1 else ""
-                            print(sentence1bis) if it==1 else None
+                            print(f"/!\ Cell idx {unit} not in the cross registration") if it==1 else None
                     
                     # All Sp traces for each spindles per Unique unit (according to cross-registration)
 
@@ -552,7 +581,6 @@ for micename in MiceList:
                     list_dict_All_ActivitySp= ['dict_All_ActivitySp_spin', 'dict_All_ActivitySp_spin_Precoupled', 'dict_All_ActivitySp_spin_Postcoupled', 'dict_All_ActivitySp_spin_Uncoupled', 'dict_All_ActivitySp_GlobalSpdl', 'dict_All_ActivitySp_LocalSpdl']
                     for it, ActivitySpNames in enumerate(list_ActivitySp): # for each Spdl types
                         if len(indexMapp) > 0: #not empty --> cause some units are not in the cross registration..! Need to know why 
-
                             ActivitySp = locals()[ActivitySpNames]
                             dict_All_ActivitySp = locals()[list_dict_All_ActivitySp[it]]       
                             if len(ActivitySp)>0 :    
@@ -581,7 +609,9 @@ for micename in MiceList:
                                         resampled_data[cl]=SpTrace    
                                     dict_All_ActivitySp[str(indexMapp)] = np.append(dict_All_ActivitySp[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivitySp else np.array(resampled_data)
                                     
-                    ### FOR SWRs
+                    #######################################################################################
+                                                        # for SWRs #
+                    #######################################################################################
 
                     ActivityCa_swr = [] #For each unit  
                     ActivityCa_swr_Precoupled= [] #For each unit 
@@ -604,14 +634,14 @@ for micename in MiceList:
                         endSwr=endSwrList[Pswr]
                         
                         TooEarlySWR=startSwr/1000<durationSWR # too close to the begining of the recording
-                        TooLateSWR=startSwr/1000+durationSWR>round((rec_dur + numbdropfr)/minian_freq,1) # too close to the end of the recording
+                        TooLateSWR=startSwr/1000+durationSWR>round((upd_rec_dur)/minian_freq,1) # too close to the end of the recording
                         if TooEarlySWR or TooLateSWR:
-                            print("/!\ SWR too close to the begining/end of the recording,", i, ", SWR n°", Pswr, ", Start SWR =",  int(startSwr/1000), "s") if ii==0 else None 
+                            print("/!\ SWR too close to the begining/end of the recording,", session, ", SWR n°", Pswr, ", Start SWR =",  round(startSwr/1000,1), "s") if unit==0 else None 
                         else:
 
                             Frame_SWR_start = int(startSwr/1000*minian_freq)
-                            CaTrace = list(lCseries[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR])
-                            SpTraceO = list(lSseries[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR]) 
+                            CaTrace = list(Carray_unit[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR])
+                            SpTraceO = list(Sarray_unit[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR]) 
                             peaks, _ = find_peaks(SpTraceO, height=np.std(SpTraceO))
                             SpTrace=np.zeros(len(SpTraceO))
                             SpTrace[peaks]=1
@@ -632,33 +662,33 @@ for micename in MiceList:
                                 IsTrue = 'False'             
                                 if (distance > (- before)) and (distance <  0):
                                     SWR_statut = ['Postcoupled']
-                                    cPostCoupledSWR+=1 if ii==1 else 0
+                                    cPostCoupledSWR+=1 if unit==0 else 0
                                     ActivityCa_swr_Postcoupled.append(CaTrace)
                                     ActivitySp_swr_Postcoupled.append(SpTraceO)
                                     if startSwr<endClosest_Spi:
                                         IsTrue = 'True' #SWR inside the Spindle
                                 elif (distance > (0)) and (distance <  after):
                                     SWR_statut = ['Precoupled']
-                                    cPreCoupledSWR+=1 if ii==1 else 0
+                                    cPreCoupledSWR+=1 if unit==0 else 0
                                     ActivityCa_swr_Precoupled.append(CaTrace)
                                     ActivitySp_swr_Precoupled.append(SpTraceO)
                                 else:
                                     SWR_statut= ['UnCoupled']
-                                    cUnCoupledSWR+=1 if ii==1 else 0
+                                    cUnCoupledSWR+=1 if unit==0 else 0
                                     ActivityCa_swr_Uncoupled.append(CaTrace)
                                     ActivitySp_swr_Uncoupled.append(SpTraceO)
                             else: 
                                 SWR_statut= ['UnCoupled']
-                                cUnCoupledSWR+=1 if ii==1 else 0
+                                cUnCoupledSWR+=1 if unit==0 else 0
                                 ActivityCa_swr_Uncoupled.append(CaTrace)
                                 ActivitySp_swr_Uncoupled.append(SpTraceO)
 
                             # Fill the big summary table SWR_GlobalResults
 
                             SWR_GlobalResults.loc[counter2, 'Mice'] = os.path.basename(folder_base)
-                            SWR_GlobalResults.loc[counter2, 'Session'] = i 
+                            SWR_GlobalResults.loc[counter2, 'Session'] = session
                             SWR_GlobalResults.loc[counter2, 'Session_Time'] = None 
-                            indexMapp = np.where(B[i] == C_upd_unit_id[unit])[0]
+                            indexMapp = np.where(B[session] == C_upd_unit_id[unit])[0]
                             SWR_GlobalResults.loc[counter2, 'Unique_Unit'] = indexMapp 
                             SWR_GlobalResults.loc[counter2, 'UnitNumber'] = unit 
                             SWR_GlobalResults.loc[counter2, 'UnitValue'] = C_upd_unit_id[unit] 
@@ -697,10 +727,9 @@ for micename in MiceList:
                     list_dict_All_ActivityCa= ['dict_All_ActivityCa_swr', 'dict_All_ActivityCa_swr_Precoupled', 'dict_All_ActivityCa_swr_Postcoupled', 'dict_All_ActivityCa_swr_Uncoupled']
                     for it, ActivityCaNames in enumerate(list_ActivityCa): 
                         if len(indexMapp) > 0: #not empty --> cause some units are not in the cross registration..! Need to know why 
-
                             ActivityCa = locals()[ActivityCaNames]
                             dict_All_ActivityCa = locals()[list_dict_All_ActivityCa[it]]                
-                            if len(ActivityCa)>0 :  
+                            if len(ActivityCa)>0 :                                  
                                 if np.shape(np.array(ActivityCa))[1] == int(norm_freq*durationSWR*2):   #normalize traces to the same frequency rate    
                                     ActivityCa= np.reshape(np.array(ActivityCa), (-1, len(np.array(ActivityCa)))) if np.ndim(ActivityCa) == 1 else np.array(ActivityCa)    
                                     dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(ActivityCa), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(ActivityCa)
@@ -748,14 +777,14 @@ for micename in MiceList:
                                         SpTrace[peaks]=1
                                         resampled_data[cl]=SpTrace
                                     dict_All_ActivitySp[str(indexMapp)] = np.append(dict_All_ActivitySp[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivitySp else np.array(resampled_data)
+            else:
+                print(f'/!\ {session} not taken into account cause minian frequency = {minian_freq}')
             sentence2=f"... in {Cortex}: {nb_spindle} spindles ({cPreCoupled} Pre, {cPostCoupled} Post & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global & {cLocal} Local) and {nb_swr} SWR detected ({cPreCoupledSWR} Pre, {cPostCoupledSWR} Post & {cUnCoupledSWR} Uncoupled SWR)"
-            print(sentence2)
-        sentence3=f"Nb of unique units for {os.path.basename(folder_base)} = {len(dict_All_ActivityCa_spin)}"
-        print(sentence3)
+            print(sentence2)       
 
-        ############################
-        ## Save Spindles analysis ##
-        ############################
+        #######################################################################################
+                                # Save Spindles analysis #
+        #######################################################################################
 
         # Save the big summary table Spindles_GlobalResults
 
@@ -882,9 +911,9 @@ for micename in MiceList:
 
         excel_writer.close()
 
-        #######################
-        ## Save SWR analysis ##
-        #######################
+        #######################################################################################
+                                        # Save SWR analysis #
+        #######################################################################################
 
         # Save the big summary table SWR_GlobalResults
 
@@ -980,3 +1009,6 @@ for micename in MiceList:
         ArrayPost.to_excel(excel_writer, sheet_name='Postcoupled_SWR', index=True, header=False)
 
         excel_writer.close() 
+
+    sentence3=f"Nb of unique units for {os.path.basename(folder_base)} = {len(dict_All_ActivityCa_spin)}"
+    print(sentence3)
