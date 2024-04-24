@@ -46,7 +46,6 @@ from minian.utilities import (
 # Perform analysis for each mouse
 
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
-MiceList=['BlackLinesOK']
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())
@@ -92,8 +91,7 @@ for micename in MiceList:
     sessions = [folder.name for folder in folder_base.iterdir() if folder.is_dir() and "session" in folder.name]
     print(sessions)
 
-    for session in sessions: #range(1, nb_sessions+1):
-        #session= 'session' + str(y)
+    for session in sessions:
         folder_mini = folder_base / session / f'V4_Miniscope'
         nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
         SWRproperties = folder_base /session / f'OpenEphys/SWRproperties_sd6_AB.csv'
@@ -219,6 +217,7 @@ for micename in MiceList:
             listSpdlPFC.loc[ss, 'GlobalSpindle'] =Istrue
         dict_Spindleprop_PFC[i]=listSpdlPFC
         filenameOut = folder_base /session / f'OpenEphys/Spindlesproperties_PFC_sd5bis_AB.xlsx'
+        print(filenameOut)
         writer = pd.ExcelWriter(filenameOut)
         dict_Spindleprop_PFC[i].to_excel(writer)
         writer.close()
@@ -229,6 +228,7 @@ for micename in MiceList:
             listSpdlS1.loc[ss, 'GlobalSpindle'] =Istrue       
         dict_Spindleprop_S1[i]=listSpdlS1
         filenameOut = folder_base /session / f'OpenEphys/Spindlesproperties_S1_sd5bis_AB.xlsx'
+        print(filenameOut)
         writer = pd.ExcelWriter(filenameOut)
         dict_Spindleprop_S1[i].to_excel(writer)
         writer.close()
