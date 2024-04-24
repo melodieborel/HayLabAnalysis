@@ -25,12 +25,12 @@ import shutil
 ########################################################################
 
 # Specify the directory containing the Excel files
-directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/AB_Analysis/Analysis_Oscillations_2024_04_22_16_37_21_655676"
+directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/OscillationsAnalysis_PerMouse_2024_04_23_16_44_09_660666"
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording/AB_Analysis/Analysis_AVG_Oscillations_{FolderNameSave}/"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/GlobalOscillationsAnalysis_{FolderNameSave}/"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
