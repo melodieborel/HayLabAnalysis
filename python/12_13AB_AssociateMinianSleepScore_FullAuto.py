@@ -75,18 +75,19 @@ for micename in MiceList:
     dict_Stamps = {}
     dict_TodropFile = {}
 
-    for y in range(1, nb_sessions+1):
-        session= 'session' + str(y)
+    sessions = [folder for folder in folder_base.iterdir() if folder.is_dir() and "session" in folder.name]
+
+    for session in sessions: #range(1, nb_sessions+1):
+        #session= 'session' + str(y)
         print(session)
-        sessions.append(session)
-        folder_mini = folder_base / f'session{y}/V4_Miniscope'
+        folder_mini = folder_base / session / f'V4_Miniscope'
         nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
-        ScoringFile = folder_base / f'session{y}/OpenEphys/ScoredSleep.npy'
-        StampsFile = folder_base / f'session{y}/SynchroFile.xlsx'
+        ScoringFile = folder_base / session/ f'OpenEphys/ScoredSleep.npy'
+        StampsFile = folder_base / session/ f'SynchroFile.xlsx'
 
         if nb_subsessions!=0:
             for x in range(1, nb_subsessions+1):            
-                subsession= "session"  + str(y) + str(x)
+                subsession= session + str(x)
                 subsessions.append(subsession)    
                 minian_ds = open_minian(folder_mini / subsession / f'minian')      # OR minianAB
                 dict_Calcium[subsession] = minian_ds['C'] # calcium traces 
