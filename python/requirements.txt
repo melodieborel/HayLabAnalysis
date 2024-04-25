@@ -1,0 +1,25 @@
+ipykernel
+
+ipyfilechooser
+jupyter_bokeh
+ipykernel
+
+#pour ephysviewer:
+ephyviewer
+PySide6
+pyqtgraph
+numpy
+scipy
+matplotlib
+Neo
+PyAV
+pandas
+spikeinterface
+
+dask
+xarray
+quantities
+pickleshare
+open-ephys-python-tools
+
+ipympl
