@@ -116,12 +116,11 @@ def Convert(string):
 #######################################################################################
 
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
-MiceList=['ThreeBlueCrossesOK']
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_").replace("-", "_")
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/OscillationsAnalysis_PerMouse_{FolderNameSave}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AB_Analysis/OscillationsAnalysis_PerMouse_{FolderNameSave}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -220,35 +219,68 @@ for micename in MiceList:
     for session in sessions:        
         folder_mini = folder_base / session / f'V4_Miniscope'
         nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
-        Foldersession= session[:-1] if nb_subsessions!=0 else session
-        listSpdlPFC= dict_Spindleprop_PFC[session]
-        listSpdlS1= dict_Spindleprop_S1[session]
-        listSpdlPFCstarts=listSpdlPFC["start time"]
-        listSpdlPFCends=listSpdlPFC["end time"]
-        listSpdlS1starts=listSpdlS1["start time"]
-        listSpdlS1ends=listSpdlS1["end time"]
-        for ss in range(len(listSpdlPFCstarts)): # for PFC 
-            startPFC=listSpdlPFCstarts[ss]
-            endPFC=listSpdlPFCends[ss]
-            Istrue=is_overlapping(startPFC, endPFC, listSpdlS1starts, listSpdlS1ends)
-            listSpdlPFC.loc[ss, 'GlobalSpindle'] =Istrue
-        dict_Spindleprop_PFC[session]=listSpdlPFC
-        filenameOut = folder_base / Foldersession / f'OpenEphys/Spindlesproperties_PFC_sd5bis_AB.xlsx'
-        print(filenameOut)
-        writer = pd.ExcelWriter(filenameOut)
-        dict_Spindleprop_PFC[session].to_excel(writer)
-        writer.close()
-        for ss in range(len(listSpdlS1starts)): # for S1 
-            startS1=listSpdlS1starts[ss]
-            endS1=listSpdlS1ends[ss]
-            Istrue=is_overlapping(startS1, endS1, listSpdlPFCstarts, listSpdlPFCends)
-            listSpdlS1.loc[ss, 'GlobalSpindle'] =Istrue       
-        dict_Spindleprop_S1[session]=listSpdlS1
-        filenameOut = folder_base /Foldersession / f'OpenEphys/Spindlesproperties_S1_sd5bis_AB.xlsx'
-        print(filenameOut)
-        writer = pd.ExcelWriter(filenameOut)
-        dict_Spindleprop_S1[session].to_excel(writer)
-        writer.close()
+        if nb_subsessions!=0:
+            for x in range(1, nb_subsessions+1):            
+                subsession= session + str(x)
+                listSpdlPFC= dict_Spindleprop_PFC[subsession]
+                listSpdlS1= dict_Spindleprop_S1[subsession]
+                listSpdlPFCstarts=listSpdlPFC["start time"]
+                listSpdlPFCends=listSpdlPFC["end time"]
+                listSpdlS1starts=listSpdlS1["start time"]
+                listSpdlS1ends=listSpdlS1["end time"]
+                for ss in range(len(listSpdlPFCstarts)): # for PFC 
+                    startPFC=listSpdlPFCstarts[ss]
+                    endPFC=listSpdlPFCends[ss]
+                    Istrue=is_overlapping(startPFC, endPFC, listSpdlS1starts, listSpdlS1ends)
+                    listSpdlPFC.loc[ss, 'GlobalSpindle'] =Istrue
+                dict_Spindleprop_PFC[subsession]=listSpdlPFC
+                if x==1 : #no need to overwritte for each subsession
+                    filenameOut = folder_base / session / f'OpenEphys/Spindlesproperties_PFC_sd5bis_AB.xlsx'
+                    print(filenameOut)
+                    writer = pd.ExcelWriter(filenameOut)
+                    dict_Spindleprop_PFC[subsession].to_excel(writer)
+                    writer.close()
+                for ss in range(len(listSpdlS1starts)): # for S1 
+                    startS1=listSpdlS1starts[ss]
+                    endS1=listSpdlS1ends[ss]
+                    Istrue=is_overlapping(startS1, endS1, listSpdlPFCstarts, listSpdlPFCends)
+                    listSpdlS1.loc[ss, 'GlobalSpindle'] =Istrue       
+                dict_Spindleprop_S1[subsession]=listSpdlS1
+                if x==1 : #no need to overwritte for each subsession
+                    filenameOut = folder_base /session / f'OpenEphys/Spindlesproperties_S1_sd5bis_AB.xlsx'
+                    print(filenameOut)
+                    writer = pd.ExcelWriter(filenameOut)
+                    dict_Spindleprop_S1[subsession].to_excel(writer)
+                    writer.close()
+        else: 
+            listSpdlPFC= dict_Spindleprop_PFC[session]
+            listSpdlS1= dict_Spindleprop_S1[session]
+            listSpdlPFCstarts=listSpdlPFC["start time"]
+            listSpdlPFCends=listSpdlPFC["end time"]
+            listSpdlS1starts=listSpdlS1["start time"]
+            listSpdlS1ends=listSpdlS1["end time"]
+            for ss in range(len(listSpdlPFCstarts)): # for PFC 
+                startPFC=listSpdlPFCstarts[ss]
+                endPFC=listSpdlPFCends[ss]
+                Istrue=is_overlapping(startPFC, endPFC, listSpdlS1starts, listSpdlS1ends)
+                listSpdlPFC.loc[ss, 'GlobalSpindle'] =Istrue
+            dict_Spindleprop_PFC[session]=listSpdlPFC
+            filenameOut = folder_base / session / f'OpenEphys/Spindlesproperties_PFC_sd5bis_AB.xlsx'
+            print(filenameOut)
+            writer = pd.ExcelWriter(filenameOut)
+            dict_Spindleprop_PFC[session].to_excel(writer)
+            writer.close()
+            for ss in range(len(listSpdlS1starts)): # for S1 
+                startS1=listSpdlS1starts[ss]
+                endS1=listSpdlS1ends[ss]
+                Istrue=is_overlapping(startS1, endS1, listSpdlPFCstarts, listSpdlPFCends)
+                listSpdlS1.loc[ss, 'GlobalSpindle'] =Istrue       
+            dict_Spindleprop_S1[session]=listSpdlS1
+            filenameOut = folder_base /session / f'OpenEphys/Spindlesproperties_S1_sd5bis_AB.xlsx'
+            print(filenameOut)
+            writer = pd.ExcelWriter(filenameOut)
+            dict_Spindleprop_S1[session].to_excel(writer)
+            writer.close()
     
     #######################################################################################
                             # Cross registration results #
