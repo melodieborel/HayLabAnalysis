@@ -116,7 +116,7 @@ def Convert(string):
 #######################################################################################
 
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
-MiceList=['GreenDotsOK']
+MiceList=['ThreeBlueCrossesOK']
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())
@@ -176,11 +176,11 @@ for micename in MiceList:
                 subsession= session + str(x)
                 subsessions.append(subsession)    
                 minian_ds = open_minian(folder_mini / subsession / f'minian')      # OR minianAB
-                dict_Calcium[subsession] = minian_ds['C'] # calcium traces 
-                dict_Spike[subsession] = minian_ds['S'] # estimated spikes
                 dict_SWRprop[subsession]  = pd.read_csv(SWRproperties)
                 dict_Spindleprop_PFC[subsession]  = pd.read_csv(Spindleproperties_PFC)
-                dict_Spindleprop_S1[subsession]  = pd.read_csv(Spindleproperties_S1)
+                dict_Spindleprop_S1[subsession]  = pd.read_csv(Spindleproperties_S1)            
+                dict_Calcium[subsession] = minian_ds['C'] # calcium traces 
+                dict_Spike[subsession] = minian_ds['S'] # estimated spikes
                 dict_Stamps[subsession]  = pd.read_excel(StampsFile)
                 dict_StampsMiniscope[subsession]  = pd.read_csv(StampsMiniscopeFile)
                 try:
@@ -216,8 +216,11 @@ for micename in MiceList:
     #######################################################################################
                              # Detect Overlapping Spindles #
     #######################################################################################
-    
-    for session in sessions:
+
+    for session in sessions:        
+        folder_mini = folder_base / session / f'V4_Miniscope'
+        nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
+        Foldersession= session[:-1] if nb_subsessions!=0 else session
         listSpdlPFC= dict_Spindleprop_PFC[session]
         listSpdlS1= dict_Spindleprop_S1[session]
         listSpdlPFCstarts=listSpdlPFC["start time"]
@@ -230,7 +233,7 @@ for micename in MiceList:
             Istrue=is_overlapping(startPFC, endPFC, listSpdlS1starts, listSpdlS1ends)
             listSpdlPFC.loc[ss, 'GlobalSpindle'] =Istrue
         dict_Spindleprop_PFC[session]=listSpdlPFC
-        filenameOut = folder_base /session / f'OpenEphys/Spindlesproperties_PFC_sd5bis_AB.xlsx'
+        filenameOut = folder_base / Foldersession / f'OpenEphys/Spindlesproperties_PFC_sd5bis_AB.xlsx'
         print(filenameOut)
         writer = pd.ExcelWriter(filenameOut)
         dict_Spindleprop_PFC[session].to_excel(writer)
@@ -241,7 +244,7 @@ for micename in MiceList:
             Istrue=is_overlapping(startS1, endS1, listSpdlPFCstarts, listSpdlPFCends)
             listSpdlS1.loc[ss, 'GlobalSpindle'] =Istrue       
         dict_Spindleprop_S1[session]=listSpdlS1
-        filenameOut = folder_base /session / f'OpenEphys/Spindlesproperties_S1_sd5bis_AB.xlsx'
+        filenameOut = folder_base /Foldersession / f'OpenEphys/Spindlesproperties_S1_sd5bis_AB.xlsx'
         print(filenameOut)
         writer = pd.ExcelWriter(filenameOut)
         dict_Spindleprop_S1[session].to_excel(writer)
@@ -307,7 +310,7 @@ for micename in MiceList:
         previousEndTime=0
         InitialStartTime=0
 
-        for session in sessions: #i in list(dict_Stamps.keys()):    
+        for session in list(dict_Stamps.keys()):    
             cPreCoupled=0
             cPostCoupled=0
             cUnCoupled=0
@@ -335,11 +338,14 @@ for micename in MiceList:
 
                 if InitialStartTime==0:
                     InitialStartTime=StartTime    
+                    StartTimeMiniscope=0 # start time of miniscope rec of that subsesssions relative to the start of the mniscope recording
                 else:
                     if StartTime == InitialStartTime:
-                        StartTime = previousEndTime + 1/minian_freq #  +1 frame in seconds 
+                        StartTime = previousEndTime + 1/minian_freq #  +1 frame in seconds
+                        StartTimeMiniscope= StartTime-InitialStartTime
                     else:  
-                        InitialStartTime=StartTime   
+                        InitialStartTime=StartTime
+                        StartTimeMiniscope=0   
 
                 # Deal with dropped frames (failure to acquire miniscope images)
 
@@ -349,8 +355,8 @@ for micename in MiceList:
                 upd_rec_dur=rec_dur
                 droppedframes_inrec=[]
                 for item in list_droppedframes: 
-                    if item < (int(StartTime*minian_freq) + upd_rec_dur) and item > int(StartTime*minian_freq):
-                        droppedframes_inrec.append(item)
+                    if item < (int(StartTimeMiniscope*minian_freq) + upd_rec_dur) and item > int(StartTimeMiniscope*minian_freq):
+                        droppedframes_inrec.append(item-int(StartTimeMiniscope*minian_freq))
                         upd_rec_dur+=1 #add the dropped frame to the recording length
                         numbdropfr+=1                        
 
@@ -455,7 +461,7 @@ for micename in MiceList:
                         TooEarlySpdl=startSpi/1000<durationSpdl # too close to the begining of the recording
                         TooLateSpdl=startSpi/1000+durationSpdl>round((upd_rec_dur)/minian_freq,1) # too close to the end of the recording
                         if TooEarlySpdl or TooLateSpdl:
-                            print(" /!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit==0 else None            
+                            print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit==0 else None            
                         else:
 
                             Frame_Spindle_start = int(startSpi/1000*minian_freq)                            
