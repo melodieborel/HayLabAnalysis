@@ -10,3 +10,5 @@ ephyviewer
 .DS_Store
 python/.ipynb_checkpoints
 python/dask-worker-space
+
+Analysis
