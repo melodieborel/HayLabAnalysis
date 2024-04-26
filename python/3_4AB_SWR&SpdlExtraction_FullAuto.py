@@ -19,7 +19,6 @@ from scipy.signal import chirp, find_peaks, peak_widths
 # Perform analysis for each mouse
 
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
-MiceList=['GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
 dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
 
 for micename in MiceList:
@@ -88,9 +87,9 @@ for micename in MiceList:
         sdproj_CA1cwt = np.std(proj_CA1NWcwt)
         #sd3proj_CA1cwt = sdproj_CA1cwt*3
         #sd5proj_CA1cwt = sdproj_CA1cwt*5
-        sd6proj_CA1cwt = sdproj_CA1cwt*6
+        #sd6proj_CA1cwt = sdproj_CA1cwt*6
         #sd7proj_CA1cwt = sdproj_CA1cwt*7
-        #sd8proj_CA1cwt = sdproj_CA1cwt*8
+        sd8proj_CA1cwt = sdproj_CA1cwt*8
 
         # Conservative boolean filtering of CA1 filtered signal
         BooleanCons = EMGboolean['BooleanConservative']
@@ -121,7 +120,7 @@ for micename in MiceList:
         t_start = 0.
 
         # First extraction of SWR peaks, initiation, end and width
-        peaks, properties = find_peaks(proj_CA1W0Lcwt, prominence=1, width=20, height=sd6proj_CA1cwt) #2AB detection with 6*SD #AB detection with 8*SD // Audrey's detection=3*SD
+        peaks, properties = find_peaks(proj_CA1W0Lcwt, prominence=1, width=20, height=sd8proj_CA1cwt) #2AB detection with 6*SD #AB detection with 8*SD // Audrey's detection=3*SD
         properties["prominences"], properties["widths"]
 
         # SWR boundaries taken at 70% from peak of intensity. This means that the SWRs with small amplitude will be longer than the big ones.
@@ -161,16 +160,19 @@ for micename in MiceList:
         SWR_end = SWR_prop[4,:].astype(int)
 
         # Store the results in All_SWR_prop pd dataframe and save as pkl/csv for post processing.
-        filename3 = folder_base / f'SWRpropertiesInitial_sd6_AB.csv'
+        filename3 = folder_base / f'SWRpropertiesInitial_sd8_AB.csv'
         All_SWR.to_pickle(filename3)
         All_SWR.to_csv(filename3, sep = ',')
 
         All_SWR2=All_SWR.copy()
         #All_SWR2.loc[:, :] = np.nan
-        filename3 = folder_base / f'SWRproperties_sd6_AB.csv'
+        filename3 = folder_base / f'SWRproperties_sd8_AB.csv'
         All_SWR2.to_pickle(filename3)
         All_SWR2.to_csv(filename3, sep = ',')
 
+
+########################################################
+########################################################
 
         # Filter parameter :
         f_lowcut = 10.
@@ -200,15 +202,15 @@ for micename in MiceList:
         absPFCNWcwt = np.absolute(PFCNWcwt)
         proj_PFCNWcwt = np.sum(absPFCNWcwt, axis = 0)/24
         sdproj_PFCcwt = np.std(proj_PFCNWcwt)
-        sd5proj_PFCcwt = sdproj_PFCcwt*5
-        #sd7proj_PFCcwt = sdproj_PFCcwt*7
+        #sd5proj_PFCcwt = sdproj_PFCcwt*5
+        sd7proj_PFCcwt = sdproj_PFCcwt*7
 
         # Projection calculation S1
         absS1NWcwt = np.absolute(S1NWcwt)
         proj_S1NWcwt = np.sum(absS1NWcwt, axis = 0)/24
         sdproj_S1cwt = np.std(proj_S1NWcwt)
-        sd5proj_S1cwt = sdproj_S1cwt*5
-        #sd7proj_S1cwt = sdproj_S1cwt*7
+        #sd5proj_S1cwt = sdproj_S1cwt*5
+        sd7proj_S1cwt = sdproj_S1cwt*7
 
         #####################################
         ########         PFC         #########
@@ -264,7 +266,7 @@ for micename in MiceList:
         proj_S1W0Lcwt = np.sum(absS1W0Lcwt, axis = 0)/24
 
         # 7 sd threshold
-        peaks, properties = find_peaks(proj_PFCW0Lcwt, width=200, height=sd5proj_PFCcwt) #AB detection first sd=7
+        peaks, properties = find_peaks(proj_PFCW0Lcwt, width=200, height=sd7proj_PFCcwt) #AB detection second sd=5 #AB detection first sd=7
         properties["prominences"], properties["widths"]
 
         # Spindles boundaries taken at 70% from peak of intensity. This means that the spindles with small amplitude will be longer than the big ones.
@@ -329,17 +331,17 @@ for micename in MiceList:
             All_Spindle['Duration'][tt]=All_Spindle['end time'][tt]-All_Spindle['start time'][tt]
         All_Spindle = All_Spindle.drop(listtodrop) 
 
-        filename3 = folder_base / f'Spindlesproperties_PFCInitial_sd5_AB.csv'
+        filename3 = folder_base / f'Spindlesproperties_PFCInitial_sd7_AB.csv'
         All_Spindle.to_pickle(filename3)
         All_Spindle.to_csv(filename3, sep = ',')
 
-        filename3 = folder_base / f'Spindlesproperties_PFC_sd5_AB.csv'
+        filename3 = folder_base / f'Spindlesproperties_PFC_sd7_AB.csv'
         All_Spindle.to_pickle(filename3)
         All_Spindle.to_csv(filename3, sep = ',')
         
             
-        # 5 sd threshold
-        peaks, properties = find_peaks(proj_S1W0Lcwt, width=200, height=sd5proj_S1cwt)
+        # 7 sd threshold
+        peaks, properties = find_peaks(proj_S1W0Lcwt, width=200, height=sd7proj_S1cwt) #AB detection second sd=5 #AB detection first sd=7
         properties["prominences"], properties["widths"]
 
         # Spindles boundaries taken at 70% from peak of intensity. This means that the spindles with small amplitude will be longer than the big ones.
@@ -404,10 +406,10 @@ for micename in MiceList:
         All_Spindle = All_Spindle.drop(listtodrop) 
         All_Spindle.shape[0]
 
-        filename3 = folder_base / f'Spindlesproperties_S1Initial_sd5_AB.csv'
+        filename3 = folder_base / f'Spindlesproperties_S1Initial_sd7_AB.csv'
         All_Spindle.to_pickle(filename3)
         All_Spindle.to_csv(filename3, sep = ',')
 
-        filename3 = folder_base / f'Spindlesproperties_S1_sd5_AB.csv'
+        filename3 = folder_base / f'Spindlesproperties_S1_sd7_AB.csv'
         All_Spindle.to_pickle(filename3)
         All_Spindle.to_csv(filename3, sep = ',')
