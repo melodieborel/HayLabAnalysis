@@ -12,3 +12,4 @@ python/.ipynb_checkpoints
 python/dask-worker-space
 
 Analysis
+python/localConfig.ini
