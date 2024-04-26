@@ -1,8 +1,15 @@
 */venv312
 */venv311
+.venv
 ExampleRedLines
 recording8
-#minian
+minian
+
+ephyviewer
+
 .DS_Store
 python/.ipynb_checkpoints
 python/dask-worker-space
+
+Analysis
+python/localConfig.ini
