@@ -21,6 +21,14 @@ from scipy.signal import chirp, find_peaks, peak_widths
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
 dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
 
+# Choose threshold for detection
+
+SWRfactor=8
+SpdlfactorS1=7
+SpdlfactorPFC=7
+
+# Process
+
 for micename in MiceList:
     
     dpath=Path(dpath0 + micename)
@@ -60,7 +68,9 @@ for micename in MiceList:
         S1  =  All[:, S1ch1]-All[:, S1ch2] 
         S1wakeremoved = LFPwakeremoved[:,S1ch1]-LFPwakeremoved[:,S1ch2]
 
-        # SWR: 120-200 Hz
+        ###########################################
+                # SWR in CA1: 120-200 Hz #
+        ###########################################
 
         # Filtre parameter:
         f_lowcut = 120.
@@ -85,11 +95,7 @@ for micename in MiceList:
         absCA1NWcwt = np.absolute(CA1NWcwt)
         proj_CA1NWcwt = np.sum(absCA1NWcwt, axis = 0)/80
         sdproj_CA1cwt = np.std(proj_CA1NWcwt)
-        #sd3proj_CA1cwt = sdproj_CA1cwt*3
-        #sd5proj_CA1cwt = sdproj_CA1cwt*5
-        #sd6proj_CA1cwt = sdproj_CA1cwt*6
-        #sd7proj_CA1cwt = sdproj_CA1cwt*7
-        sd8proj_CA1cwt = sdproj_CA1cwt*8
+        Fsdproj_CA1cwt = sdproj_CA1cwt*SWRfactor
 
         # Conservative boolean filtering of CA1 filtered signal
         BooleanCons = EMGboolean['BooleanConservative']
@@ -120,7 +126,7 @@ for micename in MiceList:
         t_start = 0.
 
         # First extraction of SWR peaks, initiation, end and width
-        peaks, properties = find_peaks(proj_CA1W0Lcwt, prominence=1, width=20, height=sd8proj_CA1cwt) #2AB detection with 6*SD #AB detection with 8*SD // Audrey's detection=3*SD
+        peaks, properties = find_peaks(proj_CA1W0Lcwt, prominence=1, width=20, height=Fsdproj_CA1cwt) #2AB detection with 6*SD #AB detection with 8*SD // Audrey's detection=3*SD
         properties["prominences"], properties["widths"]
 
         # SWR boundaries taken at 70% from peak of intensity. This means that the SWRs with small amplitude will be longer than the big ones.
@@ -160,19 +166,16 @@ for micename in MiceList:
         SWR_end = SWR_prop[4,:].astype(int)
 
         # Store the results in All_SWR_prop pd dataframe and save as pkl/csv for post processing.
-        filename3 = folder_base / f'SWRpropertiesInitial_sd8_AB.csv'
-        All_SWR.to_pickle(filename3)
-        All_SWR.to_csv(filename3, sep = ',')
+        filename3 = folder_base / f'SWRpropertiesInitial_{SWRfactor}sd_AB.xlsx'
+        All_SWR.to_excel(filename3)
 
-        All_SWR2=All_SWR.copy()
-        #All_SWR2.loc[:, :] = np.nan
-        filename3 = folder_base / f'SWRproperties_sd8_AB.csv'
-        All_SWR2.to_pickle(filename3)
-        All_SWR2.to_csv(filename3, sep = ',')
+        filename = folder_base / f'SWRproperties_{SWRfactor}sd_AB.xlsx'
+        All_SWR.to_excel(filename)
 
 
-########################################################
-########################################################
+        ########################################
+                    # Spdl: 10-16 Hz #
+        ########################################
 
         # Filter parameter :
         f_lowcut = 10.
@@ -185,36 +188,25 @@ for micename in MiceList:
         # Filter creation :
         b, a = signal.butter(N, Wn, 'band')
 
-        filt_S1 = signal.filtfilt(b, a, S1)
-        filt_S1wakeremoved = signal.filtfilt(b, a, S1wakeremoved)
-
-        filt_PFC = signal.filtfilt(b, a, PFC)
-        filt_PFCwakeremoved = signal.filtfilt(b, a, PFCwakeremoved)
-
         # Parameter and computation of CWT
         w = 10.
         freq = np.linspace(10, 16, 6)#18)
         widths = w*fs / (2*freq*np.pi)
+
+        ##################################
+            ##         PFC         ##
+        
+        filt_PFC = signal.filtfilt(b, a, PFC)
+        filt_PFCwakeremoved = signal.filtfilt(b, a, PFCwakeremoved)
         PFCNWcwt = signal.cwt(filt_PFCwakeremoved, signal.morlet2, widths, w=w)
-        S1NWcwt = signal.cwt(filt_S1wakeremoved, signal.morlet2, widths, w=w)
 
         # Projection calculation PFC
         absPFCNWcwt = np.absolute(PFCNWcwt)
         proj_PFCNWcwt = np.sum(absPFCNWcwt, axis = 0)/24
         sdproj_PFCcwt = np.std(proj_PFCNWcwt)
         #sd5proj_PFCcwt = sdproj_PFCcwt*5
-        sd7proj_PFCcwt = sdproj_PFCcwt*7
+        Fsdproj_PFCcwt = sdproj_PFCcwt*SpdlfactorPFC
 
-        # Projection calculation S1
-        absS1NWcwt = np.absolute(S1NWcwt)
-        proj_S1NWcwt = np.sum(absS1NWcwt, axis = 0)/24
-        sdproj_S1cwt = np.std(proj_S1NWcwt)
-        #sd5proj_S1cwt = sdproj_S1cwt*5
-        sd7proj_S1cwt = sdproj_S1cwt*7
-
-        #####################################
-        ########         PFC         #########
-        #####################################
         # Conservative boolean filtering of PFC filtered signal
         BooleanCons = EMGboolean['BooleanConservative']
         fPFCwake0C = filt_PFC.copy()
@@ -238,35 +230,8 @@ for micename in MiceList:
         absPFCW0Lcwt = np.absolute(PFCcwtWake0lib)
         proj_PFCW0Lcwt = np.sum(absPFCW0Lcwt, axis = 0)/24
 
-
-        #####################################
-        ########         S1         #########
-        #####################################
-        # Conservative boolean filtering of S1 filtered signal
-        BooleanCons = EMGboolean['BooleanConservative']
-        fS1wake0C = filt_S1.copy()
-        fS1wake0C[BooleanCons] = 0
-        S1wake0C = S1.copy()
-        S1wake0C[BooleanCons] = 0
-        # Liberal boolean filtering of S1 filtered signal
-        BooleanLib = EMGboolean['BooleanLiberal']
-        fS1wake0L = filt_S1.copy()
-        fS1wake0L[BooleanLib] = 0
-        S1wake0L = S1.copy()
-        S1wake0L[BooleanLib] = 0
-
-        # Computation of CWT
-        S1cwtWake0cons = signal.cwt(fS1wake0C, signal.morlet2, widths, w=w)
-        S1cwtWake0lib = signal.cwt(fS1wake0L, signal.morlet2, widths, w=w)
-
-        # Projection calculation
-        absS1W0Ccwt = np.absolute(S1cwtWake0cons)
-        proj_S1W0Ccwt = np.sum(absS1W0Ccwt, axis = 0)/24
-        absS1W0Lcwt = np.absolute(S1cwtWake0lib)
-        proj_S1W0Lcwt = np.sum(absS1W0Lcwt, axis = 0)/24
-
-        # 7 sd threshold
-        peaks, properties = find_peaks(proj_PFCW0Lcwt, width=200, height=sd7proj_PFCcwt) #AB detection second sd=5 #AB detection first sd=7
+        # SD threshold
+        peaks, properties = find_peaks(proj_PFCW0Lcwt, width=200, height=Fsdproj_PFCcwt) #AB detection second sd=5 #AB detection first sd=7
         properties["prominences"], properties["widths"]
 
         # Spindles boundaries taken at 70% from peak of intensity. This means that the spindles with small amplitude will be longer than the big ones.
@@ -331,17 +296,52 @@ for micename in MiceList:
             All_Spindle['Duration'][tt]=All_Spindle['end time'][tt]-All_Spindle['start time'][tt]
         All_Spindle = All_Spindle.drop(listtodrop) 
 
-        filename3 = folder_base / f'Spindlesproperties_PFCInitial_sd7_AB.csv'
-        All_Spindle.to_pickle(filename3)
-        All_Spindle.to_csv(filename3, sep = ',')
+        filename = folder_base / f'Spindlesproperties_PFCInitial_{SpdlfactorPFC}sd_AB.xlsx'
+        All_Spindle.to_excel(filename)
 
-        filename3 = folder_base / f'Spindlesproperties_PFC_sd7_AB.csv'
-        All_Spindle.to_pickle(filename3)
-        All_Spindle.to_csv(filename3, sep = ',')
-        
+        filename = folder_base / f'Spindlesproperties_PFC_{SpdlfactorPFC}sd_AB.xlsx'
+        All_Spindle.to_excel(filename)
+
+
+        #####################################
+                ##         S1         ##
+
+        filt_S1 = signal.filtfilt(b, a, S1)
+        filt_S1wakeremoved = signal.filtfilt(b, a, S1wakeremoved)
+        S1NWcwt = signal.cwt(filt_S1wakeremoved, signal.morlet2, widths, w=w)
+
+        # Projection calculation S1
+        absS1NWcwt = np.absolute(S1NWcwt)
+        proj_S1NWcwt = np.sum(absS1NWcwt, axis = 0)/24
+        sdproj_S1cwt = np.std(proj_S1NWcwt)
+        #sd5proj_S1cwt = sdproj_S1cwt*5
+        Fsdproj_S1cwt = sdproj_S1cwt*SpdlfactorS1
+
+        # Conservative boolean filtering of S1 filtered signal
+        BooleanCons = EMGboolean['BooleanConservative']
+        fS1wake0C = filt_S1.copy()
+        fS1wake0C[BooleanCons] = 0
+        S1wake0C = S1.copy()
+        S1wake0C[BooleanCons] = 0
+        # Liberal boolean filtering of S1 filtered signal
+        BooleanLib = EMGboolean['BooleanLiberal']
+        fS1wake0L = filt_S1.copy()
+        fS1wake0L[BooleanLib] = 0
+        S1wake0L = S1.copy()
+        S1wake0L[BooleanLib] = 0
+
+        # Computation of CWT
+        S1cwtWake0cons = signal.cwt(fS1wake0C, signal.morlet2, widths, w=w)
+        S1cwtWake0lib = signal.cwt(fS1wake0L, signal.morlet2, widths, w=w)
+
+        # Projection calculation
+        absS1W0Ccwt = np.absolute(S1cwtWake0cons)
+        proj_S1W0Ccwt = np.sum(absS1W0Ccwt, axis = 0)/24
+        absS1W0Lcwt = np.absolute(S1cwtWake0lib)
+        proj_S1W0Lcwt = np.sum(absS1W0Lcwt, axis = 0)/24
             
-        # 7 sd threshold
-        peaks, properties = find_peaks(proj_S1W0Lcwt, width=200, height=sd7proj_S1cwt) #AB detection second sd=5 #AB detection first sd=7
+        # Sd threshold
+        peaks, properties = find_peaks(proj_S1W0Lcwt, width=200, height=Fsdproj_S1cwt) #AB detection second sd=5 #AB detection first sd=7
         properties["prominences"], properties["widths"]
 
         # Spindles boundaries taken at 70% from peak of intensity. This means that the spindles with small amplitude will be longer than the big ones.
@@ -406,10 +406,113 @@ for micename in MiceList:
         All_Spindle = All_Spindle.drop(listtodrop) 
         All_Spindle.shape[0]
 
-        filename3 = folder_base / f'Spindlesproperties_S1Initial_sd7_AB.csv'
-        All_Spindle.to_pickle(filename3)
-        All_Spindle.to_csv(filename3, sep = ',')
+        filename = folder_base / f'Spindlesproperties_S1Initial_{SpdlfactorS1}sd_AB.xlsx'
+        All_Spindle.to_excel(filename)
 
-        filename3 = folder_base / f'Spindlesproperties_S1_sd7_AB.csv'
-        All_Spindle.to_pickle(filename3)
-        All_Spindle.to_csv(filename3, sep = ',')
+        filename = folder_base / f'Spindlesproperties_S1_{SpdlfactorS1}sd_AB.xlsx'
+        All_Spindle.to_excel(filename)
+
+        
+        ########################################
+                # DownStates: 0.5-2.5 Hz #
+        ########################################
+
+        # Filter parameter :
+        f_lowcut = 0.5
+        f_hicut = 2.5
+        N = 2
+        fs = 1000
+        nyq = 0.5 * fs
+        Wn = [f_lowcut/nyq,f_hicut/nyq]  # Nyquist frequency fraction
+
+        # Filter creation :
+        b, a = signal.butter(N, Wn, 'band')
+
+        ####################################
+                     # S1 #
+
+        filt_S1 = signal.filtfilt(b, a, S1)
+        filt_S1wakeremoved = signal.filtfilt(b, a, S1wakeremoved)
+
+        normalized_filt_S1wakeremoved = (filt_S1wakeremoved - np.mean(filt_S1wakeremoved)) / np.std(filt_S1wakeremoved)
+
+        peaks, properties = find_peaks(normalized_filt_S1wakeremoved, prominence=5)
+        results_width = peak_widths(normalized_filt_S1wakeremoved, peaks, rel_height=0.3)
+
+        peaks2 = peaks.reshape(len(peaks),1)
+        npresults_width = np.array(results_width).reshape(4,-1)
+        DownStates_prop = np.append(peaks2, results_width).reshape(5,len(peaks2)).round()
+
+        DownStates_peak = peaks
+        DownStates_start = DownStates_prop[3,:].astype(int)
+        DownStates_end = DownStates_prop[4,:].astype(int)
+
+        nb_DownStates = np.arange(0,len(peaks),1)
+        data = np.zeros((len(peaks),4))
+
+        for tt in nb_DownStates:
+            DownStates_prop_start = int(DownStates_prop[3,tt])
+            DownStates_prop_stop = int(DownStates_prop[4,tt])
+            DownStates_prop_MaxP = normalized_filt_S1wakeremoved[DownStates_prop_start:DownStates_prop_stop]
+            DownStates_prop_MaxF = normalized_filt_S1wakeremoved[DownStates_prop_start:DownStates_prop_stop]
+            data[tt, 0] = max(DownStates_prop_MaxF).round()
+            data[tt, 1] = max(DownStates_prop_MaxP).round()
+            data[tt, 2] = round(sum(DownStates_prop_MaxF)/len(DownStates_prop_MaxF))
+            data[tt, 3] = round(sum(DownStates_prop_MaxP)/len(DownStates_prop_MaxP))
+
+        param_DownStates_prop= pd.DataFrame(data, columns = ['Max freq', 'Max int', 'Avg freq', 'Avg int'])
+        tDownStates_prop = DownStates_prop.transpose()
+        pd_prop_DownStates_prop = pd.DataFrame(tDownStates_prop, columns = ['peak time', 'Duration', 'peak amp', 'start time', 'end time'])
+        All_DownStates = pd.concat([pd_prop_DownStates_prop, param_DownStates_prop], axis=1)
+        All_DownStates.shape[0]
+
+        filename = folder_base / f'DownStatesproperties_S1Initial_{SpdlfactorS1}sd_AB.xlsx'
+        All_DownStates.to_excel(filename)
+
+        filename = folder_base / f'DownStatesproperties_S1_{SpdlfactorS1}sd_AB.xlsx'
+        All_DownStates.to_excel(filename)
+
+        ####################################
+                    # PFC #
+
+        filt_PFC = signal.filtfilt(b, a, PFC)
+        filt_PFCwakeremoved = signal.filtfilt(b, a, PFCwakeremoved)
+
+        normalized_filt_PFCwakeremoved = (filt_PFCwakeremoved - np.mean(filt_PFCwakeremoved)) / np.std(filt_PFCwakeremoved)
+
+        peaks, properties = find_peaks(normalized_filt_PFCwakeremoved, prominence=5)
+        results_width = peak_widths(normalized_filt_PFCwakeremoved, peaks, rel_height=0.3)
+
+        peaks2 = peaks.reshape(len(peaks),1)
+        npresults_width = np.array(results_width).reshape(4,-1)
+        DownStates_prop = np.append(peaks2, results_width).reshape(5,len(peaks2)).round()
+
+        DownStates_peak = peaks
+        DownStates_start = DownStates_prop[3,:].astype(int)
+        DownStates_end = DownStates_prop[4,:].astype(int)
+
+        nb_DownStates = np.arange(0,len(peaks),1)
+        data = np.zeros((len(peaks),4))
+
+        for tt in nb_DownStates:
+            DownStates_prop_start = int(DownStates_prop[3,tt])
+            DownStates_prop_stop = int(DownStates_prop[4,tt])
+            DownStates_prop_MaxP = normalized_filt_PFCwakeremoved[DownStates_prop_start:DownStates_prop_stop]
+            DownStates_prop_MaxF = normalized_filt_PFCwakeremoved[DownStates_prop_start:DownStates_prop_stop]
+            data[tt, 0] = max(DownStates_prop_MaxF).round()
+            data[tt, 1] = max(DownStates_prop_MaxP).round()
+            data[tt, 2] = round(sum(DownStates_prop_MaxF)/len(DownStates_prop_MaxF))
+            data[tt, 3] = round(sum(DownStates_prop_MaxP)/len(DownStates_prop_MaxP))
+
+        param_DownStates_prop= pd.DataFrame(data, columns = ['Max freq', 'Max int', 'Avg freq', 'Avg int'])
+        tDownStates_prop = DownStates_prop.transpose()
+        pd_prop_DownStates_prop = pd.DataFrame(tDownStates_prop, columns = ['peak time', 'Duration', 'peak amp', 'start time', 'end time'])
+        All_DownStates = pd.concat([pd_prop_DownStates_prop, param_DownStates_prop], axis=1)
+        All_DownStates.shape[0]
+
+        filename = folder_base / f'DownStatesproperties_PFCInitial_{SpdlfactorPFC}sd_AB.xlsx'
+        All_DownStates.to_excel(filename)
+
+        filename = folder_base / f'DownStatesproperties_PFC_{SpdlfactorPFC}sd_AB.xlsx'
+        All_DownStates.to_excel(filename)
+
