@@ -165,9 +165,9 @@ for micename in MiceList:
     for session in sessions:
         folder_mini = folder_base / session / f'V4_Miniscope'
         nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
-        SWRproperties = folder_base /session / f'OpenEphys/SWRproperties_sd6_AB.csv'
-        Spindleproperties_PFC = folder_base / session / f'OpenEphys/Spindlesproperties_PFC_sd5_AB.csv'
-        Spindleproperties_S1 = folder_base / session / f'OpenEphys/Spindlesproperties_S1_sd5_AB.csv'
+        SWRproperties = folder_base /session / f'OpenEphys/SWRproperties_sd8_AB.csv'
+        Spindleproperties_PFC = folder_base / session / f'OpenEphys/Spindlesproperties_PFC_sd7_AB.csv'
+        Spindleproperties_S1 = folder_base / session / f'OpenEphys/Spindlesproperties_S1_sd7_AB.csv'
         StampsFile = folder_base / session / f'SynchroFile.xlsx'
         StampsMiniscopeFile = folder_mini / f'timeStamps.csv'
         if nb_subsessions!=0:
@@ -551,7 +551,6 @@ for micename in MiceList:
                             Spindles_GlobalResults.loc[counter, 'Mice'] = os.path.basename(folder_base)
                             Spindles_GlobalResults.loc[counter, 'Session'] = session
                             Spindles_GlobalResults.loc[counter, 'Session_Time'] = None 
-                            mapping['session'].columns.tolist()
 
                             indexMapp = np.where(B[session] == C_upd_unit_id[unit])[0]
                             Spindles_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
