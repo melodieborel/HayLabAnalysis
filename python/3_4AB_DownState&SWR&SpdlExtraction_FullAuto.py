@@ -1,6 +1,6 @@
 
 # ## Load LFP and packages
-
+import os
 from scipy import signal
 import numpy as np
 import matplotlib.pyplot as plt
@@ -8,9 +8,7 @@ from matplotlib.widgets import Slider, Button, Cursor
 from scipy import fftpack
 import pandas as pd
 from pathlib import Path
-import os
 from IPython.display import display
-from ipyfilechooser import FileChooser
 from datetime import datetime
 import shutil
 from scipy.signal import find_peaks
@@ -26,6 +24,9 @@ dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/G
 SWRfactor=8
 SpdlfactorS1=7
 SpdlfactorPFC=7
+
+DownStatesProminence=2
+DownStatesHeight=3
 
 # Process
 
@@ -418,8 +419,8 @@ for micename in MiceList:
         ########################################
 
         # Filter parameter :
-        f_lowcut = 0.5
-        f_hicut = 2.5
+        f_lowcut = 1.5
+        f_hicut = 4
         N = 2
         fs = 1000
         nyq = 0.5 * fs
@@ -434,10 +435,23 @@ for micename in MiceList:
         filt_S1 = signal.filtfilt(b, a, S1)
         filt_S1wakeremoved = signal.filtfilt(b, a, S1wakeremoved)
 
-        normalized_filt_S1wakeremoved = (filt_S1wakeremoved - np.mean(filt_S1wakeremoved)) / np.std(filt_S1wakeremoved)
+        # Conservative boolean filtering of CA1 filtered signal
+        BooleanCons = EMGboolean['BooleanConservative']
+        fS1wake0C = filt_S1.copy()
+        fS1wake0C[BooleanCons] = 0
+        S1wake0C = S1.copy()
+        S1wake0C[BooleanCons] = 0
+        # Liberal boolean filtering of CA1 filtered signal
+        BooleanLib = EMGboolean['BooleanLiberal']
+        fS1wake0L = filt_S1.copy()
+        fS1wake0L[BooleanLib] = 0
+        S1wake0L = S1.copy()
+        S1wake0L[BooleanLib] = 0
 
-        peaks, properties = find_peaks(normalized_filt_S1wakeremoved, prominence=5)
-        results_width = peak_widths(normalized_filt_S1wakeremoved, peaks, rel_height=0.3)
+        normalized_filt_S1wakeremoved = (fS1wake0L - np.mean(fS1wake0L)) / np.std(fS1wake0L)
+
+        peaks, properties = find_peaks(normalized_filt_S1wakeremoved, prominence=DownStatesProminence, height=DownStatesHeight)
+        results_width = peak_widths(normalized_filt_S1wakeremoved, peaks, rel_height=0.5)
 
         peaks2 = peaks.reshape(len(peaks),1)
         npresults_width = np.array(results_width).reshape(4,-1)
@@ -466,10 +480,10 @@ for micename in MiceList:
         All_DownStates = pd.concat([pd_prop_DownStates_prop, param_DownStates_prop], axis=1)
         All_DownStates.shape[0]
 
-        filename = folder_base / f'DownStatesproperties_S1Initial_{SpdlfactorS1}sd_AB.xlsx'
+        filename = folder_base / f'DownStatesproperties_S1Initial_{DownStatesProminence}Pro{DownStatesHeight}Height_AB.xlsx'
         All_DownStates.to_excel(filename)
 
-        filename = folder_base / f'DownStatesproperties_S1_{SpdlfactorS1}sd_AB.xlsx'
+        filename = folder_base / f'DownStatesproperties_S1_{DownStatesProminence}Pro{DownStatesHeight}Height_AB.xlsx'
         All_DownStates.to_excel(filename)
 
         ####################################
@@ -478,10 +492,23 @@ for micename in MiceList:
         filt_PFC = signal.filtfilt(b, a, PFC)
         filt_PFCwakeremoved = signal.filtfilt(b, a, PFCwakeremoved)
 
-        normalized_filt_PFCwakeremoved = (filt_PFCwakeremoved - np.mean(filt_PFCwakeremoved)) / np.std(filt_PFCwakeremoved)
+        # Conservative boolean filtering of CA1 filtered signal
+        BooleanCons = EMGboolean['BooleanConservative']
+        fPFCwake0C = filt_PFC.copy()
+        fPFCwake0C[BooleanCons] = 0
+        PFCwake0C = PFC.copy()
+        PFCwake0C[BooleanCons] = 0
+        # Liberal boolean filtering of CA1 filtered signal
+        BooleanLib = EMGboolean['BooleanLiberal']
+        fPFCwake0L = filt_PFC.copy()
+        fPFCwake0L[BooleanLib] = 0
+        PFCwake0L = PFC.copy()
+        PFCwake0L[BooleanLib] = 0
 
-        peaks, properties = find_peaks(normalized_filt_PFCwakeremoved, prominence=5)
-        results_width = peak_widths(normalized_filt_PFCwakeremoved, peaks, rel_height=0.3)
+        normalized_filt_PFCwakeremoved = (fPFCwake0L - np.mean(fPFCwake0L)) / np.std(fPFCwake0L)
+
+        peaks, properties = find_peaks(normalized_filt_PFCwakeremoved, prominence=DownStatesProminence, height=DownStatesHeight)
+        results_width = peak_widths(normalized_filt_PFCwakeremoved, peaks, rel_height=0.5)
 
         peaks2 = peaks.reshape(len(peaks),1)
         npresults_width = np.array(results_width).reshape(4,-1)
@@ -510,9 +537,9 @@ for micename in MiceList:
         All_DownStates = pd.concat([pd_prop_DownStates_prop, param_DownStates_prop], axis=1)
         All_DownStates.shape[0]
 
-        filename = folder_base / f'DownStatesproperties_PFCInitial_{SpdlfactorPFC}sd_AB.xlsx'
+        filename = folder_base / f'DownStatesproperties_PFCInitial_{DownStatesProminence}Pro{DownStatesHeight}Height_AB.xlsx'
         All_DownStates.to_excel(filename)
 
-        filename = folder_base / f'DownStatesproperties_PFC_{SpdlfactorPFC}sd_AB.xlsx'
+        filename = folder_base / f'DownStatesproperties_PFC_{DownStatesProminence}Pro{DownStatesHeight}Height_AB.xlsx'
         All_DownStates.to_excel(filename)
 
