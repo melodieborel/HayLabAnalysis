@@ -129,6 +129,12 @@ source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/
 destination_file_path = f"{destination_folder}/35AB_OscillationsLFPsRawTraces.txt"
 shutil.copy(source_script, destination_file_path)
 
+AllSpdls_PFC=[]
+AllSpdls_S1=[]
+AllSWRs=[]
+AllDSs_PFC=[]
+AllDSs_S1=[]
+
 for micename in MiceList:
 
     dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
@@ -322,7 +328,7 @@ for micename in MiceList:
             writer.close()
 
     #######################################################################################
-      # Distribute Ca2+ intensity & spikes to oscillations for each sessions/subsessions #
+                        # Raw oscillations for each sessions/subsessions #
     #######################################################################################
 
     CortexList= ['PFC', 'S1']
@@ -342,7 +348,12 @@ for micename in MiceList:
 
         Spdls=[] 
         SWRs=[]      
-        DSs=[]      
+        DSs=[]     
+
+        AllSpdln=f'AllSpdls_{Cortex}' #change dict according to the cortex 
+        AllDSn=f'AllDSs_{Cortex}' #change dict according to the cortex 
+        AllSpdls = globals()[AllSpdln]
+        AllDSs = globals()[AllDSn]
         
         for session in list(dict_Stamps.keys()):  
             
@@ -387,7 +398,7 @@ for micename in MiceList:
                     startSwr=int(startSwrList[Pswr])
                     endSwr=endSwrList[Pswr]
                     LFPctx=dict_LFP_CA1[session]
-                    SWRs.append(LFPctx[startSwr-durationSWR:startSwr+durationSWR])             
+                    SWRs.append(LFPctx[startSwr-durationSWR:startSwr+durationSWR])    
 
                 ### DSs ###
 
@@ -403,8 +414,7 @@ for micename in MiceList:
                     LFPctxn=f'dict_LFP_{Cortex}'
                     LFPctx=globals()[LFPctxn]
                     LFPctx=LFPctx[session] 
-                    DSs.append(LFPctx[startds-durationDS:startds+durationDS])
- 
+                    DSs.append(LFPctx[startds-durationDS:startds+durationDS]) 
 
         #######################################################################################
                                 # Save Spindles analysis #
@@ -418,6 +428,7 @@ for micename in MiceList:
         Spdls=pd.DataFrame(Spdls)
         Spdls.to_excel(writer)
         writer.close()
+        AllSpdls.append(np.mean(Spdls, axis=0))
 
         filenameOut = folder_to_save / f'SWR_{Cortex}_RawLFPs_{mice}.xlsx'
         writer = pd.ExcelWriter(filenameOut)
@@ -430,3 +441,31 @@ for micename in MiceList:
         DSs=pd.DataFrame(DSs)
         DSs.to_excel(writer)
         writer.close()
+        AllDSs.append(np.mean(DSs, axis=0))
+
+    AllSWRs.append(np.mean(SWRs, axis=0))
+
+filenameOut = folder_to_save / f'All_RawLFPs.xlsx'
+writer = pd.ExcelWriter(filenameOut)
+
+array=pd.DataFrame(AllDSs_PFC)
+reduced_array = array#[:, :(array.shape[1] // 5) * 5].reshape(array.shape[0], (array.shape[1] // 5), 5).mean(axis=2)
+reduced_array.to_excel(writer, sheet_name='DS PFC', index=True, header=False)
+
+array=pd.DataFrame(AllDSs_S1)
+reduced_array = array#[:, :(array.shape[1] // 5) * 5].reshape(array.shape[0], (array.shape[1] // 5), 5).mean(axis=2)
+reduced_array.to_excel(writer, sheet_name='DS S1', index=True, header=False)
+
+array=pd.DataFrame(AllSpdls_PFC)
+reduced_array = array#[:, :(array.shape[1] // 5) * 5].reshape(array.shape[0], (array.shape[1] // 5), 5).mean(axis=2)
+reduced_array.to_excel(writer, sheet_name='Spdl PFC', index=True, header=False)
+
+array=pd.DataFrame(AllSpdls_S1)
+reduced_array = array#[:, :(array.shape[1] // 5) * 5].reshape(array.shape[0], (array.shape[1] // 5), 5).mean(axis=2)
+reduced_array.to_excel(writer, sheet_name='Spdl S1', index=True, header=False)
+
+array=pd.DataFrame(AllSWRs)
+reduced_array = array#[:, :(array.shape[1] // 5) * 5].reshape(array.shape[0], (array.shape[1] // 5), 5).mean(axis=2)
+reduced_array.to_excel(writer, sheet_name='SWR', index=True, header=False)
+
+writer.close()
