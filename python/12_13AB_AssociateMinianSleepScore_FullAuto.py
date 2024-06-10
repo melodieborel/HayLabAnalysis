@@ -52,7 +52,6 @@ def Convert(string):
 #######################################################################################
 
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
-MiceList=['BlackLinesOK']
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())
@@ -101,7 +100,7 @@ for micename in MiceList:
         print(session)
         folder_mini = folder_base / session / f'V4_Miniscope'
         nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
-        ScoringFile = folder_base / session/ f'OpenEphys/ScoredSleep.npy'
+        ScoringFile = folder_base / session/ f'OpenEphys/ScoredSleep_AB.npy'
         StampsFile = folder_base / session/ f'SynchroFile.xlsx'
         StampsMiniscopeFile = folder_mini / f'timeStamps.csv'
 
@@ -291,12 +290,12 @@ for micename in MiceList:
             CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix'
             CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
             CaCorrMatrix=[]
-            CaCorrMatrix = pd.DataFrame(columns=[f'Unit {str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+            CaCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
             
             SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix'
             SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
             SpCorrMatrix=[]
-            SpCorrMatrix = pd.DataFrame(columns=[f'Unit {str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+            SpCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
             
             for unit in range(nb_unit): 
 
@@ -316,13 +315,16 @@ for micename in MiceList:
                     Sarray_unit2=np.zeros(len(Sarray_unit2))
                     Sarray_unit2[peaks2]=1
 
-                    corr_matrix = np.corrcoef(Carray_unit, Carray_unit2)
                     indexMapp = str(np.where(B[session] == C_upd_unit_id[unit])[0]).replace('[','').replace(']','')
                     indexMapp2 = np.where(B[session] == C_upd_unit_id[unit2])[0]
-                    CaCorrMatrix[f'Unit {indexMapp}'][indexMapp2]=corr_matrix[0, 1]
-                    
-                    corr_matrix = np.corrcoef(Sarray_unit, Sarray_unit2)
-                    SpCorrMatrix[f'Unit {indexMapp}'][indexMapp2]=corr_matrix[0, 1]
+
+                    if any(indexMapp) and len(indexMapp2)>0:      
+                                          
+                        corr_matrix = np.corrcoef(Carray_unit, Carray_unit2)
+                        CaCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]=corr_matrix[0, 1] 
+                        
+                        corr_matrix = np.corrcoef(Sarray_unit, Sarray_unit2)
+                        SpCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]=corr_matrix[0, 1]
     
             CaCorrVigStateMatrix.append(CaCorrMatrix)
             SpCorrVigStateMatrix.append(SpCorrMatrix)
@@ -331,7 +333,7 @@ for micename in MiceList:
 
             Carray_unit =Carray[:,unit]
             Sarray_unit =Sarray[:,unit]
-            peaks, _ = find_peaks(Sarray_unit)#, height=np.std(SpTrace))
+            peaks, _ = find_peaks(Sarray_unit)
             Sarray_unit=np.zeros(len(Sarray_unit))
             Sarray_unit[peaks]=1     
 
@@ -356,6 +358,7 @@ for micename in MiceList:
                 VigilanceState_GlobalResults.loc[counter, 'Avg_CalciumActivity'] = Carray_unit.mean()
                 VigilanceState_GlobalResults.loc[counter, 'Avg_AUC_calcium'] = np.trapz(Carray_unit,np.arange(0,len(Carray_unit),1))
                 VigilanceState_GlobalResults.loc[counter, 'SpikeActivityHz'] = sp_input_sub.sum()/(substates.Duration[index]/minian_freq)
+                VigilanceState_GlobalResults.loc[counter, 'Avg_SpikeActivityHz'] = Sarray_unit.sum()/(len(Sarray_unit)/minian_freq)
 
                 otherunit_range = [x for x in range(nb_unit) if x != unit]
                 CaCorrCoeff=[]
@@ -365,7 +368,7 @@ for micename in MiceList:
 
                     Carray_unit2 =Carray[:,unit2]
                     Sarray_unit2 =Sarray[:,unit2]                    
-                    peaks2, _ = find_peaks(Sarray_unit2)#, height=np.std(SpTrace))
+                    peaks2, _ = find_peaks(Sarray_unit2)
                     Sarray_unit2=np.zeros(len(Sarray_unit2))
                     Sarray_unit2[peaks2]=1
                     ca_input_sub2=Carray_unit2[substates.Start[index]:substates.End[index]]
@@ -381,6 +384,8 @@ for micename in MiceList:
 
                 VigilanceState_GlobalResults.loc[counter, 'CaCorrCoeff'] = np.nanmean(CaCorrCoeff)
                 VigilanceState_GlobalResults.loc[counter, 'SpCorrCoeff'] = np.nanmean(SpCorrCoeff)
+                VigilanceState_GlobalResults.loc[counter, 'Rsquared_CaCorrCoeff'] = np.nanmean([x ** 2 for x in CaCorrCoeff])
+                VigilanceState_GlobalResults.loc[counter, 'Rsquared_SpCorrCoeff'] = np.nanmean([x ** 2 for x in SpCorrCoeff])
                 counter+=1
 
     for m in mapp:
@@ -388,14 +393,18 @@ for micename in MiceList:
         CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
         combined_df = pd.concat(CaCorrVigStateMatrix, ignore_index=False)
         combined_df = combined_df.groupby(combined_df.index).mean()
-        combined_df.index = ['Unit ' + str(idx) for idx in combined_df.index]
+        combined_df.index = [mice + str(idx) for idx in combined_df.index]
+        combined_df = combined_df.dropna(axis=0, how='all')
+        combined_df = combined_df.dropna(axis=1, how='all')
         combined_df.to_excel(excel_writerCa, sheet_name=mapp[m], index=True, header=True)   
 
         SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix'
         SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
         combined_df = pd.concat(SpCorrVigStateMatrix, ignore_index=False)
         combined_df = combined_df.groupby(combined_df.index).mean()
-        combined_df.index = ['Unit ' + str(idx) for idx in combined_df.index]
+        combined_df.index = [mice + str(idx) for idx in combined_df.index]
+        combined_df = combined_df.dropna(axis=0, how='all')
+        combined_df = combined_df.dropna(axis=1, how='all')
         combined_df.to_excel(excel_writerSp, sheet_name=mapp[m], index=True, header=True) 
 
     excel_writerCa.close()
