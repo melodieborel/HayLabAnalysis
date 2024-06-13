@@ -100,7 +100,7 @@ for micename in MiceList:
         print(session)
         folder_mini = folder_base / session / f'V4_Miniscope'
         nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
-        ScoringFile = folder_base / session/ f'OpenEphys/ScoredSleep_AB.npy'
+        ScoringFile = folder_base / session/ f'OpenEphys/ScoredSleep_AH.npy'
         StampsFile = folder_base / session/ f'SynchroFile.xlsx'
         StampsMiniscopeFile = folder_mini / f'timeStamps.csv'
 
@@ -159,7 +159,7 @@ for micename in MiceList:
     
     data = {}
     counter=0
-    VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','Session', 'Session_Time', 'Unique_Unit','UnitNumber','UnitValue', 'Substate','SubstateNumber','DurationSubstate', 'CalciumActivity', 'AUC_calcium', 'Avg_CalciumActivity','Avg_AUC_calcium','SpikeActivityHz'])
+    VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','Session', 'Session_Time', 'Unique_Unit','UnitNumber','UnitValue', 'Substate','SubstateNumber','DurationSubstate', 'CalciumActivity', 'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'DeconvSpikeMeanActivity', 'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz'])
 
     previousEndTime=0
     InitialStartTime=0
@@ -246,7 +246,10 @@ for micename in MiceList:
             kept_uniq_unit_List.append(str(indexMapp))
 
         sentence1= f"... kept values = {kept_uniq_unit_List}"
-        print(sentence1)     
+        print(sentence1)    
+
+        if nb_unit==0:
+            continue  # next iteration
 
         # Replace dropped frame in calcium and spike traces with the previous value
 
@@ -265,7 +268,7 @@ for micename in MiceList:
         SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled[StartTime_frame:StartTime_frame+upd_rec_dur]
 
         # Remove N2 stage
-        #SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
+        SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
             
         # Determine each substate identity and duration
         array=SleepScoredTS_upscaled_ministart
@@ -332,14 +335,15 @@ for micename in MiceList:
         for unit in range(nb_unit): 
 
             Carray_unit =Carray[:,unit]
-            Sarray_unit =Sarray[:,unit]
-            peaks, _ = find_peaks(Sarray_unit)
-            Sarray_unit=np.zeros(len(Sarray_unit))
+            Darray_unit =Sarray[:,unit]
+            peaks, _ = find_peaks(Darray_unit)
+            Sarray_unit=np.zeros(len(Darray_unit))
             Sarray_unit[peaks]=1     
 
             for index in range(len(substates)):
                 
                 ca_input_sub=Carray_unit[substates.Start[index]:substates.End[index]]
+                ds_input_sub=Darray_unit[substates.Start[index]:substates.End[index]]
                 sp_input_sub=Sarray_unit[substates.Start[index]:substates.End[index]]
 
                 VigilanceState_GlobalResults.loc[counter, 'Mice'] = os.path.basename(folder_base)
@@ -353,10 +357,16 @@ for micename in MiceList:
                 VigilanceState_GlobalResults.loc[counter, 'Substate'] = substates.Identity[index]
                 VigilanceState_GlobalResults.loc[counter, 'SubstateNumber'] = substates.index[index]
                 VigilanceState_GlobalResults.loc[counter, 'DurationSubstate'] = (substates.Duration[index]/minian_freq)
+
                 VigilanceState_GlobalResults.loc[counter, 'CalciumActivity'] = ca_input_sub.mean()
-                VigilanceState_GlobalResults.loc[counter, 'AUC_calcium'] = np.trapz(ca_input_sub,np.arange(0,len(ca_input_sub),1))
                 VigilanceState_GlobalResults.loc[counter, 'Avg_CalciumActivity'] = Carray_unit.mean()
+
+                VigilanceState_GlobalResults.loc[counter, 'AUC_calcium'] = np.trapz(ca_input_sub,np.arange(0,len(ca_input_sub),1))
                 VigilanceState_GlobalResults.loc[counter, 'Avg_AUC_calcium'] = np.trapz(Carray_unit,np.arange(0,len(Carray_unit),1))
+
+                VigilanceState_GlobalResults.loc[counter, 'DeconvSpikeMeanActivity'] = ds_input_sub.mean()
+                VigilanceState_GlobalResults.loc[counter, 'Avg_DeconvSpikeActivity'] = Darray_unit.mean()
+
                 VigilanceState_GlobalResults.loc[counter, 'SpikeActivityHz'] = sp_input_sub.sum()/(substates.Duration[index]/minian_freq)
                 VigilanceState_GlobalResults.loc[counter, 'Avg_SpikeActivityHz'] = Sarray_unit.sum()/(len(Sarray_unit)/minian_freq)
 
@@ -384,6 +394,7 @@ for micename in MiceList:
 
                 VigilanceState_GlobalResults.loc[counter, 'CaCorrCoeff'] = np.nanmean(CaCorrCoeff)
                 VigilanceState_GlobalResults.loc[counter, 'SpCorrCoeff'] = np.nanmean(SpCorrCoeff)
+
                 VigilanceState_GlobalResults.loc[counter, 'Rsquared_CaCorrCoeff'] = np.nanmean([x ** 2 for x in CaCorrCoeff])
                 VigilanceState_GlobalResults.loc[counter, 'Rsquared_SpCorrCoeff'] = np.nanmean([x ** 2 for x in SpCorrCoeff])
                 counter+=1

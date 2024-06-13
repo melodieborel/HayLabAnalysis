@@ -24,7 +24,7 @@ import shutil
 ########################################################################
 
 # Specify the directory containing the Excel files
-directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/OscillationsAnalysis_PerMouse_2024_05_24_12_37_56_080330"
+directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/OscillationsAnalysis_PerMouse_2024_06_13_16_33_03_913022"
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())

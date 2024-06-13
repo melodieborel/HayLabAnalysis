@@ -661,7 +661,8 @@ for micename in MiceList:
                             if len(ActivityCa)>0 :                                
                                 if np.shape(np.array(ActivityCa))[1] == int(norm_freq*durationSpdl*2):  #normalize traces to the same frequency rate         
                                     ActivityCa= np.reshape(np.array(ActivityCa), (-1, len(np.array(ActivityCa)))) if np.ndim(ActivityCa) == 1 else np.array(ActivityCa)    
-                                    dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(ActivityCa), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(ActivityCa)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(ActivityCa), axis=0) if key in dict_All_ActivityCa else np.array(ActivityCa)
                                 else:
                                     dataO = np.array(ActivityCa)
                                     data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
@@ -670,7 +671,8 @@ for micename in MiceList:
                                     resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='linear')
                                     resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
                                     resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
-                                    dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(resampled_data)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(resampled_data), axis=0) if key in dict_All_ActivityCa else np.array(resampled_data)
                         else: 
                             print(f"/!\ Cell idx {unit} not in the cross registration") if it==1 else None
                     
@@ -685,7 +687,8 @@ for micename in MiceList:
                             if len(ActivitySp)>0 :    
                                 if np.shape(np.array(ActivitySp))[1] == int(norm_freq*durationSpdl*2):  #normalize traces to the same frequency rate         
                                     ActivitySp= np.reshape(np.array(ActivitySp), (-1, len(np.array(ActivitySp)))) if np.ndim(ActivitySp) == 1 else np.array(ActivitySp)    
-                                    dict_All_ActivitySp[str(indexMapp)] = np.append(dict_All_ActivitySp[str(indexMapp)], np.array(ActivitySp), axis=0) if str(indexMapp) in dict_All_ActivitySp else np.array(ActivitySp)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(ActivitySp), axis=0) if key in dict_All_ActivitySp else np.array(ActivitySp)
                                 else:
                                     dataO = np.array(ActivitySp)
                                     data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
@@ -694,7 +697,8 @@ for micename in MiceList:
                                     resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='nearest')
                                     resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
                                     resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
-                                    dict_All_ActivitySp[str(indexMapp)] = np.append(dict_All_ActivitySp[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivitySp else np.array(resampled_data)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
                                     
                     #######################################################################################
                                                         # for SWRs #
@@ -842,7 +846,8 @@ for micename in MiceList:
                             if len(ActivityCa)>0 :                                  
                                 if np.shape(np.array(ActivityCa))[1] == int(norm_freq*durationSWR*2):   #normalize traces to the same frequency rate    
                                     ActivityCa= np.reshape(np.array(ActivityCa), (-1, len(np.array(ActivityCa)))) if np.ndim(ActivityCa) == 1 else np.array(ActivityCa)    
-                                    dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(ActivityCa), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(ActivityCa)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(ActivityCa), axis=0) if key in dict_All_ActivityCa else np.array(ActivityCa)
                                 else:
                                     dataO = np.array(ActivityCa)
                                     data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
@@ -851,7 +856,8 @@ for micename in MiceList:
                                     resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='linear')
                                     resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
                                     resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
-                                    dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(resampled_data)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(resampled_data), axis=0) if key in dict_All_ActivityCa else np.array(resampled_data)
                     
                     # All Sp traces for each SWR per Unique unit (according to cross-registration)
 
@@ -865,7 +871,8 @@ for micename in MiceList:
                             if len(ActivitySp)>0 :  
                                 if np.shape(np.array(ActivitySp))[1] == int(norm_freq*durationSWR*2):   
                                     ActivitySp= np.reshape(np.array(ActivitySp), (-1, len(np.array(ActivitySp)))) if np.ndim(ActivitySp) == 1 else np.array(ActivitySp)    
-                                    dict_All_ActivitySp[str(indexMapp)] = np.append(dict_All_ActivitySp[str(indexMapp)], np.array(ActivitySp), axis=0) if str(indexMapp) in dict_All_ActivitySp else np.array(ActivitySp)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(ActivitySp), axis=0) if key in dict_All_ActivitySp else np.array(ActivitySp)
                                 else: #normalize traces to the same frequency rate    
                                     dataO = np.array(ActivitySp)
                                     data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
@@ -874,7 +881,8 @@ for micename in MiceList:
                                     resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='nearest')
                                     resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
                                     resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
-                                    dict_All_ActivitySp[str(indexMapp)] = np.append(dict_All_ActivitySp[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivitySp else np.array(resampled_data)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
                     
                     #######################################################################################
                                                     # for Down States #
@@ -1022,7 +1030,8 @@ for micename in MiceList:
                             if len(ActivityCa)>0 :                                  
                                 if np.shape(np.array(ActivityCa))[1] == int(norm_freq*durationDS*2):   #normalize traces to the same frequency rate    
                                     ActivityCa= np.reshape(np.array(ActivityCa), (-1, len(np.array(ActivityCa)))) if np.ndim(ActivityCa) == 1 else np.array(ActivityCa)    
-                                    dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(ActivityCa), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(ActivityCa)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(ActivityCa), axis=0) if key in dict_All_ActivityCa else np.array(ActivityCa)
                                 else:
                                     dataO = np.array(ActivityCa)
                                     data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
@@ -1031,7 +1040,8 @@ for micename in MiceList:
                                     resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='linear')
                                     resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
                                     resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
-                                    dict_All_ActivityCa[str(indexMapp)] = np.append(dict_All_ActivityCa[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivityCa else np.array(resampled_data)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(resampled_data), axis=0) if key in dict_All_ActivityCa else np.array(resampled_data)
                     
                     # All Sp traces for each DS per Unique unit (according to cross-registration)
 
@@ -1045,7 +1055,8 @@ for micename in MiceList:
                             if len(ActivitySp)>0 :  
                                 if np.shape(np.array(ActivitySp))[1] == int(norm_freq*durationDS*2):   
                                     ActivitySp= np.reshape(np.array(ActivitySp), (-1, len(np.array(ActivitySp)))) if np.ndim(ActivitySp) == 1 else np.array(ActivitySp)    
-                                    dict_All_ActivitySp[str(indexMapp)] = np.append(dict_All_ActivitySp[str(indexMapp)], np.array(ActivitySp), axis=0) if str(indexMapp) in dict_All_ActivitySp else np.array(ActivitySp)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(ActivitySp), axis=0) if key in dict_All_ActivitySp else np.array(ActivitySp)
                                 else: #normalize traces to the same frequency rate    
                                     dataO = np.array(ActivitySp)
                                     data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
@@ -1054,7 +1065,8 @@ for micename in MiceList:
                                     resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='nearest')
                                     resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
                                     resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
-                                    dict_All_ActivitySp[str(indexMapp)] = np.append(dict_All_ActivitySp[str(indexMapp)], np.array(resampled_data), axis=0) if str(indexMapp) in dict_All_ActivitySp else np.array(resampled_data)
+                                    key=micename + str(indexMapp).replace('[','').replace(']','')
+                                    dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
 
             else:
                 print(f'/!\ {session} not taken into account cause minian frequency = {minian_freq}')
@@ -1076,32 +1088,21 @@ for micename in MiceList:
         # Do average Calcium results for Spindles Peristimulus Time Histogram 
 
         AVG_dict_All_ActivityCa_spin = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_spin.items()}
-        Array=list(AVG_dict_All_ActivityCa_spin.values())
-
         AVG_dict_All_ActivityCa_spin_Uncoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_spin_Uncoupled.items()}
-        ArrayUn=list(AVG_dict_All_ActivityCa_spin_Uncoupled.values())
-
         AVG_dict_All_ActivityCa_spin_Precoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_spin_Precoupled.items()}
-        ArrayPre=list(AVG_dict_All_ActivityCa_spin_Precoupled.values())
-
         AVG_dict_All_ActivityCa_spin_Postcoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_spin_Postcoupled.items()}
-        ArrayPost=list(AVG_dict_All_ActivityCa_spin_Postcoupled.values())
-
         AVG_dict_All_ActivityCa_spin_GlobalSpdl = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_GlobalSpdl.items()}
-        ArrayGlobalSpdl=list(AVG_dict_All_ActivityCa_spin_GlobalSpdl.values())
-
         AVG_dict_All_ActivityCa_spin_LocalSpdl = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_LocalSpdl.items()}
-        ArrayLocalSpdl=list(AVG_dict_All_ActivityCa_spin_LocalSpdl.values())
 
         filenameOut = folder_to_save / f'Spindles_{Cortex}_ABdetection_CalciumAvgResultsAB_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
-        Array=pd.DataFrame(Array)
-        ArrayUn=pd.DataFrame(ArrayUn)
-        ArrayPre=pd.DataFrame(ArrayPre)
-        ArrayPost=pd.DataFrame(ArrayPost)
-        ArrayGlobalSpdl=pd.DataFrame(ArrayGlobalSpdl)
-        ArrayLocalSpdl=pd.DataFrame(ArrayLocalSpdl)
+        Array=pd.DataFrame(AVG_dict_All_ActivityCa_spin).T
+        ArrayUn=pd.DataFrame(AVG_dict_All_ActivityCa_spin_Uncoupled).T
+        ArrayPre=pd.DataFrame(AVG_dict_All_ActivityCa_spin_Precoupled).T
+        ArrayPost=pd.DataFrame(AVG_dict_All_ActivityCa_spin_Postcoupled).T
+        ArrayGlobalSpdl=pd.DataFrame(AVG_dict_All_ActivityCa_spin_GlobalSpdl).T
+        ArrayLocalSpdl=pd.DataFrame(AVG_dict_All_ActivityCa_spin_LocalSpdl).T
 
         Array.to_excel(excel_writer, sheet_name='All_Spindles', index=True, header=False)
         ArrayUn.to_excel(excel_writer, sheet_name='Uncoupled_Spindles', index=True, header=False)
@@ -1115,32 +1116,21 @@ for micename in MiceList:
         # Do average Spike results for Spindles Peristimulus Time Histogram 
 
         AVG_dict_All_ActivitySp_spin = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_spin.items()}
-        Array=list(AVG_dict_All_ActivitySp_spin.values())
-
         AVG_dict_All_ActivitySp_spin_Uncoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_spin_Uncoupled.items()}
-        ArrayUn=list(AVG_dict_All_ActivityCa_spin_Uncoupled.values())
-
         AVG_dict_All_ActivitySp_spin_Precoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_spin_Precoupled.items()}
-        ArrayPre=list(AVG_dict_All_ActivitySp_spin_Precoupled.values())
-
         AVG_dict_All_ActivitySp_spin_Postcoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_spin_Postcoupled.items()}
-        ArrayPost=list(AVG_dict_All_ActivitySp_spin_Postcoupled.values())
-
         AVG_dict_All_ActivitySp_spin_GlobalSpdl = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_GlobalSpdl.items()}
-        ArrayGlobalSpdl=list(AVG_dict_All_ActivitySp_spin_GlobalSpdl.values())
-
         AVG_dict_All_ActivitySp_spin_LocalSpdl = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_LocalSpdl.items()}
-        ArrayLocalSpdl=list(AVG_dict_All_ActivitySp_spin_LocalSpdl.values())
 
         filenameOut = folder_to_save / f'Spindles_{Cortex}_ABdetection_SpikeAvgResultsAB_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
-        Array=pd.DataFrame(Array)
-        ArrayUn=pd.DataFrame(ArrayUn)
-        ArrayPre=pd.DataFrame(ArrayPre)
-        ArrayPost=pd.DataFrame(ArrayPost)
-        ArrayGlobalSpdl=pd.DataFrame(ArrayGlobalSpdl)
-        ArrayLocalSpdl=pd.DataFrame(ArrayLocalSpdl)
+        Array=pd.DataFrame(AVG_dict_All_ActivitySp_spin).T
+        ArrayUn=pd.DataFrame(AVG_dict_All_ActivityCa_spin_Uncoupled).T
+        ArrayPre=pd.DataFrame(AVG_dict_All_ActivitySp_spin_Precoupled).T
+        ArrayPost=pd.DataFrame(AVG_dict_All_ActivitySp_spin_Postcoupled).T
+        ArrayGlobalSpdl=pd.DataFrame(AVG_dict_All_ActivitySp_spin_GlobalSpdl).T
+        ArrayLocalSpdl=pd.DataFrame(AVG_dict_All_ActivitySp_spin_LocalSpdl).T
 
         Array.to_excel(excel_writer, sheet_name='All_Spindles', index=True, header=False)
         ArrayUn.to_excel(excel_writer, sheet_name='Uncoupled_Spindles', index=True, header=False)
@@ -1154,32 +1144,21 @@ for micename in MiceList:
         # Do sum Spike results for Spindles Peristimulus Time Histogram 
 
         AVG_dict_All_ActivitySp_spin = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_spin.items()}
-        Array=list(AVG_dict_All_ActivitySp_spin.values())
-
         AVG_dict_All_ActivitySp_spin_Uncoupled = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_spin_Uncoupled.items()}
-        ArrayUn=list(AVG_dict_All_ActivityCa_spin_Uncoupled.values())
-
         AVG_dict_All_ActivitySp_spin_Precoupled = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_spin_Precoupled.items()}
-        ArrayPre=list(AVG_dict_All_ActivitySp_spin_Precoupled.values())
-
         AVG_dict_All_ActivitySp_spin_Postcoupled = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_spin_Postcoupled.items()}
-        ArrayPost=list(AVG_dict_All_ActivitySp_spin_Postcoupled.values())
-
         AVG_dict_All_ActivitySp_spin_GlobalSpdl = {key: np.sum(matrix,0) for key, matrix in dict_All_ActivitySp_GlobalSpdl.items()}
-        ArrayGlobalSpdl=list(AVG_dict_All_ActivitySp_spin_GlobalSpdl.values())
-
         AVG_dict_All_ActivitySp_spin_LocalSpdl = {key: np.sum(matrix,0) for key, matrix in dict_All_ActivitySp_LocalSpdl.items()}
-        ArrayLocalSpdl=list(AVG_dict_All_ActivitySp_spin_LocalSpdl.values())
 
         filenameOut = folder_to_save / f'Spindles_{Cortex}_ABdetection_SpikeSumResultsAB_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
-        Array=pd.DataFrame(Array)
-        ArrayUn=pd.DataFrame(ArrayUn)
-        ArrayPre=pd.DataFrame(ArrayPre)
-        ArrayPost=pd.DataFrame(ArrayPost)        
-        ArrayGlobalSpdl=pd.DataFrame(ArrayGlobalSpdl)
-        ArrayLocalSpdl=pd.DataFrame(ArrayLocalSpdl)
+        Array=pd.DataFrame(AVG_dict_All_ActivitySp_spin).T
+        ArrayUn=pd.DataFrame(AVG_dict_All_ActivityCa_spin_Uncoupled).T
+        ArrayPre=pd.DataFrame(AVG_dict_All_ActivitySp_spin_Precoupled).T
+        ArrayPost=pd.DataFrame(AVG_dict_All_ActivitySp_spin_Postcoupled).T    
+        ArrayGlobalSpdl=pd.DataFrame(AVG_dict_All_ActivitySp_spin_GlobalSpdl).T
+        ArrayLocalSpdl=pd.DataFrame(AVG_dict_All_ActivitySp_spin_LocalSpdl).T
 
         Array.to_excel(excel_writer, sheet_name='All_Spindles', index=True, header=False)
         ArrayUn.to_excel(excel_writer, sheet_name='Uncoupled_Spindles', index=True, header=False)
@@ -1205,24 +1184,17 @@ for micename in MiceList:
         # Do average Calcium results for SWR Peristimulus Time Histogram 
 
         AVG_dict_All_ActivityCa_swr = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_swr.items()}
-        Array=list(AVG_dict_All_ActivityCa_swr.values())
-
         AVG_dict_All_ActivityCa_swr_Uncoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_swr_Uncoupled.items()}
-        ArrayUn=list(AVG_dict_All_ActivityCa_swr_Uncoupled.values())
-
         AVG_dict_All_ActivityCa_swr_Precoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_swr_Precoupled.items()}
-        ArrayPre=list(AVG_dict_All_ActivityCa_swr_Precoupled.values())
-
         AVG_dict_All_ActivityCa_swr_Postcoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_swr_Postcoupled.items()}
-        ArrayPost=list(AVG_dict_All_ActivityCa_swr_Postcoupled.values())
 
         filenameOut = folder_to_save / f'SWR_{Cortex}_ABdetection_CalciumAvgResultsAB_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
-        Array=pd.DataFrame(Array)
-        ArrayUn=pd.DataFrame(ArrayUn)
-        ArrayPre=pd.DataFrame(ArrayPre)
-        ArrayPost=pd.DataFrame(ArrayPost)
+        Array=pd.DataFrame(AVG_dict_All_ActivityCa_swr).T
+        ArrayUn=pd.DataFrame(AVG_dict_All_ActivityCa_swr_Uncoupled).T
+        ArrayPre=pd.DataFrame(AVG_dict_All_ActivityCa_swr_Precoupled).T
+        ArrayPost=pd.DataFrame(AVG_dict_All_ActivityCa_swr_Postcoupled).T
 
         Array.to_excel(excel_writer, sheet_name='All_SWR', index=True, header=False)
         ArrayUn.to_excel(excel_writer, sheet_name='Uncoupled_SWR', index=True, header=False)
@@ -1234,24 +1206,17 @@ for micename in MiceList:
         # Do average Spike results for SWR Peristimulus Time Histogram 
 
         AVG_dict_All_ActivitySp_swr = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_swr.items()}
-        Array=list(AVG_dict_All_ActivitySp_swr.values())
-
         AVG_dict_All_ActivitySp_swr_Uncoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_swr_Uncoupled.items()}
-        ArrayUn=list(AVG_dict_All_ActivitySp_swr_Uncoupled.values())
-
         AVG_dict_All_ActivitySp_swr_Precoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_swr_Precoupled.items()}
-        ArrayPre=list(AVG_dict_All_ActivitySp_swr_Precoupled.values())
-
         AVG_dict_All_ActivitySp_swr_Postcoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_swr_Postcoupled.items()}
-        ArrayPost=list(AVG_dict_All_ActivitySp_swr_Postcoupled.values())
 
         filenameOut = folder_to_save / f'SWR_{Cortex}_ABdetection_SpikeAvgResultsAB_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
-        Array=pd.DataFrame(Array)
-        ArrayUn=pd.DataFrame(ArrayUn)
-        ArrayPre=pd.DataFrame(ArrayPre)
-        ArrayPost=pd.DataFrame(ArrayPost)
+        Array=pd.DataFrame(AVG_dict_All_ActivitySp_swr).T
+        ArrayUn=pd.DataFrame(AVG_dict_All_ActivitySp_swr_Uncoupled).T
+        ArrayPre=pd.DataFrame(AVG_dict_All_ActivitySp_swr_Precoupled).T
+        ArrayPost=pd.DataFrame(AVG_dict_All_ActivitySp_swr_Postcoupled).T
 
         Array.to_excel(excel_writer, sheet_name='All_SWR', index=True, header=False)
         ArrayUn.to_excel(excel_writer, sheet_name='Uncoupled_SWR', index=True, header=False)
@@ -1263,24 +1228,17 @@ for micename in MiceList:
         # Do sum Spike results for SWR Peristimulus Time Histogram 
 
         AVG_dict_All_ActivitySp_swr = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_swr.items()}
-        Array=list(AVG_dict_All_ActivitySp_swr.values())
-
         AVG_dict_All_ActivitySp_swr_Uncoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_swr_Uncoupled.items()}
-        ArrayUn=list(AVG_dict_All_ActivitySp_swr_Uncoupled.values())
-
         AVG_dict_All_ActivitySp_swr_Precoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_swr_Precoupled.items()}
-        ArrayPre=list(AVG_dict_All_ActivitySp_swr_Precoupled.values())
-
         AVG_dict_All_ActivitySp_swr_Postcoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_swr_Postcoupled.items()}
-        ArrayPost=list(AVG_dict_All_ActivitySp_swr_Postcoupled.values())
 
         filenameOut = folder_to_save / f'SWR_{Cortex}_ABdetection_SpikeSumResultsAB_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
-        Array=pd.DataFrame(Array)
-        ArrayUn=pd.DataFrame(ArrayUn)
-        ArrayPre=pd.DataFrame(ArrayPre)
-        ArrayPost=pd.DataFrame(ArrayPost)
+        Array=pd.DataFrame(AVG_dict_All_ActivitySp_swr).T
+        ArrayUn=pd.DataFrame(AVG_dict_All_ActivitySp_swr_Uncoupled).T
+        ArrayPre=pd.DataFrame(AVG_dict_All_ActivitySp_swr_Precoupled).T
+        ArrayPost=pd.DataFrame(AVG_dict_All_ActivitySp_swr_Postcoupled).T
 
         Array.to_excel(excel_writer, sheet_name='All_SWR', index=True, header=False)
         ArrayUn.to_excel(excel_writer, sheet_name='Uncoupled_SWR', index=True, header=False)
@@ -1304,24 +1262,17 @@ for micename in MiceList:
         # Do average Calcium results for DS Peristimulus Time Histogram 
 
         AVG_dict_All_ActivityCa_ds = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_ds.items()}
-        Array=list(AVG_dict_All_ActivityCa_ds.values())
-
         AVG_dict_All_ActivityCa_ds_Uncoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_ds_Uncoupled.items()}
-        ArrayUn=list(AVG_dict_All_ActivityCa_ds_Uncoupled.values())
-
         AVG_dict_All_ActivityCa_ds_Precoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_ds_Precoupled.items()}
-        ArrayPre=list(AVG_dict_All_ActivityCa_ds_Precoupled.values())
-
         AVG_dict_All_ActivityCa_ds_Postcoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivityCa_ds_Postcoupled.items()}
-        ArrayPost=list(AVG_dict_All_ActivityCa_ds_Postcoupled.values())
 
         filenameOut = folder_to_save / f'DS_{Cortex}_ABdetection_CalciumAvgResultsAB_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
-        Array=pd.DataFrame(Array)
-        ArrayUn=pd.DataFrame(ArrayUn)
-        ArrayPre=pd.DataFrame(ArrayPre)
-        ArrayPost=pd.DataFrame(ArrayPost)
+        Array=pd.DataFrame(AVG_dict_All_ActivityCa_ds).T
+        ArrayUn=pd.DataFrame(AVG_dict_All_ActivityCa_ds_Uncoupled).T
+        ArrayPre=pd.DataFrame(AVG_dict_All_ActivityCa_ds_Precoupled).T
+        ArrayPost=pd.DataFrame(AVG_dict_All_ActivityCa_ds_Postcoupled).T
 
         Array.to_excel(excel_writer, sheet_name='All_DS', index=True, header=False)
         ArrayUn.to_excel(excel_writer, sheet_name='Uncoupled_DS', index=True, header=False)
@@ -1333,24 +1284,17 @@ for micename in MiceList:
         # Do average Spike results for DS Peristimulus Time Histogram 
 
         AVG_dict_All_ActivitySp_ds = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_ds.items()}
-        Array=list(AVG_dict_All_ActivitySp_ds.values())
-
         AVG_dict_All_ActivitySp_ds_Uncoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_ds_Uncoupled.items()}
-        ArrayUn=list(AVG_dict_All_ActivitySp_ds_Uncoupled.values())
-
         AVG_dict_All_ActivitySp_ds_Precoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_ds_Precoupled.items()}
-        ArrayPre=list(AVG_dict_All_ActivitySp_ds_Precoupled.values())
-
         AVG_dict_All_ActivitySp_ds_Postcoupled = {key: np.mean(matrix,0) for key, matrix in dict_All_ActivitySp_ds_Postcoupled.items()}
-        ArrayPost=list(AVG_dict_All_ActivitySp_ds_Postcoupled.values())
 
         filenameOut = folder_to_save / f'DS_{Cortex}_ABdetection_SpikeAvgResultsAB_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
-        Array=pd.DataFrame(Array)
-        ArrayUn=pd.DataFrame(ArrayUn)
-        ArrayPre=pd.DataFrame(ArrayPre)
-        ArrayPost=pd.DataFrame(ArrayPost)
+        Array=pd.DataFrame(AVG_dict_All_ActivitySp_ds).T
+        ArrayUn=pd.DataFrame(AVG_dict_All_ActivitySp_ds_Uncoupled).T
+        ArrayPre=pd.DataFrame(AVG_dict_All_ActivitySp_ds_Precoupled).T
+        ArrayPost=pd.DataFrame(AVG_dict_All_ActivitySp_ds_Postcoupled).T
 
         Array.to_excel(excel_writer, sheet_name='All_DS', index=True, header=False)
         ArrayUn.to_excel(excel_writer, sheet_name='Uncoupled_DS', index=True, header=False)
@@ -1362,24 +1306,17 @@ for micename in MiceList:
         # Do sum Spike results for DS Peristimulus Time Histogram 
 
         AVG_dict_All_ActivitySp_ds = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_ds.items()}
-        Array=list(AVG_dict_All_ActivitySp_ds.values())
-
         AVG_dict_All_ActivitySp_ds_Uncoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_ds_Uncoupled.items()}
-        ArrayUn=list(AVG_dict_All_ActivitySp_ds_Uncoupled.values())
-
         AVG_dict_All_ActivitySp_ds_Precoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_ds_Precoupled.items()}
-        ArrayPre=list(AVG_dict_All_ActivitySp_ds_Precoupled.values())
-
         AVG_dict_All_ActivitySp_ds_Postcoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_ds_Postcoupled.items()}
-        ArrayPost=list(AVG_dict_All_ActivitySp_ds_Postcoupled.values())
 
         filenameOut = folder_to_save / f'DS_{Cortex}_ABdetection_SpikeSumResultsAB_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
-        Array=pd.DataFrame(Array)
-        ArrayUn=pd.DataFrame(ArrayUn)
-        ArrayPre=pd.DataFrame(ArrayPre)
-        ArrayPost=pd.DataFrame(ArrayPost)
+        Array=pd.DataFrame(AVG_dict_All_ActivitySp_ds).T
+        ArrayUn=pd.DataFrame(AVG_dict_All_ActivitySp_ds_Uncoupled).T
+        ArrayPre=pd.DataFrame(AVG_dict_All_ActivitySp_ds_Precoupled).T
+        ArrayPost=pd.DataFrame(AVG_dict_All_ActivitySp_ds_Postcoupled).T
 
         Array.to_excel(excel_writer, sheet_name='All_DS', index=True, header=False)
         ArrayUn.to_excel(excel_writer, sheet_name='Uncoupled_DS', index=True, header=False)
