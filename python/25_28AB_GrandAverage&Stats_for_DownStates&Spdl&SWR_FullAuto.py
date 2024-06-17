@@ -24,7 +24,7 @@ import shutil
 ########################################################################
 
 # Specify the directory containing the Excel files
-directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/OscillationsAnalysis_PerMouse_2024_04_24_20_59_07_995020"
+directory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/OscillationsAnalysis_PerMouse_2024_06_13_16_33_03_913022"
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())
@@ -34,15 +34,15 @@ os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/interfaceJupyter/python/25_28AB_GrandAverage&Stats_for_Spdl&SWR_FullAuto.py"
-destination_file_path = f"{destination_folder}/25_28AB_GrandAverage&Stats_for_Spdl&SWR_FullAuto.txt"
+source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/25_28AB_GrandAverage&Stats_for_DownStates&Spdl&SWR_FullAuto.py"
+destination_file_path = f"{destination_folder}/25_28AB_GrandAverage&Stats_for_DownStates&Spdl&SWR_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 
 NrSubtypeList=['All', 'L1']
 CortexList=['PFC', 'S1']
 
-OscList=['Spdl', 'SWR']
-OscillationList=['Spindles', 'SWR']
+OscList=['Spdl', 'SWR', 'DS']
+OscillationList=['Spindles', 'SWR', 'DS']
 
 for o, Osc in enumerate(OscList): 
     
