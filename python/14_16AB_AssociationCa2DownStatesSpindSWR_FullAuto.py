@@ -497,9 +497,9 @@ for micename in MiceList:
 
                     Carray_unit =Carray[:,unit]
                     Sarray_unit =Sarray[:,unit]
-                    peaks, _ = find_peaks(Sarray_unit)#, height=np.std(SpTrace))
-                    Sarray_unit=np.zeros(len(Sarray_unit))
-                    Sarray_unit[peaks]=1
+                    #peaks, _ = find_peaks(Sarray_unit)#, height=np.std(SpTrace))
+                    #Sarray_unit=np.zeros(len(Sarray_unit))
+                    #Sarray_unit[peaks]=1
 
                     #######################################################################################
                                                         # for SPDLs #
@@ -631,9 +631,9 @@ for micename in MiceList:
                                 Spindles_GlobalResults.loc[counter, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
                                 Spindles_GlobalResults.loc[counter, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
                             
-                                ActBefore=np.sum(SpTrace[:durOsc],0)
-                                ActDuring=np.sum(SpTrace[durOsc:durOsc*2],0)
-                                ActAfter=np.sum(SpTrace[durOsc*2:durOsc*3],0)
+                                ActBefore=np.mean(SpTrace[:durOsc],0)
+                                ActDuring=np.mean(SpTrace[durOsc:durOsc*2],0)
+                                ActAfter=np.mean(SpTrace[durOsc*2:durOsc*3],0)
 
                                 if ActBefore > ActDuring and ActBefore > ActAfter:
                                     pref='Before'
@@ -644,9 +644,9 @@ for micename in MiceList:
                                 else:
                                     pref='None'
                                 Spindles_GlobalResults.loc[counter, 'SpikeActivityPreference'] = pref
-                                Spindles_GlobalResults.loc[counter, 'SpikeActivityBefore'] = np.sum(SpTrace[:durOsc],0)
-                                Spindles_GlobalResults.loc[counter, 'SpikeActivityDuring'] = np.sum(SpTrace[durOsc:durOsc*2],0)
-                                Spindles_GlobalResults.loc[counter, 'SpikeActivityAfter'] = np.sum(SpTrace[durOsc*2:durOsc*3],0)                         
+                                Spindles_GlobalResults.loc[counter, 'SpikeActivityBefore'] = np.mean(SpTrace[:durOsc],0)
+                                Spindles_GlobalResults.loc[counter, 'SpikeActivityDuring'] = np.mean(SpTrace[durOsc:durOsc*2],0)
+                                Spindles_GlobalResults.loc[counter, 'SpikeActivityAfter'] = np.mean(SpTrace[durOsc*2:durOsc*3],0)                         
                             counter+=1     
 
                     ## Peristimulus Time Histogram 
@@ -816,9 +816,9 @@ for micename in MiceList:
                                 SWR_GlobalResults.loc[counter2, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
                                 SWR_GlobalResults.loc[counter2, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
                             
-                                ActBefore=np.sum(SpTrace[:durOsc],0)
-                                ActDuring=np.sum(SpTrace[durOsc:durOsc*2],0)
-                                ActAfter=np.sum(SpTrace[durOsc*2:durOsc*3],0)
+                                ActBefore=np.mean(SpTrace[:durOsc],0)
+                                ActDuring=np.mean(SpTrace[durOsc:durOsc*2],0)
+                                ActAfter=np.mean(SpTrace[durOsc*2:durOsc*3],0)
 
                                 if ActBefore > ActDuring and ActBefore > ActAfter:
                                     pref='Before'
@@ -829,9 +829,9 @@ for micename in MiceList:
                                 else:
                                     pref='None'
                                 SWR_GlobalResults.loc[counter2, 'SpikeActivityPreference'] = pref
-                                SWR_GlobalResults.loc[counter2, 'SpikeActivityBefore'] = np.sum(SpTrace[:durOsc],0)
-                                SWR_GlobalResults.loc[counter2, 'SpikeActivityDuring'] = np.sum(SpTrace[durOsc:durOsc*2],0)
-                                SWR_GlobalResults.loc[counter2, 'SpikeActivityAfter'] = np.sum(SpTrace[durOsc*2:durOsc*3],0)
+                                SWR_GlobalResults.loc[counter2, 'SpikeActivityBefore'] = np.mean(SpTrace[:durOsc],0)
+                                SWR_GlobalResults.loc[counter2, 'SpikeActivityDuring'] = np.mean(SpTrace[durOsc:durOsc*2],0)
+                                SWR_GlobalResults.loc[counter2, 'SpikeActivityAfter'] = np.mean(SpTrace[durOsc*2:durOsc*3],0)
                             counter2+=1    
 
                     ## Peristimulus Time Histogram 
@@ -1000,9 +1000,9 @@ for micename in MiceList:
                                 DS_GlobalResults.loc[counter3, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
                                 DS_GlobalResults.loc[counter3, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
                             
-                                ActBefore=np.sum(SpTrace[:durOsc],0)
-                                ActDuring=np.sum(SpTrace[durOsc:durOsc*2],0)
-                                ActAfter=np.sum(SpTrace[durOsc*2:durOsc*3],0)
+                                ActBefore=np.mean(SpTrace[:durOsc],0)
+                                ActDuring=np.mean(SpTrace[durOsc:durOsc*2],0)
+                                ActAfter=np.mean(SpTrace[durOsc*2:durOsc*3],0)
 
                                 if ActBefore > ActDuring and ActBefore > ActAfter:
                                     pref='Before'
@@ -1013,9 +1013,9 @@ for micename in MiceList:
                                 else:
                                     pref='None'
                                 DS_GlobalResults.loc[counter3, 'SpikeActivityPreference'] = pref
-                                DS_GlobalResults.loc[counter3, 'SpikeActivityBefore'] = np.sum(SpTrace[:durOsc],0)
-                                DS_GlobalResults.loc[counter3, 'SpikeActivityDuring'] = np.sum(SpTrace[durOsc:durOsc*2],0)
-                                DS_GlobalResults.loc[counter3, 'SpikeActivityAfter'] = np.sum(SpTrace[durOsc*2:durOsc*3],0)
+                                DS_GlobalResults.loc[counter3, 'SpikeActivityBefore'] = np.mean(SpTrace[:durOsc],0)
+                                DS_GlobalResults.loc[counter3, 'SpikeActivityDuring'] = np.mean(SpTrace[durOsc:durOsc*2],0)
+                                DS_GlobalResults.loc[counter3, 'SpikeActivityAfter'] = np.mean(SpTrace[durOsc*2:durOsc*3],0)
                             counter3+=1     
 
                     ## Peristimulus Time Histogram 
