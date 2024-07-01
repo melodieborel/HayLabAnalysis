@@ -3,6 +3,7 @@
 .venv
 ExampleRedLines
 recording8
+session5
 minian
 
 ephyviewer
@@ -10,3 +11,6 @@ ephyviewer
 .DS_Store
 python/.ipynb_checkpoints
 python/dask-worker-space
+
+Analysis
+python/localConfig.ini

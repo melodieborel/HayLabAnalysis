@@ -46,3 +46,6 @@ We are not there yet, but it will probably involve commands such as :
 conda install --file requirements.txt
 conda env update --file local.yml --prune
 ```
+
+
+https://github.com/pyFFTW/pyFFTW/issues/314
