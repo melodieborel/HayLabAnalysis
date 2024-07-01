@@ -21,33 +21,57 @@ from ipyfilechooser import FileChooser
 import os
 from ephyviewer import mkQApp, MainViewer, TraceViewer
 
+def find_session_folders(root_path):
+    sessions = []
+    sessions_path=[]
+    # Iterate through items in the root_path
+    for item in os.listdir(root_path):
+        item_path = os.path.join(root_path, item)
+        if os.path.isdir(item_path):
+            # Check if the directory name contains "session"
+            if "session" in item:
+                sessions.append(item)
+                sessions_path.append(item_path)
+            else:
+                # Check the subdirectories of the current directory
+                for sub_item in os.listdir(item_path):
+                    sub_item_path = os.path.join(item_path, sub_item)
+                    if os.path.isdir(sub_item_path) and "session" in sub_item:
+                        sessions.append(sub_item)
+                        sessions_path.append(sub_item_path)
+                        
+    return sessions, sessions_path
+
+
 # Perform analysis for each mouse
 
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
+MiceList=['ThreeColDotsOK']
 
-dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
+dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/"
 
 # Process
 
-for micename in MiceList:
+for mice in MiceList:
     
-    dpath=Path(dpath0 + micename)
+    dpath=Path(dpath0 + mice)
     # Load sleep score and Ca2+ time series numpy arrays
-    nb_sessions = sum(1 for p in dpath.iterdir() if p.is_dir() and p.name.startswith("session"))    
-    sessions = [folder.name for folder in dpath.iterdir() if folder.is_dir() and "session" in folder.name]
+    #nb_sessions = sum(1 for p in dpath.iterdir() if p.is_dir() and p.name.startswith("session"))    
+    #sessions = [folder.name for folder in dpath.iterdir() if folder.is_dir() and "session" in folder.name]
+    sessions, sessions_path = find_session_folders(dpath)
+    nb_sessions=len(sessions)
 
-    for session in sessions:  
-        folder_base = Path(dpath) / session / f'OpenEphys/'
+    for sess,session in enumerate(sessions):  
+
+        session_path=Path(sessions_path[sess])
+        folder_base = session_path / f'OpenEphys/'
         print(folder_base)
-
                 
         filename2 = folder_base / f'RawDataChannelExtractedDS.npy'
         All = np.load(filename2, mmap_mode= 'r')
 
         Channels = '//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/LFPChannels_perMice.xlsx' 
         allchannels = pd.read_excel(Channels)
-
-        mice = os.path.basename(os.path.dirname(os.path.dirname(folder_base)))
 
         EMGch=int(allchannels[mice][3])
         EMG  =  All[:, EMGch]

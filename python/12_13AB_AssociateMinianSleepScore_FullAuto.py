@@ -1,5 +1,11 @@
 # # Associate Ca2+ signal with sleep stages for each session & subsessions using crossregistration
 
+#######################################################################################
+                            # Define Experiment type #
+#######################################################################################
+
+DrugExperiment=1 #if CGP Experiment
+#DrugExperiment=0 #if Baseline Experiment
 
 #######################################################################################
                                 # Load packages #
@@ -26,6 +32,9 @@ from scipy.signal import find_peaks
 from itertools import groupby
 from IPython.display import display
 
+import warnings
+warnings.filterwarnings("ignore")
+
 minian_path = os.path.join(os.path.abspath('.'),'minian')
 print("The folder used for minian procedures is : {}".format(minian_path))
 sys.path.append(minian_path)
@@ -47,16 +56,38 @@ def Convert(string):
             li2 = len(li)
             return li2
 
+def find_session_folders(root_path):
+    sessions = []
+    sessions_path=[]
+    # Iterate through items in the root_path
+    for item in os.listdir(root_path):
+        item_path = os.path.join(root_path, item)
+        if os.path.isdir(item_path):
+            # Check if the directory name contains "session"
+            if "session" in item:
+                sessions.append(item)
+                sessions_path.append(item_path)
+            else:
+                # Check the subdirectories of the current directory
+                for sub_item in os.listdir(item_path):
+                    sub_item_path = os.path.join(item_path, sub_item)
+                    if os.path.isdir(sub_item_path) and "session" in sub_item:
+                        sessions.append(sub_item)
+                        sessions_path.append(sub_item_path)
+                        
+    return sessions, sessions_path
+
 #######################################################################################
                 # Load sleep score and Ca2+ time series numpy arrays #
 #######################################################################################
 
-MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
+MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] if DrugExperiment else ['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_VigStates_{FolderNameSave}"
+
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_VigStates_{FolderNameSave}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_VigStates_{FolderNameSave}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -65,17 +96,17 @@ source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/
 destination_file_path = f"{destination_folder}/12_13AB_AssociateMinianSleepScore_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 
-for micename in MiceList:
+for mice in MiceList:
     # Load sleep score and Ca2+ time series numpy arrays
-    dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
-    dpath=dpath0 + micename
+    #dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
+    dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/"
+    dpath=dpath0 + mice
     print(f"####################################################################################")
-    print(f"################################### {micename} ####################################")
+    print(f"################################### {mice} ####################################")
     print(f"####################################################################################")
     print(f"Path to the folder : {dpath}")
     folder_base = Path(dpath)
 
-    nb_sessions = sum(1 for p in folder_base.iterdir() if p.is_dir() and p.name.startswith("session"))
     try:
         mfile = open(folder_base / f'mappingsAB.pkl', 'rb')
         mapping = pickle.load(mfile)
@@ -92,16 +123,17 @@ for micename in MiceList:
     dict_Stamps = {}
     dict_TodropFile = {}
     dict_StampsMiniscope = {}
+    dict_Path={}
 
-    sessions = [folder.name for folder in folder_base.iterdir() if folder.is_dir() and "session" in folder.name]
+    sessions, sessions_path = find_session_folders(folder_base)
+    nb_sessions=len(sessions)
 
-    for session in sessions: #range(1, nb_sessions+1):
-        #session= 'session' + str(y)
-        print(session)
-        folder_mini = folder_base / session / f'V4_Miniscope'
+    for sess,session in enumerate(sessions):  
+        session_path=Path(sessions_path[sess])
+        folder_mini = session_path / f'V4_Miniscope'
         nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
-        ScoringFile = folder_base / session/ f'OpenEphys/ScoredSleep_AH.npy'
-        StampsFile = folder_base / session/ f'SynchroFile.xlsx'
+        ScoringFile = session_path/ f'OpenEphys/ScoredSleep_AB.npy'
+        StampsFile = session_path/ f'SynchroFile.xlsx'
         StampsMiniscopeFile = folder_mini / f'timeStamps.csv'
 
         if nb_subsessions!=0:
@@ -109,6 +141,7 @@ for micename in MiceList:
                 subsession= session + str(x)
                 subsessions.append(subsession)    
                 minian_ds = open_minian(folder_mini / subsession / f'minian')      # OR minianAB
+                dict_Path[subsession] = session_path
                 dict_Calcium[subsession] = minian_ds['C'] # calcium traces 
                 dict_Spike[subsession] = minian_ds['S'] # estimated spikes
                 dict_Scoring[subsession]  = np.load(ScoringFile)
@@ -127,6 +160,7 @@ for micename in MiceList:
                 nb_minian_total+=1
         else:
             minian_ds = open_minian(folder_mini / f'minian')            # OR minianAB
+            dict_Path[session] = session_path
             dict_Calcium[session] = minian_ds['C'] # calcium traces 
             dict_Spike[session] = minian_ds['S'] # estimated spikes
             dict_Scoring[session]  = np.load(ScoringFile) 
@@ -149,7 +183,7 @@ for micename in MiceList:
     #######################################################################################
     
     B = mapping['session']    
-    if os.path.basename(folder_base) == 'Purple':
+    if mice == 'Purple' and DrugExperiment==0:
         index = B.columns
         B.columns = index.str.replace('part', 'session2')
 
@@ -159,22 +193,33 @@ for micename in MiceList:
     
     data = {}
     counter=0
-    VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','Session', 'Session_Time', 'Unique_Unit','UnitNumber','UnitValue', 'Substate','SubstateNumber','DurationSubstate', 'CalciumActivity', 'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'DeconvSpikeMeanActivity', 'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz'])
+    VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','Session', 'Session_Time', 'Unique_Unit','UnitNumber','UnitValue', 'Drug', 'Substate','SubstateNumber','DurationSubstate', 'CalciumActivity', 'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'DeconvSpikeMeanActivity', 'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz'])
 
     previousEndTime=0
     InitialStartTime=0
 
-    CaCorrWakeMatrix=[]
-    CaCorrNREMMatrix=[]
-    CaCorrN2Matrix=[]
-    CaCorrREMMatrix=[]
+    CaCorrWakeMatrixBaseline=[]
+    CaCorrNREMMatrixBaseline=[]
+    CaCorrN2MatrixBaseline=[]
+    CaCorrREMMatrixBaseline=[]
 
-    SpCorrWakeMatrix=[]
-    SpCorrNREMMatrix=[]
-    SpCorrN2Matrix=[]
-    SpCorrREMMatrix=[]
+    SpCorrWakeMatrixBaseline=[]
+    SpCorrNREMMatrixBaseline=[]
+    SpCorrN2MatrixBaseline=[]
+    SpCorrREMMatrixBaseline=[]
 
-    mice=os.path.basename(folder_base) 
+    CaCorrWakeMatrixCGP=[]
+    CaCorrNREMMatrixCGP=[]
+    CaCorrN2MatrixCGP=[]
+    CaCorrREMMatrixCGP=[]
+
+    SpCorrWakeMatrixCGP=[]
+    SpCorrNREMMatrixCGP=[]
+    SpCorrN2MatrixCGP=[]
+    SpCorrREMMatrixCGP=[]
+
+    Drugs=['Baseline', 'CGP'] if DrugExperiment else ['Baseline']
+
     filenameOut = folder_to_save / f'VigilanceState_CaCorrelationAB_{mice}.xlsx'
     excel_writerCa = pd.ExcelWriter(filenameOut)
     
@@ -182,6 +227,8 @@ for micename in MiceList:
     excel_writerSp = pd.ExcelWriter(filenameOut)
 
     for session in list(dict_Stamps.keys()):
+
+        drug=os.path.basename(os.path.dirname(dict_Path[session])) if DrugExperiment else 'Baseline'
 
         # Start time & freq miniscope
         StartTime = list(dict_Stamps[session][0])[0]
@@ -222,7 +269,7 @@ for micename in MiceList:
         EndTime = StartTime + (upd_rec_dur/minian_freq) # in seconds
         previousEndTime=EndTime 
 
-        print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(upd_rec_dur/minian_freq,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, ')...') 
+        print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(upd_rec_dur/minian_freq,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, 'Hz, drug = ', drug, ')...') 
 
         # Remove bad units from recordings
 
@@ -268,7 +315,7 @@ for micename in MiceList:
         SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled[StartTime_frame:StartTime_frame+upd_rec_dur]
 
         # Remove N2 stage
-        #SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
+        SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
             
         # Determine each substate identity and duration
         array=SleepScoredTS_upscaled_ministart
@@ -290,12 +337,12 @@ for micename in MiceList:
             Sarray_VigSpe = Sarray_VigSpe[0:np.shape(SleepScoredTS_upscaled_ministart)[0],:] # if Calcium imaging longer than LFP rec
             Sarray_VigSpe = Sarray_VigSpe[Bool, :]            
             
-            CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix'
+            CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix{drug}'
             CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
             CaCorrMatrix=[]
             CaCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
             
-            SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix'
+            SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix{drug}'
             SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
             SpCorrMatrix=[]
             SpCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
@@ -303,10 +350,10 @@ for micename in MiceList:
             for unit in range(nb_unit): 
 
                 Carray_unit =Carray_VigSpe[:,unit]
-                Sarray_unit =Sarray_VigSpe[:,unit]                
-                peaks, _ = find_peaks(Sarray_unit)
-                Sarray_unit=np.zeros(len(Sarray_unit))
-                Sarray_unit[peaks]=1     
+                Sarray_unit =Sarray_VigSpe[:,unit] # on deconv spike not on spike rate                
+                #peaks, _ = find_peaks(Sarray_unit)
+                #Sarray_unit=np.zeros(len(Sarray_unit))
+                #Sarray_unit[peaks]=1     
 
                 otherunit_range = [x for x in range(nb_unit) if x != unit]
 
@@ -322,7 +369,7 @@ for micename in MiceList:
                     indexMapp2 = np.where(B[session] == C_upd_unit_id[unit2])[0]
 
                     if any(indexMapp) and len(indexMapp2)>0:      
-                                          
+                                        
                         corr_matrix = np.corrcoef(Carray_unit, Carray_unit2)
                         CaCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]=corr_matrix[0, 1] 
                         
@@ -346,7 +393,7 @@ for micename in MiceList:
                 ds_input_sub=Darray_unit[substates.Start[index]:substates.End[index]]
                 sp_input_sub=Sarray_unit[substates.Start[index]:substates.End[index]]
 
-                VigilanceState_GlobalResults.loc[counter, 'Mice'] = os.path.basename(folder_base)
+                VigilanceState_GlobalResults.loc[counter, 'Mice'] = mice
                 VigilanceState_GlobalResults.loc[counter, 'Session'] = session
                 VigilanceState_GlobalResults.loc[counter, 'Session_Time'] = None 
                 
@@ -354,6 +401,9 @@ for micename in MiceList:
                 VigilanceState_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp if len(indexMapp)>0 else None
                 VigilanceState_GlobalResults.loc[counter, 'UnitNumber'] = unit
                 VigilanceState_GlobalResults.loc[counter, 'UnitValue'] = C_upd_unit_id[unit]
+
+                VigilanceState_GlobalResults.loc[counter, 'Drug'] = os.path.basename(os.path.dirname(dict_Path[session]))
+
                 VigilanceState_GlobalResults.loc[counter, 'Substate'] = substates.Identity[index]
                 VigilanceState_GlobalResults.loc[counter, 'SubstateNumber'] = substates.index[index]
                 VigilanceState_GlobalResults.loc[counter, 'DurationSubstate'] = (substates.Duration[index]/minian_freq)
@@ -399,24 +449,26 @@ for micename in MiceList:
                 VigilanceState_GlobalResults.loc[counter, 'Rsquared_SpCorrCoeff'] = np.nanmean([x ** 2 for x in SpCorrCoeff])
                 counter+=1
 
-    for m in mapp:
-        CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix'
-        CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
-        combined_df = pd.concat(CaCorrVigStateMatrix, ignore_index=False)
-        combined_df = combined_df.groupby(combined_df.index).mean()
-        combined_df.index = [mice + str(idx) for idx in combined_df.index]
-        combined_df = combined_df.dropna(axis=0, how='all')
-        combined_df = combined_df.dropna(axis=1, how='all')
-        combined_df.to_excel(excel_writerCa, sheet_name=mapp[m], index=True, header=True)   
+    for Drug in Drugs:
+        for m in mapp:
+            CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix{Drug}'
+            CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
+            if len(CaCorrVigStateMatrix)>0: # cause sometimes no Baseline conditions in CGP experiments
+                combined_df = pd.concat(CaCorrVigStateMatrix, ignore_index=False)
+                combined_df = combined_df.groupby(combined_df.index).mean()
+                combined_df.index = [mice + str(idx) for idx in combined_df.index]
+                combined_df = combined_df.dropna(axis=0, how='all')
+                combined_df = combined_df.dropna(axis=1, how='all')
+                combined_df.to_excel(excel_writerCa, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True)   
 
-        SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix'
-        SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
-        combined_df = pd.concat(SpCorrVigStateMatrix, ignore_index=False)
-        combined_df = combined_df.groupby(combined_df.index).mean()
-        combined_df.index = [mice + str(idx) for idx in combined_df.index]
-        combined_df = combined_df.dropna(axis=0, how='all')
-        combined_df = combined_df.dropna(axis=1, how='all')
-        combined_df.to_excel(excel_writerSp, sheet_name=mapp[m], index=True, header=True) 
+                SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix{Drug}'
+                SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
+                combined_df = pd.concat(SpCorrVigStateMatrix, ignore_index=False)
+                combined_df = combined_df.groupby(combined_df.index).mean()
+                combined_df.index = [mice + str(idx) for idx in combined_df.index]
+                combined_df = combined_df.dropna(axis=0, how='all')
+                combined_df = combined_df.dropna(axis=1, how='all')
+                combined_df.to_excel(excel_writerSp, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True) 
 
     excel_writerCa.close()
     excel_writerSp.close()
