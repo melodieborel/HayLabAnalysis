@@ -31,6 +31,7 @@ import statsmodels.formula.api as smf
 from datetime import datetime
 import shutil
 from scipy.stats import ttest_ind
+import statsmodels.api as sm
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -53,7 +54,7 @@ folder_to_save=Path(destination_folder)
 
 # Copy the script file to the destination folder
 source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/23_24AB_GrandAverage&Stats_for_VigilanceStates_FullAuto.py"
-destination_file_path = f"{destination_folder}/23_24AB_GrandAverage&Stats_for_VigilanceStates_FullAuto.txt"
+destination_file_path = f"{destination_folder}/23_24_GrandAverage&Stats_for_VigilanceStates_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 
 NrSubtypeList=['All', 'L1']
@@ -139,6 +140,23 @@ for NrSubtype in NrSubtypeList:
 
     # NO LOW FIRING RATE #
     #combined_df = combined_df[combined_df['Avg_SpikeActivityHz'] >= 0.05] 
+    
+    #####################
+    # GLM #
+    #####################         
+    print(NrSubtype)
+
+    mixedlm_model = sm.MixedLM.from_formula("SpikeActivityHz ~ Substate+Drug", groups='Unit_ID', data=combined_df)
+    result = mixedlm_model.fit()
+    print(result.summary())      
+    
+    mixedlm_model3 = sm.MixedLM.from_formula("NormalizedAUC_calcium ~ Substate*Drug", groups='Unit_ID', data=combined_df)
+    result3 = mixedlm_model3.fit()
+    print(result3.summary())      
+
+    mixedlm_model4 = sm.MixedLM.from_formula("CalciumActivity ~ Substate*Drug", groups='Unit_ID', data=combined_df)
+    result4 = mixedlm_model4.fit()
+    print(result4.summary())    
 
     #####################
     # PREFERENCE #
@@ -463,5 +481,4 @@ for NrSubtype in NrSubtypeList:
         DurationVigStates.to_excel(writer, sheet_name='EpisodeDurations')
 
         writer.close()
-            
-            
+     
