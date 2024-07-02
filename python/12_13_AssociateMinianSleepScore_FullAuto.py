@@ -93,7 +93,7 @@ folder_to_save=Path(destination_folder)
 
 # Copy the script file to the destination folder
 source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/12_13AB_AssociateMinianSleepScore_FullAuto.py"
-destination_file_path = f"{destination_folder}/12_13AB_AssociateMinianSleepScore_FullAuto.txt"
+destination_file_path = f"{destination_folder}/12_13_AssociateMinianSleepScore_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 
 for mice in MiceList:
