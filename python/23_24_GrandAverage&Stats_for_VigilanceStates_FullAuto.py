@@ -53,7 +53,7 @@ os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/23_24AB_GrandAverage&Stats_for_VigilanceStates_FullAuto.py"
+source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/23_24_GrandAverage&Stats_for_VigilanceStates_FullAuto.py"
 destination_file_path = f"{destination_folder}/23_24_GrandAverage&Stats_for_VigilanceStates_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 

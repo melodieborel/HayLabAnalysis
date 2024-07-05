@@ -1,5 +1,11 @@
 # Sleep scoring
 
+#######################################################################################
+                                # Choose Analysis #
+#######################################################################################
+
+Method=1 # for AB analysis
+#Method=0 # for AH analysis
 
 #######################################################################################
                                 # Load packages #
@@ -75,7 +81,7 @@ for mice in MiceList:
         print(folder_base)
 
         filename2 = folder_base / f'RawDataChannelExtractedDS.npy'
-        EMGbooleaninput = folder_base / f'EMGframeBoolean_AB.pkl'
+        EMGbooleaninput = folder_base / f'EMGframeBoolean_AB.pkl' if Method else folder_base / f'EMGframeBoolean.pkl'
         Channels = '//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/LFPChannels_perMice.xlsx' 
 
         EMGboolean = pd.read_pickle(EMGbooleaninput)
@@ -210,8 +216,10 @@ for mice in MiceList:
         dwnsmpl_subarr = np.split(input_arr, split_arr[1:])
         dwnsmpl_arrT = np.array( list( np.mean(item) for item in dwnsmpl_subarr[:-1] ) )
 
+        th= 0.4 if Method else 0.25
+
         for i in range(len(dwnsmpl_arrT)):
-            if dwnsmpl_arrT[i]<0.4: # 0.25
+            if dwnsmpl_arrT[i]<th: 
                 dwnsmpl_arrT[i] = 0
             else:
                 dwnsmpl_arrT[i] = 1  
@@ -293,45 +301,69 @@ for mice in MiceList:
         dwnsmpl_arr2B = dwnsmpl_arr2B * 0.5
 
         ScoringVectorS = np.zeros((len(dwnsmpl_arrW)))
-        for ind in range(len(dwnsmpl_arrW)):
-            if dwnsmpl_arr1B[ind]>0:
-                ScoringVectorS[ind] = 0.5
-            if dwnsmpl_arr2B[ind]>0:
-                ScoringVectorS[ind] = 0.5
-            if dwnsmpl_arrT[ind]>0:
-                ScoringVectorS[ind] = 1
-            if dwnsmpl_arrW[ind]>0:
-                ScoringVectorS[ind] = 1.5
+        if Method: 
+            for ind in range(len(dwnsmpl_arrW)):
+                if dwnsmpl_arr1B[ind]>0:
+                    ScoringVectorS[ind] = 0.5
+                if dwnsmpl_arr2B[ind]>0:
+                    ScoringVectorS[ind] = 0.5
+                if dwnsmpl_arrT[ind]>0:
+                    ScoringVectorS[ind] = 1
+                if dwnsmpl_arrW[ind]>0:
+                    ScoringVectorS[ind] = 1.5
 
-        #for i in range(len(ScoringVectorS)):
-        #    if i > (len(ScoringVectorS)-4):
-        #        break       
-        #    #elif not ScoringVectorS[i]==1.5 and ScoringVectorS[i+1]==1.5 and not ScoringVectorS[i+2]==1.5:
-        #    #    ScoringVectorS[i+1]=ScoringVectorS[i] # need at least 2consecutive bins / 10sec of Wake
-        #    elif (ScoringVectorS[i]==0.5 and ScoringVectorS[i+1]==0 and ScoringVectorS[i+2]>0):
-        #        ScoringVectorS[i+1]=0.5
-        #    elif (ScoringVectorS[i]==1 and ScoringVectorS[i+1]==0):
-        #        ScoringVectorS[i+1]=1 #can't be NREM after REM
-        #    elif (ScoringVectorS[i]==1 and ScoringVectorS[i+1]==0.5):
-        #        ScoringVectorS[i+1]=1 #can't be N2 after REM
+            array=ScoringVectorS
+            substates_duration = [len(list(group)) for key, group in groupby(array)]
+            substates_identity = [key for key, _ in groupby(array)]
+            substates_end = np.array(substates_duration).cumsum()        
+            substates_start =np.append([0],substates_end[:-1]) #substates_start =np.append([1],substates_end+1) create 1 second gap
+            mapp = {0: 'NREM', 0.5: 'N2', 1: 'REM', 1.5: 'Wake'}
+            substates_identity = [mapp[num] for num in substates_identity]
+            substates = pd.DataFrame(list(zip(substates_identity, substates_duration, substates_start, substates_end)), columns=['Identity', 'Duration', 'Start','End'])
 
-        array=ScoringVectorS
-        substates_duration = [len(list(group)) for key, group in groupby(array)]
-        substates_identity = [key for key, _ in groupby(array)]
-        substates_end = np.array(substates_duration).cumsum()        
-        substates_start =np.append([0],substates_end[:-1]) #substates_start =np.append([1],substates_end+1) create 1 second gap
-        mapp = {0: 'NREM', 0.5: 'N2', 1: 'REM', 1.5: 'Wake'}
-        substates_identity = [mapp[num] for num in substates_identity]
-        substates = pd.DataFrame(list(zip(substates_identity, substates_duration, substates_start, substates_end)), columns=['Identity', 'Duration', 'Start','End'])
+            ScoringVectorS2=ScoringVectorS.copy()
+            for index in substates.index[substates.Identity == 'REM'].tolist():
+                if index+2<=len(substates):
+                    if substates.Identity[index+2]=='REM' and substates.Duration[index+1]<10: #if duration of a state between 2 REM inferior at 10bins(50s)
+                        start=substates.Start[index+1]
+                        end=substates.End[index+1]
+                        ScoringVectorS2[start:end]=1
+            
+            #for i in range(len(ScoringVectorS)):
+            #    if i > (len(ScoringVectorS)-4):
+            #        break       
+            #    #elif not ScoringVectorS[i]==1.5 and ScoringVectorS[i+1]==1.5 and not ScoringVectorS[i+2]==1.5:
+            #    #    ScoringVectorS[i+1]=ScoringVectorS[i] # need at least 2consecutive bins / 10sec of Wake
+            #    elif (ScoringVectorS[i]==0.5 and ScoringVectorS[i+1]==0 and ScoringVectorS[i+2]>0):
+            #        ScoringVectorS[i+1]=0.5
+            #    elif (ScoringVectorS[i]==1 and ScoringVectorS[i+1]==0):
+            #        ScoringVectorS[i+1]=1 #can't be NREM after REM
+            #    elif (ScoringVectorS[i]==1 and ScoringVectorS[i+1]==0.5):
+            #        ScoringVectorS[i+1]=1 #can't be N2 after REM
 
-        ScoringVectorS2=ScoringVectorS.copy()
-        for index in substates.index[substates.Identity == 'REM'].tolist():
-            if index+2<=len(substates):
-                if substates.Identity[index+2]=='REM' and substates.Duration[index+1]<10: #if duration of a state between 2 REM inferior at 10bins(50s)
-                    start=substates.Start[index+1]
-                    end=substates.End[index+1]
-                    ScoringVectorS2[start:end]=1
+        else: 
+                
+            ScoringVectorS = np.zeros((len(dwnsmpl_arrW)))
+            for ind in range(len(dwnsmpl_arrW)):
+                if dwnsmpl_arr2B[ind]>0:
+                    ScoringVectorS[ind] = 0.5
+                if dwnsmpl_arrT[ind]>0:
+                    ScoringVectorS[ind] = 1
+                if dwnsmpl_arrW[ind]>0:
+                    ScoringVectorS[ind] = 1.5
 
+            for i in range(len(ScoringVectorS)):
+                if i > (len(ScoringVectorS)-4):
+                    print(i)
+                    break          
+                elif (ScoringVectorS[i]==0.5 and ScoringVectorS[i+1]==0 and ScoringVectorS[i+2]>0):
+                    ScoringVectorS[i+1]=0.5
+                elif (ScoringVectorS[i]==1 and ScoringVectorS[i+1]==0 and ScoringVectorS[i+2]>0):
+                    ScoringVectorS[i+1]=1
+                elif (ScoringVectorS[i]==1.5 and ScoringVectorS[i+1]<1.5 and (ScoringVectorS[i+2]==1.5 or ScoringVectorS[i+3]==1.5)):
+                    ScoringVectorS[i+1]=1.5
 
-        filenameOut = folder_base / f'ScoredSleep_AB.npy'
+        suffix='_AB' if Method else '_AH'
+
+        filenameOut = folder_base / f'ScoredSleep{suffix}.npy'
         np.save(filenameOut, ScoringVectorS2)
