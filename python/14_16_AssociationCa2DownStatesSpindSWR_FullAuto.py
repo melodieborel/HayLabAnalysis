@@ -158,7 +158,7 @@ os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/14_16AB_AssociationCa2DownStatesSpindSWR_FullAuto.py"
+source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/14_16_AssociationCa2DownStatesSpindSWR_FullAuto.py"
 destination_file_path = f"{destination_folder}/14_16_AssociationCa2DownStatesSpindSWR_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 
@@ -673,9 +673,9 @@ for mice in MiceList:
 
                             Spindles_GlobalResults.loc[counter, 'SpdlStatut'] = Spdl_statut
                             Spindles_GlobalResults.loc[counter, 'SpdlNumber'] = Pspin
-                            Spindles_GlobalResults.loc[counter, 'SpdlDuration (ms)'] = endSpi- startSpi
+                            Spindles_GlobalResults.loc[counter, 'SpdlDuration(ms)'] = endSpi- startSpi
                             IsTrue=is_between(startSWRList,startSpi, endSpi)
-                            Spindles_GlobalResults.loc[counter, 'SWR inside Spdl'] = IsTrue
+                            Spindles_GlobalResults.loc[counter, 'SWR_inside_Spdl'] = IsTrue
 
                             Spindles_GlobalResults.loc[counter, 'GlobalSpindle'] = GlobalSpdlList[Pspin]
                             
@@ -864,8 +864,8 @@ for mice in MiceList:
 
                             SWR_GlobalResults.loc[counter2, 'SWRStatut'] = SWR_statut
                             SWR_GlobalResults.loc[counter2, 'SWRNumber'] = Pswr
-                            SWR_GlobalResults.loc[counter2, 'SWRDuration (ms)'] = endSwr- startSwr
-                            SWR_GlobalResults.loc[counter2, 'SWR inside Spdl'] = IsTrue
+                            SWR_GlobalResults.loc[counter2, 'SWRDuration(ms)'] = endSwr- startSwr
+                            SWR_GlobalResults.loc[counter2, 'SWR_inside_Spdl'] = IsTrue
 
                             # Activity before/ during/after oscillation
 
@@ -1052,8 +1052,8 @@ for mice in MiceList:
 
                             DS_GlobalResults.loc[counter3, 'DSStatut'] = DS_statut
                             DS_GlobalResults.loc[counter3, 'DSNumber'] = Pds
-                            DS_GlobalResults.loc[counter3, 'DSDuration (ms)'] = endds- startds
-                            DS_GlobalResults.loc[counter3, 'DS inside Spdl'] = IsTrue
+                            DS_GlobalResults.loc[counter3, 'DSDuration(ms)'] = endds- startds
+                            DS_GlobalResults.loc[counter3, 'DS_inside_Spdl'] = IsTrue
                             
                             # Activity before/ during/after oscillation
 

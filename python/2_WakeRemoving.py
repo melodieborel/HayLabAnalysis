@@ -107,7 +107,7 @@ for mice in MiceList:
         numpnts = EMG.size
         EMGstatusRaw = np.zeros(numpnts)
         for ind in range(numpnts):
-            if proj_EMGcwt[ind]<sd1proj_EMGcwt:
+            if proj_EMGcwt[ind]<sd1proj_EMGcwt: #<sd05proj_EMGcwt for version _AH
                 EMGstatusRaw[ind] = 0
             elif proj_EMGcwt[ind]>sd3proj_EMGcwt:
                 EMGstatusRaw[ind] = 2

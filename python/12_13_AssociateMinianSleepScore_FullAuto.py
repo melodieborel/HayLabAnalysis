@@ -4,8 +4,8 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=1 #if CGP Experiment
-#DrugExperiment=0 #if Baseline Experiment
+#DrugExperiment=1 #if CGP Experiment
+DrugExperiment=0 #if Baseline Experiment
 
 #######################################################################################
                                 # Load packages #
@@ -92,7 +92,7 @@ os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/12_13AB_AssociateMinianSleepScore_FullAuto.py"
+source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/12_13_AssociateMinianSleepScore_FullAuto.py"
 destination_file_path = f"{destination_folder}/12_13_AssociateMinianSleepScore_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 
@@ -350,9 +350,9 @@ for mice in MiceList:
             for unit in range(nb_unit): 
 
                 Carray_unit =Carray_VigSpe[:,unit]
-                Sarray_unit =Sarray_VigSpe[:,unit] # on deconv spike not on spike rate                
-                #peaks, _ = find_peaks(Sarray_unit)
-                #Sarray_unit=np.zeros(len(Sarray_unit))
+                Darray_unit =Sarray_VigSpe[:,unit] # on deconv spike not on spike rate                
+                #peaks, _ = find_peaks(Darray_unit)
+                #Sarray_unit=np.zeros(len(Darray_unit))
                 #Sarray_unit[peaks]=1     
 
                 otherunit_range = [x for x in range(nb_unit) if x != unit]
@@ -360,10 +360,10 @@ for mice in MiceList:
                 for unit2 in range(nb_unit):
 
                     Carray_unit2 =Carray_VigSpe[:,unit2]
-                    Sarray_unit2 =Sarray_VigSpe[:,unit2]                    
-                    peaks2, _ = find_peaks(Sarray_unit2)
-                    Sarray_unit2=np.zeros(len(Sarray_unit2))
-                    Sarray_unit2[peaks2]=1
+                    Darray_unit2 =Sarray_VigSpe[:,unit2]                    
+                    #peaks2, _ = find_peaks(Darray_unit2)
+                    #Sarray_unit2=np.zeros(len(Darray_unit2))
+                    #Sarray_unit2[peaks2]=1
 
                     indexMapp = str(np.where(B[session] == C_upd_unit_id[unit])[0]).replace('[','').replace(']','')
                     indexMapp2 = np.where(B[session] == C_upd_unit_id[unit2])[0]
@@ -373,7 +373,7 @@ for mice in MiceList:
                         corr_matrix = np.corrcoef(Carray_unit, Carray_unit2)
                         CaCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]=corr_matrix[0, 1] 
                         
-                        corr_matrix = np.corrcoef(Sarray_unit, Sarray_unit2)
+                        corr_matrix = np.corrcoef(Darray_unit, Darray_unit2)
                         SpCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]=corr_matrix[0, 1]
     
             CaCorrVigStateMatrix.append(CaCorrMatrix)
@@ -427,23 +427,23 @@ for mice in MiceList:
                 for unit2 in otherunit_range:
 
                     Carray_unit2 =Carray[:,unit2]
-                    Sarray_unit2 =Sarray[:,unit2]                    
-                    peaks2, _ = find_peaks(Sarray_unit2)
-                    Sarray_unit2=np.zeros(len(Sarray_unit2))
-                    Sarray_unit2[peaks2]=1
+                    Darray_unit2 =Sarray[:,unit2]                    
+                    #peaks2, _ = find_peaks(Sarray_unit2)
+                    #Sarray_unit2=np.zeros(len(Sarray_unit2))
+                    #Sarray_unit2[peaks2]=1
                     ca_input_sub2=Carray_unit2[substates.Start[index]:substates.End[index]]
-                    sp_input_sub2=Sarray_unit2[substates.Start[index]:substates.End[index]]
+                    ds_input_sub2=Darray_unit2[substates.Start[index]:substates.End[index]]
 
                     corr_matrix = np.corrcoef(ca_input_sub, ca_input_sub2)
                     CaCorrCoeff_unit = corr_matrix[0, 1]
                     CaCorrCoeff.append(CaCorrCoeff_unit)
 
-                    corr_matrix = np.corrcoef(sp_input_sub, sp_input_sub2)
+                    corr_matrix = np.corrcoef(ds_input_sub, ds_input_sub2)
                     SpCorrCoeff_unit = corr_matrix[0, 1]
                     SpCorrCoeff.append(SpCorrCoeff_unit)
 
                 VigilanceState_GlobalResults.loc[counter, 'CaCorrCoeff'] = np.nanmean(CaCorrCoeff)
-                VigilanceState_GlobalResults.loc[counter, 'SpCorrCoeff'] = np.nanmean(SpCorrCoeff)
+                VigilanceState_GlobalResults.loc[counter, 'DSCorrCoeff'] = np.nanmean(SpCorrCoeff)
 
                 VigilanceState_GlobalResults.loc[counter, 'Rsquared_CaCorrCoeff'] = np.nanmean([x ** 2 for x in CaCorrCoeff])
                 VigilanceState_GlobalResults.loc[counter, 'Rsquared_SpCorrCoeff'] = np.nanmean([x ** 2 for x in SpCorrCoeff])
