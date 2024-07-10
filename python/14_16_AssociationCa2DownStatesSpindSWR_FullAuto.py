@@ -669,7 +669,7 @@ for mice in MiceList:
                             Spindles_GlobalResults.loc[counter, 'UnitNumber'] = unit 
                             Spindles_GlobalResults.loc[counter, 'UnitValue'] = C_upd_unit_id[unit] 
                             
-                            Spindles_GlobalResults.loc[counter, 'Drug'] =  os.path.basename(os.path.dirname(dict_Path[session]))
+                            Spindles_GlobalResults.loc[counter, 'Drug'] =  os.path.basename(os.path.dirname(dict_Path[session])) if DrugExperiment else 'Baseline'
 
                             Spindles_GlobalResults.loc[counter, 'SpdlStatut'] = Spdl_statut
                             Spindles_GlobalResults.loc[counter, 'SpdlNumber'] = Pspin

@@ -4,8 +4,10 @@
                             # Define Experiment type #
 #######################################################################################
 
-#DrugExperiment=1 #if CGP Experiment
-DrugExperiment=0 #if Baseline Experiment
+#DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
+DrugExperiment=0
+#Sleep scoring from '_AB' '_AH' or initial ''
+suffix='_AB' 
 
 #######################################################################################
                                 # Load packages #
@@ -87,19 +89,18 @@ MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK
 FolderNameSave=str(datetime.now())
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_VigStates_{FolderNameSave}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_VigStates_{FolderNameSave}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_VigStates_{FolderNameSave}{suffix}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_VigStates_{FolderNameSave}{suffix}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/12_13_AssociateMinianSleepScore_FullAuto.py"
+source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayLabAnalysis/python/12_13_AssociateMinianSleepScore_FullAuto.py"
 destination_file_path = f"{destination_folder}/12_13_AssociateMinianSleepScore_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 
 for mice in MiceList:
     # Load sleep score and Ca2+ time series numpy arrays
-    #dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
-    dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/"
+    dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/" if DrugExperiment else "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
     dpath=dpath0 + mice
     print(f"####################################################################################")
     print(f"################################### {mice} ####################################")
@@ -132,7 +133,7 @@ for mice in MiceList:
         session_path=Path(sessions_path[sess])
         folder_mini = session_path / f'V4_Miniscope'
         nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
-        ScoringFile = session_path/ f'OpenEphys/ScoredSleep_AB.npy'
+        ScoringFile = session_path/ f'OpenEphys/ScoredSleep{suffix}.npy'
         StampsFile = session_path/ f'SynchroFile.xlsx'
         StampsMiniscopeFile = folder_mini / f'timeStamps.csv'
 
@@ -208,6 +209,16 @@ for mice in MiceList:
     SpCorrN2MatrixBaseline=[]
     SpCorrREMMatrixBaseline=[]
 
+    RawCaTracesWake_Baseline=[]
+    RawCaTracesNREM_Baseline=[]
+    RawCaTracesN2_Baseline=[]
+    RawCaTracesREM_Baseline=[]
+
+    RawSpTracesWake_Baseline=[]
+    RawSpTracesNREM_Baseline=[]
+    RawSpTracesN2_Baseline=[]
+    RawSpTracesREM_Baseline=[]
+
     CaCorrWakeMatrixCGP=[]
     CaCorrNREMMatrixCGP=[]
     CaCorrN2MatrixCGP=[]
@@ -218,6 +229,16 @@ for mice in MiceList:
     SpCorrN2MatrixCGP=[]
     SpCorrREMMatrixCGP=[]
 
+    RawCaTracesWake_CGP=[]
+    RawCaTracesNREM_CGP=[]
+    RawCaTracesN2_CGP=[]
+    RawCaTracesREM_CGP=[]
+
+    RawSpTracesWake_CGP=[]
+    RawSpTracesNREM_CGP=[]
+    RawSpTracesN2_CGP=[]
+    RawSpTracesREM_CGP=[]
+
     Drugs=['Baseline', 'CGP'] if DrugExperiment else ['Baseline']
 
     filenameOut = folder_to_save / f'VigilanceState_CaCorrelationAB_{mice}.xlsx'
@@ -225,6 +246,12 @@ for mice in MiceList:
     
     filenameOut = folder_to_save / f'VigilanceState_SpCorrelationAB_{mice}.xlsx'
     excel_writerSp = pd.ExcelWriter(filenameOut)
+
+    filenameOut = folder_to_save / f'VigilanceState_RawCaTracesAB_{mice}.xlsx'
+    excel_writerRawCa = pd.ExcelWriter(filenameOut)
+    
+    filenameOut = folder_to_save / f'VigilanceState_RawSpTracesAB_{mice}.xlsx'
+    excel_writerRawSp = pd.ExcelWriter(filenameOut)
 
     for session in list(dict_Stamps.keys()):
 
@@ -333,9 +360,26 @@ for mice in MiceList:
             Carray_VigSpe = Carray.copy()
             Carray_VigSpe = Carray_VigSpe[0:np.shape(SleepScoredTS_upscaled_ministart)[0],:] # if Calcium imaging longer than LFP rec
             Carray_VigSpe = Carray_VigSpe[Bool, :]
+
+            RawCaTracesVigStateMatrixName=f'RawCaTraces{mapp[m]}_{drug}'
+            RawCaTracesVigStateMatrix = locals()[RawCaTracesVigStateMatrixName]
+            RawCaTraces=[]
+            RawCaTraces=pd.DataFrame(Carray_VigSpe, columns=[f"{mice}{str(i).replace('[','').replace(']','')}" for i in kept_uniq_unit_List])
+            unique_columns = RawCaTraces.columns[RawCaTraces.columns.to_series().duplicated()] # remove units that has an empty unique index '[]'
+            RawCaTraces = RawCaTraces.drop(columns=unique_columns)
+            RawCaTracesVigStateMatrix.append(RawCaTraces)
+
             Sarray_VigSpe = Sarray.copy()
             Sarray_VigSpe = Sarray_VigSpe[0:np.shape(SleepScoredTS_upscaled_ministart)[0],:] # if Calcium imaging longer than LFP rec
-            Sarray_VigSpe = Sarray_VigSpe[Bool, :]            
+            Sarray_VigSpe = Sarray_VigSpe[Bool, :]         
+
+            RawSpTracesVigStateMatrixName=f'RawSpTraces{mapp[m]}_{drug}'
+            RawSpTracesVigStateMatrix = locals()[RawSpTracesVigStateMatrixName]
+            RawSpTraces=[]
+            RawSpTraces=pd.DataFrame(Sarray_VigSpe, columns=[f"{mice}{str(i).replace('[','').replace(']','')}" for i in kept_uniq_unit_List])
+            unique_columns = RawSpTraces.columns[RawSpTraces.columns.to_series().duplicated()] # remove units that has an empty unique index '[]'
+            RawSpTraces = RawSpTraces.drop(columns=unique_columns)
+            RawSpTracesVigStateMatrix.append(RawSpTraces) 
             
             CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix{drug}'
             CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
@@ -402,7 +446,7 @@ for mice in MiceList:
                 VigilanceState_GlobalResults.loc[counter, 'UnitNumber'] = unit
                 VigilanceState_GlobalResults.loc[counter, 'UnitValue'] = C_upd_unit_id[unit]
 
-                VigilanceState_GlobalResults.loc[counter, 'Drug'] = os.path.basename(os.path.dirname(dict_Path[session]))
+                VigilanceState_GlobalResults.loc[counter, 'Drug'] =  os.path.basename(os.path.dirname(dict_Path[session])) if DrugExperiment else 'Baseline'
 
                 VigilanceState_GlobalResults.loc[counter, 'Substate'] = substates.Identity[index]
                 VigilanceState_GlobalResults.loc[counter, 'SubstateNumber'] = substates.index[index]
@@ -423,6 +467,8 @@ for mice in MiceList:
                 otherunit_range = [x for x in range(nb_unit) if x != unit]
                 CaCorrCoeff=[]
                 SpCorrCoeff=[]
+                Z_CaCorrCoeff=[]
+                Z_SpCorrCoeff=[]
 
                 for unit2 in otherunit_range:
 
@@ -437,16 +483,37 @@ for mice in MiceList:
                     corr_matrix = np.corrcoef(ca_input_sub, ca_input_sub2)
                     CaCorrCoeff_unit = corr_matrix[0, 1]
                     CaCorrCoeff.append(CaCorrCoeff_unit)
+                    Z_CaCorrCoeff_unit=np.arctanh(CaCorrCoeff_unit)
+                    Z_CaCorrCoeff.append(Z_CaCorrCoeff_unit)
 
                     corr_matrix = np.corrcoef(ds_input_sub, ds_input_sub2)
                     SpCorrCoeff_unit = corr_matrix[0, 1]
                     SpCorrCoeff.append(SpCorrCoeff_unit)
-
+                    Z_SpCorrCoeff_unit=np.arctanh(SpCorrCoeff_unit)
+                    Z_SpCorrCoeff.append(Z_SpCorrCoeff_unit)
+                
                 VigilanceState_GlobalResults.loc[counter, 'CaCorrCoeff'] = np.nanmean(CaCorrCoeff)
-                VigilanceState_GlobalResults.loc[counter, 'DSCorrCoeff'] = np.nanmean(SpCorrCoeff)
-
+                VigilanceState_GlobalResults.loc[counter, 'SpCorrCoeff'] = np.nanmean(SpCorrCoeff)
+                
                 VigilanceState_GlobalResults.loc[counter, 'Rsquared_CaCorrCoeff'] = np.nanmean([x ** 2 for x in CaCorrCoeff])
                 VigilanceState_GlobalResults.loc[counter, 'Rsquared_SpCorrCoeff'] = np.nanmean([x ** 2 for x in SpCorrCoeff])
+
+                VigilanceState_GlobalResults.loc[counter, 'Z_CaCorrCoeff'] = np.nanmean(Z_CaCorrCoeff)
+                VigilanceState_GlobalResults.loc[counter, 'Z_SpCorrCoeff'] = np.nanmean(Z_SpCorrCoeff)
+                
+                VigilanceState_GlobalResults.loc[counter, 'Z_Rsquared_CaCorrCoeff'] = np.nanmean([x ** 2 for x in Z_CaCorrCoeff])
+                VigilanceState_GlobalResults.loc[counter, 'Z_Rsquared_SpCorrCoeff'] = np.nanmean([x ** 2 for x in Z_SpCorrCoeff])
+                
+                Carray_Population =np.mean(Carray[:,otherunit_range], axis=0)
+                corr_matrix = np.corrcoef(Carray_unit, Carray_Population)
+                VigilanceState_GlobalResults.loc[counter, 'CaPopCoupling'] = corr_matrix[0, 1]
+
+                Sarray_Population =np.mean(Sarray[:,otherunit_range], axis=0) 
+                print(len(Sarray_Population))
+                print(len(Sarray_unit))
+                corr_matrix = np.corrcoef(Sarray_unit, Sarray_Population)
+                VigilanceState_GlobalResults.loc[counter, 'SpPopCoupling'] = corr_matrix[0, 1]
+
                 counter+=1
 
     for Drug in Drugs:
@@ -459,7 +526,14 @@ for mice in MiceList:
                 combined_df.index = [mice + str(idx) for idx in combined_df.index]
                 combined_df = combined_df.dropna(axis=0, how='all')
                 combined_df = combined_df.dropna(axis=1, how='all')
-                combined_df.to_excel(excel_writerCa, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True)   
+                combined_df.to_excel(excel_writerCa, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True) 
+                
+                combined_df=combined_df.apply(np.arctanh)
+                combined_df = combined_df.groupby(combined_df.index).mean()
+                combined_df.index = [mice + str(idx) for idx in combined_df.index]
+                combined_df = combined_df.dropna(axis=0, how='all')
+                combined_df = combined_df.dropna(axis=1, how='all')
+                combined_df.to_excel(excel_writerCa, sheet_name=f'Z_{Drug}_{mapp[m]}', index=True, header=True)   
 
                 SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix{Drug}'
                 SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
@@ -469,9 +543,35 @@ for mice in MiceList:
                 combined_df = combined_df.dropna(axis=0, how='all')
                 combined_df = combined_df.dropna(axis=1, how='all')
                 combined_df.to_excel(excel_writerSp, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True) 
+                
+                combined_df=combined_df.apply(np.arctanh)
+                combined_df = combined_df.groupby(combined_df.index).mean()
+                combined_df.index = [mice + str(idx) for idx in combined_df.index]
+                combined_df = combined_df.dropna(axis=0, how='all')
+                combined_df = combined_df.dropna(axis=1, how='all')
+                combined_df.to_excel(excel_writerSp, sheet_name=f'Z_{Drug}_{mapp[m]}', index=True, header=True) 
+            
+            RawCaTracesVigStateMatrixName=f'RawCaTraces{mapp[m]}_{Drug}'
+            RawCaTracesVigStateMatrix= locals()[RawCaTracesVigStateMatrixName]
+            if len(RawCaTracesVigStateMatrix)>0: # cause sometimes no Baseline conditions in CGP experiments
+                combined_df = pd.concat(RawCaTracesVigStateMatrix, ignore_index=False)
+                combined_df.index = [mice + str(idx) for idx in combined_df.index]
+                combined_df = combined_df.dropna(axis=0, how='all')
+                combined_df = combined_df.dropna(axis=1, how='all')
+                combined_df.to_excel(excel_writerRawCa, sheet_name=f'{Drug}_{mapp[m]}', index=False, header=True)   
+
+                RawSpTracesVigStateMatrixName=f'RawSpTraces{mapp[m]}_{Drug}'
+                RawSpTracesVigStateMatrix= locals()[RawSpTracesVigStateMatrixName]
+                combined_df = pd.concat(RawSpTracesVigStateMatrix, ignore_index=False)
+                combined_df.index = [mice + str(idx) for idx in combined_df.index]
+                combined_df = combined_df.dropna(axis=0, how='all')
+                combined_df = combined_df.dropna(axis=1, how='all')
+                combined_df.to_excel(excel_writerRawSp, sheet_name=f'{Drug}_{mapp[m]}', index=False, header=True)   
 
     excel_writerCa.close()
     excel_writerSp.close()
+    excel_writerRawCa.close()
+    excel_writerRawSp.close()
 
     filenameOut = folder_to_save / f'VigilanceState_GlobalResultsAB_{mice}.xlsx'
     writer = pd.ExcelWriter(filenameOut)
