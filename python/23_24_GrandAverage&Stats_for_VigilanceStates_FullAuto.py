@@ -4,10 +4,15 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=1 #if CGP Experiment
-#DrugExperiment=0 #if Baseline Experiment
+#DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
+DrugExperiment=1 
 
-choosed_folder='Analysis_VigStates_2024-06-26_15_35_27_284450_noN2'
+suffix={} #to identify this analysis from another
+
+choosed_folder='Analysis_VigStates_2024-07-09_14_52_13_353475_AB'
+
+desired_order = ['Wake','NREM', 'REM']   
+#desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
 
 #######################################################################################
                                 # Load packages #
@@ -48,12 +53,12 @@ directory= f'{InitialDirectory}/{choosed_folder}'
 # Get the current date and time
 FolderNameSave=str(datetime.now())
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}{suffix}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}{suffix}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/23_24_GrandAverage&Stats_for_VigilanceStates_FullAuto.py"
+source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayLabAnalysis/python/23_24_GrandAverage&Stats_for_VigilanceStates_FullAuto.py"
 destination_file_path = f"{destination_folder}/23_24_GrandAverage&Stats_for_VigilanceStates_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 
@@ -64,6 +69,11 @@ for NrSubtype in NrSubtypeList:
     # Initialize an empty list to store the dataframes
     dfs = []
     df= []
+    df2=[]
+    dfs2_per_sheet = {}
+    dfs3 = []
+    df3=[]
+    dfs3_per_sheet = {}
 
     if NrSubtype=='L1':
         MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'RedLinesOK']
@@ -71,6 +81,8 @@ for NrSubtype in NrSubtypeList:
         MiceList=['Purple', 'ThreeColDotsOK', 'ThreeBlueCrossesOK']
     
     nametofind='VigilanceState_GlobalResults'
+    nametofind2='VigilanceState_CaCorrelation'
+    nametofind3='VigilanceState_SpCorrelation'
 
     # Recursively traverse the directory structure
     for root, _, files in os.walk(directory):
@@ -83,11 +95,59 @@ for NrSubtype in NrSubtypeList:
                     # Read the Excel file into a dataframe and append it to the list
                     df = pd.read_excel(filepath, index_col=0)      
                     dfs.append(df)
+            if filename.endswith('.xlsx') and nametofind2 in filename: 
+                if any(name in filename for name in MiceList): 
+                    # Construct the full path to the file
+                    filepath = os.path.join(root, filename)
+                    # Read the Excel file into a dataframe and append it to the list
+                    excel_data = pd.read_excel(filepath, sheet_name=None, index_col=0)           
+                    for sheet_name, df2 in excel_data.items():
+                        if len(df2)>0:
+                            if sheet_name in dfs2_per_sheet:                                       
+                                updated_matrix = pd.concat([dfs2_per_sheet[sheet_name], df2], axis=0)                    
+                                dfs2_per_sheet[sheet_name] = updated_matrix    
+                            else:
+                                dfs2_per_sheet[sheet_name] = df2  #one average trace per unique unit, len(df2)==nb unit recorded for that mouse
+                    # Keep only correlation that occurs for the 3 vigilances states / the 2 Drugs
+                    first_key = next(iter(dfs2_per_sheet))
+                    common_columns = dfs2_per_sheet[first_key].columns
+                    for df in dfs2_per_sheet.values():
+                        common_columns = common_columns.intersection(df.columns)
+
+                    common_indices = dfs2_per_sheet[first_key].index
+                    for df in dfs2_per_sheet.values():
+                        common_indices = common_indices.intersection(df.index)
+
+                    filtered_df_dict2 = {name: df.loc[common_indices, common_columns] for name, df in dfs2_per_sheet.items()}
+            if filename.endswith('.xlsx') and nametofind3 in filename: 
+                if any(name in filename for name in MiceList): 
+                    # Construct the full path to the file
+                    filepath = os.path.join(root, filename)
+                    # Read the Excel file into a dataframe and append it to the list
+                    excel_data = pd.read_excel(filepath, sheet_name=None, index_col=0)           
+                    for sheet_name, df3 in excel_data.items():
+                        if len(df3)>0:
+                            if sheet_name in dfs3_per_sheet:   
+                                updated_matrix = pd.concat((dfs3_per_sheet[sheet_name],df3), axis=0)                
+                                dfs3_per_sheet[sheet_name] = updated_matrix                    
+                            else:                    
+                                dfs3_per_sheet[sheet_name] = df3 #one average trace per unique unit, len(df3)==nb unit recorded for that mouse
+                    # Keep only correlation that occurs for the 3 vigilances states / the 2 Drugs
+                    first_key = next(iter(dfs3_per_sheet))
+                    common_columns = dfs3_per_sheet[first_key].columns
+                    for df in dfs3_per_sheet.values():
+                        common_columns = common_columns.intersection(df.columns)
+
+                    common_indices = dfs3_per_sheet[first_key].index
+                    for df in dfs3_per_sheet.values():
+                        common_indices = common_indices.intersection(df.index)
+
+                    filtered_df_dict3 = {name: df.loc[common_indices, common_columns] for name, df in dfs3_per_sheet.items()}
 
     # Concatenate all dataframes into a single dataframe
     combined_df = pd.concat(dfs, ignore_index=True)
 
-    #Remove non defined Unique Units 
+    # Remove non defined Unique Units 
     combined_df = combined_df[combined_df['Unique_Unit'] != '[]']
     combined_df = combined_df.dropna(subset=['Unique_Unit'])
 
@@ -109,6 +169,20 @@ for NrSubtype in NrSubtypeList:
     combined_df.to_excel(writer)
     writer.close()
 
+    # Save the Ca correlation matrix  
+
+    file_path = f'{folder_to_save}/{NrSubtype}_VigilanceStates_CaCorrelationAB.xlsx'
+    with pd.ExcelWriter(file_path) as writer:
+        for sheet_name, df in dfs2_per_sheet.items():
+            df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+
+    # Save the Sp correlation matrix  
+
+    file_path = f'{folder_to_save}/{NrSubtype}_VigilanceStates_SpCorrelationAB.xlsx'
+    with pd.ExcelWriter(file_path) as writer:
+        for sheet_name, df in dfs3_per_sheet.items():
+            df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+
 ########################################################################
             # SCRIPT 24AB_Load&Stats_for_VigilanceStates
 ########################################################################
@@ -126,6 +200,20 @@ for NrSubtype in NrSubtypeList:
     analysisfile='VigilanceStates_GrandGlobalAB'
     combined_df = pd.read_excel(f'{folder_to_save}/{NrSubtype}_{analysisfile}.xlsx', index_col=0)
     
+    combined_dfCa = {}
+    analysisfileCa='VigilanceStates_CaCorrelationAB'
+    excel_data = pd.read_excel(f'{folder_to_save}/{NrSubtype}_{analysisfileCa}.xlsx', sheet_name=None, index_col=0)           
+    for sheet_name, df in excel_data.items():
+        if len(df)>0:
+            combined_dfCa[sheet_name] = df  
+
+    combined_dfSp = {}
+    analysisfileSp='VigilanceStates_SpCorrelationAB'
+    excel_data = pd.read_excel(f'{folder_to_save}/{NrSubtype}_{analysisfileSp}.xlsx', sheet_name=None, index_col=0)           
+    for sheet_name, df in excel_data.items():
+        if len(df)>0:
+            combined_dfSp[sheet_name] = df  
+
     ######################
     # CHOOSE OPTIONS
     ######################
@@ -135,9 +223,6 @@ for NrSubtype in NrSubtypeList:
     
     Drugs= ['Baseline', 'CGP'] if DrugExperiment else ['Baseline']
 
-    #desired_order = ['Wake','NREM', 'REM']   
-    desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
-
     # NO LOW FIRING RATE #
     #combined_df = combined_df[combined_df['Avg_SpikeActivityHz'] >= 0.05] 
     
@@ -146,17 +231,19 @@ for NrSubtype in NrSubtypeList:
     #####################         
     print(NrSubtype)
 
-    mixedlm_model = sm.MixedLM.from_formula("SpikeActivityHz ~ Substate+Drug", groups='Unit_ID', data=combined_df)
+    mixedlm_model = sm.MixedLM.from_formula("SpikeActivityHz ~ Substate", groups='Unit_ID', data=combined_df)
     result = mixedlm_model.fit()
     print(result.summary())      
     
-    mixedlm_model3 = sm.MixedLM.from_formula("NormalizedAUC_calcium ~ Substate*Drug", groups='Unit_ID', data=combined_df)
+    mixedlm_model3 = sm.MixedLM.from_formula("NormalizedAUC_calcium ~ Substate", groups='Unit_ID', data=combined_df)
     result3 = mixedlm_model3.fit()
     print(result3.summary())      
-
-    mixedlm_model4 = sm.MixedLM.from_formula("CalciumActivity ~ Substate*Drug", groups='Unit_ID', data=combined_df)
-    result4 = mixedlm_model4.fit()
-    print(result4.summary())    
+    try: 
+        mixedlm_model4 = sm.MixedLM.from_formula("DeconvSpikeMeanActivity ~ Substate", groups='Unit_ID', data=combined_df)
+        result4 = mixedlm_model4.fit()
+        print(result4.summary())   
+    except: 
+        print('Error on DeconvSpikeMeanActivity') 
 
     #####################
     # PREFERENCE #
@@ -171,7 +258,7 @@ for NrSubtype in NrSubtypeList:
 
         combined_df_Drug=combined_df.copy()
 
-        combined_df_Drug = combined_df_Drug[combined_df_Drug['Drug'] == Drug] 
+        combined_df_Drug = combined_df_Drug[combined_df_Drug['Drug'] == Drug] if DrugExperiment else combined_df_Drug
 
         AllUnits = combined_df_Drug['Unit_ID'].unique()
 
@@ -181,8 +268,8 @@ for NrSubtype in NrSubtypeList:
         NREMprefUnits=[]
         NREMmatrix={}
         for key, group in grouped:
-            nrem_values = group[group['Substate'] == 'NREM']['SpikeActivityHz'].tolist()
-            other_values = group[group['Substate'] == 'other']['SpikeActivityHz'].tolist()
+            nrem_values = group[group['Substate'] == 'NREM']['DeconvSpikeMeanActivity'].tolist()
+            other_values = group[group['Substate'] == 'other']['DeconvSpikeMeanActivity'].tolist()
             NREMmatrix[key]=[nrem_values, other_values]
             if len(nrem_values) > 1 and len(other_values) > 1:  # Ensure there are enough values to perform the test
                 t_stat, p_value = ttest_ind(nrem_values, other_values, equal_var=False)
@@ -195,8 +282,8 @@ for NrSubtype in NrSubtypeList:
         REMprefUnits=[]
         REMmatrix={}
         for key, group in grouped:
-            rem_values = group[group['Substate'] == 'REM']['SpikeActivityHz'].tolist()
-            other_values = group[group['Substate'] == 'other']['SpikeActivityHz'].tolist()
+            rem_values = group[group['Substate'] == 'REM']['DeconvSpikeMeanActivity'].tolist()
+            other_values = group[group['Substate'] == 'other']['DeconvSpikeMeanActivity'].tolist()
             REMmatrix[key]=[rem_values, other_values]
             if len(rem_values) > 1 and len(other_values) > 1:  # Ensure there are enough values to perform the test
                 t_stat, p_value = ttest_ind(rem_values, other_values, equal_var=False)
@@ -209,8 +296,8 @@ for NrSubtype in NrSubtypeList:
         WakeprefUnits=[]
         Wmatrix={}
         for key, group in grouped:
-            w_values = group[group['Substate'] == 'Wake']['SpikeActivityHz'].tolist()
-            other_values = group[group['Substate'] == 'other']['SpikeActivityHz'].tolist()
+            w_values = group[group['Substate'] == 'Wake']['DeconvSpikeMeanActivity'].tolist()
+            other_values = group[group['Substate'] == 'other']['DeconvSpikeMeanActivity'].tolist()
             Wmatrix[key]=[w_values, other_values]
             if len(w_values) > 1 and len(other_values) > 1:  # Ensure there are enough values to perform the test
                 t_stat, p_value = ttest_ind(w_values, other_values, equal_var=False)
@@ -218,7 +305,7 @@ for NrSubtype in NrSubtypeList:
                     WakeprefUnits.append(key)
 
         # Save the List of significant Unit more active in one vigilance state
-        filenameOut = f'{folder_to_save2}/{NrSubtype}_SignFiringPreference.xlsx'
+        filenameOut = f'{folder_to_save2}/{NrSubtype}_SignDeconvPreference.xlsx'
         writer = pd.ExcelWriter(filenameOut)
         AllUnits = pd.DataFrame(AllUnits)
         NREMprefUnits = pd.DataFrame(NREMprefUnits)
@@ -256,7 +343,7 @@ for NrSubtype in NrSubtypeList:
 
         # Just the highest mean = the preference
 
-        AresultSpikeActivity_perUnit = combined_df_Drug.pivot_table(index='Unit_ID', columns='Substate', values='DeconvSpikeMeanActivity', aggfunc='mean')    
+        AresultSpikeActivity_perUnit = combined_df_Drug.pivot_table(index='Unit_ID', columns='Substate', values='DeconvSpikeMeanActivity', aggfunc='mean')   
         try : AresultSpikeActivity_perUnit = AresultSpikeActivity_perUnit[desired_order]
         except: pass
         AresultSpikeActivity_perUnit['Activated_by'] = AresultSpikeActivity_perUnit.apply(max_column_name, axis=1)
@@ -273,7 +360,7 @@ for NrSubtype in NrSubtypeList:
         AllUnits = combined_df_Drug['Unit_ID'].unique()
 
         # Save the List of significant Unit more active in one vigilance state
-        filenameOut = f'{folder_to_save2}/{NrSubtype}_AverageFiringPreference.xlsx'
+        filenameOut = f'{folder_to_save2}/{NrSubtype}_AverageDeconvPreference.xlsx'
         writer = pd.ExcelWriter(filenameOut)
         AllUnitsDF = pd.DataFrame(AllUnits)
         NREMprefUnitsDF = pd.DataFrame(NREMprefUnits)
@@ -290,7 +377,7 @@ for NrSubtype in NrSubtypeList:
         List_Names=['NREMprefUnits', 'REMprefUnits', 'WakeprefUnits', 'AllUnits']    
 
         for listnb, listI  in enumerate(List_SignFiringPreference):
-
+            
             #list=listI[0] #convert df to list if with pvalue
             filtered_df = combined_df_Drug[combined_df_Drug['Unit_ID'].isin(listI)]
             List_name=List_Names[listnb]
@@ -298,6 +385,91 @@ for NrSubtype in NrSubtypeList:
             if NrSubtype=='All':
                 new_folder= f"{folder_to_save2}/{List_name}/"
                 os.makedirs(new_folder)
+
+            if Drug=='Baseline':
+
+                ## Ca correlation
+
+                # Keep only neurons from the list 
+                dfCa_filtered={}
+                for sheet_name, dfCa in combined_dfCa.items():
+                    dfCa=pd.DataFrame(dfCa)
+                    indices_to_keep_existing = [idx for idx in listI if idx in dfCa.index]
+                    columns_to_keep_existing = [col for col in listI if col in dfCa.columns]
+                    dfCa_filtered[sheet_name] = dfCa.loc[indices_to_keep_existing, columns_to_keep_existing]
+
+                # Keep only correlation that occurs for the 3 vigilances states / the 2 Drugs
+                first_key = next(iter(dfCa_filtered))
+                common_columns = dfCa_filtered[first_key].columns
+                for df in dfCa_filtered.values():
+                    common_columns = common_columns.intersection(df.columns)
+                common_indices = dfCa_filtered[first_key].index
+                for df in dfCa_filtered.values():
+                    common_indices = common_indices.intersection(df.index)
+                dfCa_DoubleFiltered = {name: df.loc[common_indices, common_columns] for name, df in dfCa_filtered.items()}
+
+                file_path = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Pairwise_CaCorrelationAB.xlsx'
+                with pd.ExcelWriter(file_path) as writer:
+                    for sheet_name, dfCa in dfCa_DoubleFiltered.items():
+                        dfCa.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+
+                SummaryMatrixCa= pd.DataFrame()
+                for sheet_name, df in dfCa_DoubleFiltered.items():    
+                    series_flattened = df.stack().reset_index()
+                    series_flattened['combined_index'] = series_flattened['level_0'] + '_' + series_flattened['level_1']
+                    series_flattened = series_flattened.set_index('combined_index')[0]
+                    SummaryMatrixCa[sheet_name] = series_flattened
+
+                SummaryMatrixCa_cleaned = SummaryMatrixCa[~(SummaryMatrixCa == 1).all(axis=1)]
+                Sum = SummaryMatrixCa_cleaned.sum(axis=1)
+                mask=(Sum == 3)
+                SummaryMatrixCa_cleaned_filtered = SummaryMatrixCa_cleaned[~mask]
+                SummaryMatrixCa_cleaned_filtered = SummaryMatrixCa_cleaned_filtered.drop_duplicates() #cause Neuron1_Neuron2 & Neuron2_Neuron1
+
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_CaCorrelationAB.xlsx'
+                SummaryMatrixCa_cleaned_filtered.to_excel(filenameOut, index=True, header=True)
+
+                # Sp correlation
+
+                # Keep only neurons from the list 
+                dfSp_filtered={}
+                for sheet_name, dfSp in combined_dfSp.items():
+                    dfSp=pd.DataFrame(dfSp)
+                    indices_to_keep_existing = [idx for idx in listI if idx in dfSp.index]
+                    columns_to_keep_existing = [col for col in listI if col in dfSp.columns]
+                    dfSp_filtered[sheet_name] = dfSp.loc[indices_to_keep_existing, columns_to_keep_existing]
+
+                # Keep only correlation that occurs for the 3 vigilances states / the 2 Drugs
+                first_key = next(iter(dfSp_filtered))
+                common_columns = dfSp_filtered[first_key].columns
+                for df in dfSp_filtered.values():
+                    common_columns = common_columns.intersection(df.columns)
+                common_indices = dfSp_filtered[first_key].index
+                for df in dfSp_filtered.values():
+                    common_indices = common_indices.intersection(df.index)
+                dfSp_DoubleFiltered = {name: df.loc[common_indices, common_columns] for name, df in dfSp_filtered.items()}
+
+                file_path = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Pairwise_SpCorrelationAB.xlsx'
+                with pd.ExcelWriter(file_path) as writer:
+                    for sheet_name, dfSp in dfSp_DoubleFiltered.items():
+                        dfSp.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+
+                SummaryMatrixSp= pd.DataFrame()
+                for sheet_name, df in dfSp_DoubleFiltered.items():    
+                    series_flattened = df.stack().reset_index()
+                    series_flattened['combined_index'] = series_flattened['level_0'] + '_' + series_flattened['level_1']
+                    series_flattened = series_flattened.set_index('combined_index')[0]
+                    SummaryMatrixSp[sheet_name] = series_flattened
+
+                SummaryMatrixSp_cleaned = SummaryMatrixSp[~(SummaryMatrixSp == 1).all(axis=1)]
+                Sum = SummaryMatrixSp_cleaned.sum(axis=1)
+                mask=(Sum == 3)
+                SummaryMatrixSp_cleaned_filtered = SummaryMatrixSp_cleaned[~mask]
+                SummaryMatrixSp_cleaned_filtered = SummaryMatrixSp_cleaned_filtered.drop_duplicates() #cause Neuron1_Neuron2 & Neuron2_Neuron1
+
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_SpCorrelationAB.xlsx'
+                SummaryMatrixSp_cleaned_filtered.to_excel(filenameOut, index=True, header=True)
+
 
             if len(filtered_df)>0:
                 #######################

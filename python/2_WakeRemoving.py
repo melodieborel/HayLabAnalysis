@@ -1,6 +1,16 @@
 # Extracting wake and filtering it out of data
 
 #######################################################################################
+                                # Choose Analysis #
+#######################################################################################
+
+#Method=1 # for AB analysis
+Method=0 # for AH analysis
+
+DrugExperiment=1 #if CGP Experiment
+#DrugExperiment=0 #if Baseline Experiment
+
+#######################################################################################
                                 # Load packages #
 #######################################################################################
 
@@ -45,14 +55,12 @@ def find_session_folders(root_path):
 
 # Perform analysis for each mouse
 
-MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
-MiceList=['ThreeColDotsOK']
-
-dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/"
+MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] if DrugExperiment else ['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
+dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/" if DrugExperiment else "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
 
 # Process
 
-for mice in MiceList:
+for m,mice in enumerate(MiceList):
     
     dpath=Path(dpath0 + mice)
     # Load sleep score and Ca2+ time series numpy arrays
@@ -99,17 +107,23 @@ for mice in MiceList:
         proj_EMGcwt = np.sum(absEMGcwt, axis = 0)/50
         mproj_EMGcwt = np.mean(proj_EMGcwt)
         sdproj_EMGcwt = np.std(proj_EMGcwt)
-        sd3proj_EMGcwt = mproj_EMGcwt + sdproj_EMGcwt*3
-        sd05proj_EMGcwt = mproj_EMGcwt + sdproj_EMGcwt*0.5
-        sd1proj_EMGcwt = mproj_EMGcwt + sdproj_EMGcwt
+
+        if Method==0:
+            LowFactor= [3,1,2,1,2] if DrugExperiment else [3,1,2,1.5,1,1.2,2,5]
+            HighFactor= [6,2,4,2,3] if DrugExperiment else [6,2,4,2,3,2,3,2,8]
+            LowFactorSd=LowFactor[m]
+            HighFactorSd=HighFactor[m]
+        else:
+            LowFactorSd=1
+            HighFactorSd=3
 
         # Assigning values wake (1, 2) and sleep (0)
         numpnts = EMG.size
         EMGstatusRaw = np.zeros(numpnts)
         for ind in range(numpnts):
-            if proj_EMGcwt[ind]<sd1proj_EMGcwt: #<sd05proj_EMGcwt for version _AH
+            if proj_EMGcwt[ind]<(mproj_EMGcwt + LowFactorSd*sdproj_EMGcwt): 
                 EMGstatusRaw[ind] = 0
-            elif proj_EMGcwt[ind]>sd3proj_EMGcwt:
+            elif proj_EMGcwt[ind]>(mproj_EMGcwt + HighFactorSd*sdproj_EMGcwt):
                 EMGstatusRaw[ind] = 2
             else:
                 EMGstatusRaw[ind] = 1
@@ -130,16 +144,18 @@ for mice in MiceList:
         EMGStatusBoolLib = (EMGstatusRaw2>1)
         EMGStatusBoolCons = (EMGstatusRaw2>0)
 
+        suffix='_AB' if Method else '_AH'
+        
         # Save files
         LFP = All[:,:]
         LFPwake0 = LFP.copy()
         LFPwake0[EMGStatusBoolLib] = 0
-        filename = folder_base/ f'LFPwake0_AB.npy'
+        filename = folder_base/ f'LFPwake0{suffix}.npy'
         np.save(filename, LFPwake0)
 
         LFPwakeremoved = LFP.copy()
         LFPwakeremoved = LFPwakeremoved[~EMGStatusBoolLib, :]
-        filename = folder_base/ f'LFPwakeremoved_AB.npy'
+        filename = folder_base/ f'LFPwakeremoved{suffix}.npy'
         np.save(filename, LFPwakeremoved)
         data = {
             'EMGstatus': EMGstatusRaw2,
@@ -147,5 +163,5 @@ for mice in MiceList:
             'BooleanConservative' : EMGStatusBoolCons
         }
         WakeFrame = pd.DataFrame(data, columns=['EMGstatus', 'BooleanLiberal', 'BooleanConservative'])
-        filename = folder_base/ f'EMGframeBoolean_AB.pkl'
+        filename = folder_base/ f'EMGframeBoolean{suffix}.pkl'
         WakeFrame.to_pickle(filename)

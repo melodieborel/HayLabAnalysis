@@ -4,8 +4,11 @@
                                 # Choose Analysis #
 #######################################################################################
 
-Method=1 # for AB analysis
-#Method=0 # for AH analysis
+#Method=1 # for AB analysis
+Method=0 # for AH analysis
+
+DrugExperiment=1 #if CGP Experiment
+#DrugExperiment=0 #if Baseline Experiment
 
 #######################################################################################
                                 # Load packages #
@@ -53,12 +56,8 @@ def find_session_folders(root_path):
 
 # Perform analysis for each mouse
 
-#MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
-MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'Purple', 'ThreeColDotsOK']
-MiceList=['ThreeColDotsOK']
-
-#dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
-dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/"
+MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] if DrugExperiment else ['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
+dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/" if DrugExperiment else "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
 
 # Process
 
@@ -81,10 +80,20 @@ for mice in MiceList:
         print(folder_base)
 
         filename2 = folder_base / f'RawDataChannelExtractedDS.npy'
-        EMGbooleaninput = folder_base / f'EMGframeBoolean_AB.pkl' if Method else folder_base / f'EMGframeBoolean.pkl'
+        if Method: 
+            EMGbooleaninput = folder_base / f'EMGframeBoolean_AB.pkl'  
+        else:
+            try:
+                EMGbooleaninput =folder_base / f'EMGframeBoolean.pkl'
+                EMGboolean = pd.read_pickle(EMGbooleaninput)
+                print('EMGframeBoolean')
+            except: 
+                EMGbooleaninput =folder_base / f'EMGframeBoolean_AH.pkl'
+                EMGboolean = pd.read_pickle(EMGbooleaninput)
+                print('EMGframeBoolean_AH')
+
         Channels = '//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/LFPChannels_perMice.xlsx' 
 
-        EMGboolean = pd.read_pickle(EMGbooleaninput)
         All = np.load(filename2, mmap_mode= 'r')
 
         allchannels = pd.read_excel(Channels)
@@ -328,7 +337,7 @@ for mice in MiceList:
                         start=substates.Start[index+1]
                         end=substates.End[index+1]
                         ScoringVectorS2[start:end]=1
-            
+            ScoringVectorS=ScoringVectorS2
             #for i in range(len(ScoringVectorS)):
             #    if i > (len(ScoringVectorS)-4):
             #        break       
@@ -354,7 +363,6 @@ for mice in MiceList:
 
             for i in range(len(ScoringVectorS)):
                 if i > (len(ScoringVectorS)-4):
-                    print(i)
                     break          
                 elif (ScoringVectorS[i]==0.5 and ScoringVectorS[i+1]==0 and ScoringVectorS[i+2]>0):
                     ScoringVectorS[i+1]=0.5
@@ -366,4 +374,4 @@ for mice in MiceList:
         suffix='_AB' if Method else '_AH'
 
         filenameOut = folder_base / f'ScoredSleep{suffix}.npy'
-        np.save(filenameOut, ScoringVectorS2)
+        np.save(filenameOut, ScoringVectorS)
