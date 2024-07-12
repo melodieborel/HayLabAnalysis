@@ -5,11 +5,11 @@
 #######################################################################################
 
 #DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
-DrugExperiment=1 
+DrugExperiment=1
 
-suffix={} #to identify this analysis from another
+AnalysisID='_AB_Zscored' #to identify this analysis from another
 
-choosed_folder='Analysis_VigStates_2024-07-09_14_52_13_353475_AB'
+choosed_folder='Analysis_VigStates_2024-07-11_16_56_11_231089_AB_Zscored'
 
 desired_order = ['Wake','NREM', 'REM']   
 #desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
@@ -53,7 +53,7 @@ directory= f'{InitialDirectory}/{choosed_folder}'
 # Get the current date and time
 FolderNameSave=str(datetime.now())
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}{suffix}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}{suffix}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -238,6 +238,7 @@ for NrSubtype in NrSubtypeList:
     mixedlm_model3 = sm.MixedLM.from_formula("NormalizedAUC_calcium ~ Substate", groups='Unit_ID', data=combined_df)
     result3 = mixedlm_model3.fit()
     print(result3.summary())      
+    
     try: 
         mixedlm_model4 = sm.MixedLM.from_formula("DeconvSpikeMeanActivity ~ Substate", groups='Unit_ID', data=combined_df)
         result4 = mixedlm_model4.fit()
@@ -515,6 +516,46 @@ for NrSubtype in NrSubtypeList:
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_SpCorrCoeff_perUnitAB.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 CorrCoeff_spike_perUnit.to_excel(writer)
+                writer.close()
+                
+                #####################    
+                # CORRELATION COEFF #
+                #####################
+
+                CaPopCoupling_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='CaPopCoupling', aggfunc='mean')
+                try: CaPopCoupling_perUnit = CaPopCoupling_perUnit[desired_order]
+                except: pass
+                # Save CaPopCoupling_perUnit
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_CaPopCoupling_perUnitAB.xlsx'
+                writer = pd.ExcelWriter(filenameOut)
+                CaPopCoupling_perUnit.to_excel(writer)
+                writer.close()
+
+                CaPopCoupling_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='Z_CaPopCoupling', aggfunc='mean')
+                try: CaPopCoupling_perUnit = CaPopCoupling_perUnit[desired_order]
+                except: pass
+                # Save CaPopCoupling_perUnit
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Z_CaPopCoupling_perUnitAB.xlsx'
+                writer = pd.ExcelWriter(filenameOut)
+                CaPopCoupling_perUnit.to_excel(writer)
+                writer.close()
+                
+                SpPopCoupling_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='SpPopCoupling', aggfunc='mean')
+                try: SpPopCoupling_perUnit = SpPopCoupling_perUnit[desired_order]
+                except: pass
+                # Save SpPopCoupling_perUnit 
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_SpPopCoupling_perUnitAB.xlsx'
+                writer = pd.ExcelWriter(filenameOut)
+                SpPopCoupling_perUnit.to_excel(writer)
+                writer.close()
+
+                SpPopCoupling_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='Z_SpPopCoupling', aggfunc='mean')
+                try: SpPopCoupling_perUnit = SpPopCoupling_perUnit[desired_order]
+                except: pass
+                # Save SpPopCoupling_perUnit 
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Z_SpPopCoupling_perUnitAB.xlsx'
+                writer = pd.ExcelWriter(filenameOut)
+                SpPopCoupling_perUnit.to_excel(writer)
                 writer.close()
                 
                 #####################

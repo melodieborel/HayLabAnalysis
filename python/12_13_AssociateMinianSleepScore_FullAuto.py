@@ -5,9 +5,10 @@
 #######################################################################################
 
 #DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
-DrugExperiment=0
+DrugExperiment=1
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
+AnalysisID='' 
 
 #######################################################################################
                                 # Load packages #
@@ -30,7 +31,7 @@ from datetime import datetime
 import shutil
 from ast import literal_eval
 from scipy.signal import find_peaks
-
+from scipy.stats import zscore
 from itertools import groupby
 from IPython.display import display
 
@@ -89,7 +90,7 @@ MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK
 FolderNameSave=str(datetime.now())
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_VigStates_{FolderNameSave}{suffix}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_VigStates_{FolderNameSave}{suffix}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_VigStates_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_VigStates_{FolderNameSave}{suffix}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -325,6 +326,10 @@ for mice in MiceList:
         if nb_unit==0:
             continue  # next iteration
 
+        # Zscore traces
+        Carray=zscore(Carray, axis=0)
+        Sarray=zscore(Sarray, axis=0)
+
         # Replace dropped frame in calcium and spike traces with the previous value
 
         for droppedframe in droppedframes_inrec: 
@@ -350,7 +355,7 @@ for mice in MiceList:
         substates_identity = [key for key, _ in groupby(array)]
         substates_end = np.array(substates_duration).cumsum()        
         substates_start =np.append([0],substates_end[:-1]) #substates_start =np.append([1],substates_end+1) create 1 second gap
-        mapp = {0: 'NREM', 0.5: 'N2', 1: 'REM', 1.5: 'Wake'}
+        mapp = {1.5: 'Wake', 0.5: 'N2', 0: 'NREM',  1: 'REM'}
         substates_identity = [mapp[num] for num in substates_identity]
         substates = pd.DataFrame(list(zip(substates_identity, substates_duration, substates_start, substates_end)), columns=['Identity', 'Duration', 'Start','End'])
 
@@ -390,7 +395,7 @@ for mice in MiceList:
             SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
             SpCorrMatrix=[]
             SpCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
-            
+
             for unit in range(nb_unit): 
 
                 Carray_unit =Carray_VigSpe[:,unit]
@@ -419,9 +424,9 @@ for mice in MiceList:
                         
                         corr_matrix = np.corrcoef(Darray_unit, Darray_unit2)
                         SpCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]=corr_matrix[0, 1]
-    
+
             CaCorrVigStateMatrix.append(CaCorrMatrix)
-            SpCorrVigStateMatrix.append(SpCorrMatrix)
+            SpCorrVigStateMatrix.append(SpCorrMatrix) 
 
         for unit in range(nb_unit): 
 
@@ -465,6 +470,7 @@ for mice in MiceList:
                 VigilanceState_GlobalResults.loc[counter, 'Avg_SpikeActivityHz'] = Sarray_unit.sum()/(len(Sarray_unit)/minian_freq)
 
                 otherunit_range = [x for x in range(nb_unit) if x != unit]
+
                 CaCorrCoeff=[]
                 SpCorrCoeff=[]
                 Z_CaCorrCoeff=[]
@@ -502,17 +508,19 @@ for mice in MiceList:
                 VigilanceState_GlobalResults.loc[counter, 'Z_SpCorrCoeff'] = np.nanmean(Z_SpCorrCoeff)
                 
                 VigilanceState_GlobalResults.loc[counter, 'Z_Rsquared_CaCorrCoeff'] = np.nanmean([x ** 2 for x in Z_CaCorrCoeff])
-                VigilanceState_GlobalResults.loc[counter, 'Z_Rsquared_SpCorrCoeff'] = np.nanmean([x ** 2 for x in Z_SpCorrCoeff])
-                
-                Carray_Population =np.mean(Carray[:,otherunit_range], axis=0)
-                corr_matrix = np.corrcoef(Carray_unit, Carray_Population)
-                VigilanceState_GlobalResults.loc[counter, 'CaPopCoupling'] = corr_matrix[0, 1]
+                VigilanceState_GlobalResults.loc[counter, 'Z_Rsquared_SpCorrCoeff'] = np.nanmean([x ** 2 for x in Z_SpCorrCoeff])   
 
-                Sarray_Population =np.mean(Sarray[:,otherunit_range], axis=0) 
-                print(len(Sarray_Population))
-                print(len(Sarray_unit))
-                corr_matrix = np.corrcoef(Sarray_unit, Sarray_Population)
+                Carray_Population =np.mean(Carray[:,otherunit_range], axis=1)
+                ca_input_sub2=Carray_Population[substates.Start[index]:substates.End[index]]
+                corr_matrix = np.corrcoef(ca_input_sub, ca_input_sub2)
+                VigilanceState_GlobalResults.loc[counter, 'CaPopCoupling'] = corr_matrix[0, 1]
+                VigilanceState_GlobalResults.loc[counter, 'Z_CaPopCoupling'] = np.arctanh(corr_matrix[0, 1])
+
+                Sarray_Population =np.mean(Sarray[:,otherunit_range], axis=1)
+                ds_input_sub2=Sarray_Population[substates.Start[index]:substates.End[index]]
+                corr_matrix = np.corrcoef(ds_input_sub, ds_input_sub2)
                 VigilanceState_GlobalResults.loc[counter, 'SpPopCoupling'] = corr_matrix[0, 1]
+                VigilanceState_GlobalResults.loc[counter, 'Z_SpPopCoupling'] = np.arctanh(corr_matrix[0, 1])
 
                 counter+=1
 
@@ -528,7 +536,8 @@ for mice in MiceList:
                 combined_df = combined_df.dropna(axis=1, how='all')
                 combined_df.to_excel(excel_writerCa, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True) 
                 
-                combined_df=combined_df.apply(np.arctanh)
+                combined_df = pd.concat(CaCorrVigStateMatrix, ignore_index=False)
+                combined_df = combined_df.applymap(lambda x: np.arctanh(x) if not pd.isna(x) else np.nan)
                 combined_df = combined_df.groupby(combined_df.index).mean()
                 combined_df.index = [mice + str(idx) for idx in combined_df.index]
                 combined_df = combined_df.dropna(axis=0, how='all')
@@ -544,7 +553,8 @@ for mice in MiceList:
                 combined_df = combined_df.dropna(axis=1, how='all')
                 combined_df.to_excel(excel_writerSp, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True) 
                 
-                combined_df=combined_df.apply(np.arctanh)
+                combined_df = pd.concat(SpCorrVigStateMatrix, ignore_index=False)
+                combined_df = combined_df.applymap(lambda x: np.arctanh(x) if not pd.isna(x) else np.nan)
                 combined_df = combined_df.groupby(combined_df.index).mean()
                 combined_df.index = [mice + str(idx) for idx in combined_df.index]
                 combined_df = combined_df.dropna(axis=0, how='all')
