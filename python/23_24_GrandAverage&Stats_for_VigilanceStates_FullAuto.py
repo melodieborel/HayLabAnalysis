@@ -5,11 +5,11 @@
 #######################################################################################
 
 #DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
-DrugExperiment=1
+DrugExperiment=0
 
 AnalysisID='_AB_Zscored' #to identify this analysis from another
 
-choosed_folder='Analysis_VigStates_2024-07-11_16_56_11_231089_AB_Zscored'
+choosed_folder='Analysis_VigStates_2024-07-11_15_21_35_008812_AB_Zscored'
 
 desired_order = ['Wake','NREM', 'REM']   
 #desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
@@ -37,10 +37,14 @@ from datetime import datetime
 import shutil
 from scipy.stats import ttest_ind
 import statsmodels.api as sm
+import re
 
 import warnings
 warnings.filterwarnings("ignore")
 
+def extract_micename(index_value):
+    match = re.match(r"([a-zA-Z]+)", index_value)
+    return match.group(1) if match else index_value
 
 ########################################################################
         # SCRIPT 23AB_GrandAverages&Stats_for_VigilanceStates
@@ -107,7 +111,7 @@ for NrSubtype in NrSubtypeList:
                                 updated_matrix = pd.concat([dfs2_per_sheet[sheet_name], df2], axis=0)                    
                                 dfs2_per_sheet[sheet_name] = updated_matrix    
                             else:
-                                dfs2_per_sheet[sheet_name] = df2  #one average trace per unique unit, len(df2)==nb unit recorded for that mouse
+                                dfs2_per_sheet[sheet_name] = df2 
                     # Keep only correlation that occurs for the 3 vigilances states / the 2 Drugs
                     first_key = next(iter(dfs2_per_sheet))
                     common_columns = dfs2_per_sheet[first_key].columns
@@ -228,7 +232,8 @@ for NrSubtype in NrSubtypeList:
     
     #####################
     # GLM #
-    #####################         
+    #####################      
+    """   
     print(NrSubtype)
 
     mixedlm_model = sm.MixedLM.from_formula("SpikeActivityHz ~ Substate", groups='Unit_ID', data=combined_df)
@@ -238,14 +243,14 @@ for NrSubtype in NrSubtypeList:
     mixedlm_model3 = sm.MixedLM.from_formula("NormalizedAUC_calcium ~ Substate", groups='Unit_ID', data=combined_df)
     result3 = mixedlm_model3.fit()
     print(result3.summary())      
-    
+
     try: 
         mixedlm_model4 = sm.MixedLM.from_formula("DeconvSpikeMeanActivity ~ Substate", groups='Unit_ID', data=combined_df)
         result4 = mixedlm_model4.fit()
         print(result4.summary())   
     except: 
         print('Error on DeconvSpikeMeanActivity') 
-
+    """ 
     #####################
     # PREFERENCE #
     #####################
@@ -383,6 +388,12 @@ for NrSubtype in NrSubtypeList:
             filtered_df = combined_df_Drug[combined_df_Drug['Unit_ID'].isin(listI)]
             List_name=List_Names[listnb]
 
+            filtered_df_AllDrug = combined_df[combined_df['Unit_ID'].isin(listI)]
+            filenameOut = f'{folder_to_save}/GLM_{NrSubtype}_{List_name}_VigSt_Global.xlsx'
+            writer = pd.ExcelWriter(filenameOut)
+            filtered_df_AllDrug.to_excel(writer)
+            writer.close()
+
             if NrSubtype=='All':
                 new_folder= f"{folder_to_save2}/{List_name}/"
                 os.makedirs(new_folder)
@@ -419,16 +430,26 @@ for NrSubtype in NrSubtypeList:
                     series_flattened = df.stack().reset_index()
                     series_flattened['combined_index'] = series_flattened['level_0'] + '_' + series_flattened['level_1']
                     series_flattened = series_flattened.set_index('combined_index')[0]
-                    SummaryMatrixCa[sheet_name] = series_flattened
-
-                SummaryMatrixCa_cleaned = SummaryMatrixCa[~(SummaryMatrixCa == 1).all(axis=1)]
-                Sum = SummaryMatrixCa_cleaned.sum(axis=1)
-                mask=(Sum == 3)
-                SummaryMatrixCa_cleaned_filtered = SummaryMatrixCa_cleaned[~mask]
-                SummaryMatrixCa_cleaned_filtered = SummaryMatrixCa_cleaned_filtered.drop_duplicates() #cause Neuron1_Neuron2 & Neuron2_Neuron1
-
+                    series_flattened_cleaned = series_flattened[series_flattened.index.str.split('_').str[0] != series_flattened.index.str.split('_').str[1]] #remove Neuron1 vs Neuron1
+                    SummaryMatrixCa[sheet_name] = series_flattened_cleaned
+                
+                SummaryMatrixCa = SummaryMatrixCa.round(5) # to better detect duplicate                   
+                SummaryMatrixCa_cleaned = SummaryMatrixCa.drop_duplicates(subset=SummaryMatrixCa.columns[1:])
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_CaCorrelationAB.xlsx'
-                SummaryMatrixCa_cleaned_filtered.to_excel(filenameOut, index=True, header=True)
+                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)
+                
+                df_reset = SummaryMatrixCa_cleaned.reset_index()       
+                columns_to_keep = df_reset.columns[[0, 1, 3, 5]]  # Columns 2, 4, and 6 (0-based index)
+                df_reset = df_reset[columns_to_keep]
+                melted_df = pd.melt(df_reset, id_vars=['combined_index'], var_name='VigilanceSt', value_name='CorrCoeff')
+                extracted_micename = [extract_micename(idx) for idx in melted_df['combined_index']]
+                melted_df['Mice']=extracted_micename            
+                
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_CaCorrelationAB.xlsx'
+                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)   
+                
+                filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_VigSt_FlattenPairwise_CaCorrelationAB.xlsx'
+                melted_df.to_excel(filenameOut, index=True, header=True)   
 
                 # Sp correlation
 
@@ -460,19 +481,34 @@ for NrSubtype in NrSubtypeList:
                     series_flattened = df.stack().reset_index()
                     series_flattened['combined_index'] = series_flattened['level_0'] + '_' + series_flattened['level_1']
                     series_flattened = series_flattened.set_index('combined_index')[0]
-                    SummaryMatrixSp[sheet_name] = series_flattened
+                    series_flattened_cleaned = series_flattened[series_flattened.index.str.split('_').str[0] != series_flattened.index.str.split('_').str[1]] #remove Neuron1 vs Neuron1
+                    SummaryMatrixSp[sheet_name] = series_flattened_cleaned
 
-                SummaryMatrixSp_cleaned = SummaryMatrixSp[~(SummaryMatrixSp == 1).all(axis=1)]
-                Sum = SummaryMatrixSp_cleaned.sum(axis=1)
-                mask=(Sum == 3)
-                SummaryMatrixSp_cleaned_filtered = SummaryMatrixSp_cleaned[~mask]
-                SummaryMatrixSp_cleaned_filtered = SummaryMatrixSp_cleaned_filtered.drop_duplicates() #cause Neuron1_Neuron2 & Neuron2_Neuron1
-
+                SummaryMatrixSp = SummaryMatrixSp.round(5) # to better detect duplicate                   
+                SummaryMatrixSp_cleaned = SummaryMatrixSp.drop_duplicates(subset=SummaryMatrixSp.columns[1:])
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_SpCorrelationAB.xlsx'
-                SummaryMatrixSp_cleaned_filtered.to_excel(filenameOut, index=True, header=True)
-
+                SummaryMatrixSp_cleaned.to_excel(filenameOut, index=True, header=True)
+        
+                df_reset = SummaryMatrixSp_cleaned.reset_index()       
+                columns_to_keep = df_reset.columns[[0, 1, 3, 5]]  # Columns 2, 4, and 6 (0-based index)
+                df_reset = df_reset[columns_to_keep]
+                melted_df = pd.melt(df_reset, id_vars=['combined_index'], var_name='VigilanceSt', value_name='CorrCoeff')
+                extracted_micename = [extract_micename(idx) for idx in melted_df['combined_index']]
+                melted_df['Mice']=extracted_micename            
+                
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_SpCorrelationAB.xlsx'
+                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)   
+                
+                filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_VigSt_FlattenPairwise_SpCorrelationAB.xlsx'
+                melted_df.to_excel(filenameOut, index=True, header=True)   
 
             if len(filtered_df)>0:
+
+                filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_VigSt_Global.xlsx'
+                writer = pd.ExcelWriter(filenameOut)
+                filtered_df.to_excel(writer)
+                writer.close()
+
                 #######################
                 # DETERMINATION COEFF #
                 #######################
