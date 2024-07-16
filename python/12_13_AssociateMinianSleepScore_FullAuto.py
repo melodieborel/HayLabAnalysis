@@ -5,10 +5,10 @@
 #######################################################################################
 
 #DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
-DrugExperiment=1
+DrugExperiment=0
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
-AnalysisID='' 
+AnalysisID='Zscored_Ultimate' 
 
 #######################################################################################
                                 # Load packages #
@@ -188,7 +188,6 @@ for mice in MiceList:
     if mice == 'Purple' and DrugExperiment==0:
         index = B.columns
         B.columns = index.str.replace('part', 'session2')
-
     #######################################################################################
       # Distribute Ca2+ intensity & spikes to vigilance states for each sessions/subsessions #
     #######################################################################################
@@ -420,11 +419,11 @@ for mice in MiceList:
                     if any(indexMapp) and len(indexMapp2)>0:      
                                         
                         corr_matrix = np.corrcoef(Carray_unit, Carray_unit2)
-                        CaCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]=corr_matrix[0, 1] 
+                        CaCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]={1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
                         
                         corr_matrix = np.corrcoef(Darray_unit, Darray_unit2)
-                        SpCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]=corr_matrix[0, 1]
-
+                        SpCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]={1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+                        
             CaCorrVigStateMatrix.append(CaCorrMatrix)
             SpCorrVigStateMatrix.append(SpCorrMatrix) 
 
@@ -488,15 +487,15 @@ for mice in MiceList:
 
                     corr_matrix = np.corrcoef(ca_input_sub, ca_input_sub2)
                     CaCorrCoeff_unit = np.round(corr_matrix[0, 1],5)
+                    CaCorrCoeff_unit = {1: 0.99999, -1: -0.99999}.get(CaCorrCoeff_unit, CaCorrCoeff_unit)
                     CaCorrCoeff.append(CaCorrCoeff_unit)
-                    CaCorrCoeff = {1: 0.99999, -1: -0.99999}.get(CaCorrCoeff, CaCorrCoeff)
                     Z_CaCorrCoeff_unit=np.arctanh(CaCorrCoeff_unit)
                     Z_CaCorrCoeff.append(Z_CaCorrCoeff_unit)
 
                     corr_matrix = np.corrcoef(ds_input_sub, ds_input_sub2)
                     SpCorrCoeff_unit =  np.round(corr_matrix[0, 1],5)
+                    SpCorrCoeff_unit = {1: 0.99999, -1: -0.99999}.get(SpCorrCoeff_unit, SpCorrCoeff_unit)
                     SpCorrCoeff.append(SpCorrCoeff_unit)
-                    CaCorrCoeff = {1: 0.99999, -1: -0.99999}.get(CaCorrCoeff, CaCorrCoeff)
                     Z_SpCorrCoeff_unit=np.arctanh(SpCorrCoeff_unit)
                     Z_SpCorrCoeff.append(Z_SpCorrCoeff_unit)
                 
@@ -516,13 +515,15 @@ for mice in MiceList:
                 ca_input_sub2=Carray_Population[substates.Start[index]:substates.End[index]]
                 corr_matrix = np.corrcoef(ca_input_sub, ca_input_sub2)
                 VigilanceState_GlobalResults.loc[counter, 'CaPopCoupling'] = np.round(corr_matrix[0, 1],5)
-                VigilanceState_GlobalResults.loc[counter, 'Z_CaPopCoupling'] = np.arctanh(np.round(corr_matrix[0, 1],5))
+                corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+                VigilanceState_GlobalResults.loc[counter, 'Z_CaPopCoupling'] = np.arctanh(corCorrected)
 
                 Sarray_Population =np.mean(Sarray[:,otherunit_range], axis=1)
                 ds_input_sub2=Sarray_Population[substates.Start[index]:substates.End[index]]
                 corr_matrix = np.corrcoef(ds_input_sub, ds_input_sub2)
                 VigilanceState_GlobalResults.loc[counter, 'SpPopCoupling'] = np.round(corr_matrix[0, 1],5)
-                VigilanceState_GlobalResults.loc[counter, 'Z_SpPopCoupling'] = np.arctanh(np.round(corr_matrix[0, 1],5))
+                corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+                VigilanceState_GlobalResults.loc[counter, 'Z_SpPopCoupling'] = np.arctanh(corCorrected)
 
                 counter+=1
 

@@ -7,9 +7,9 @@
 #DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 DrugExperiment=0
 
-AnalysisID='_AB_Zscored' #to identify this analysis from another
+AnalysisID='_AB_Zscored_Final' #to identify this analysis from another
 
-choosed_folder='Analysis_VigStates_2024-07-11_15_21_35_008812_AB_Zscored'
+choosed_folder='Analysis_VigStates_2024-07-16_11_13_35_510449_ABZscored_Final'
 
 desired_order = ['Wake','NREM', 'REM']   
 #desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
@@ -435,23 +435,24 @@ for NrSubtype in NrSubtypeList:
                 
                 SummaryMatrixCa = SummaryMatrixCa.round(5) # to better detect duplicate                   
                 SummaryMatrixCa_cleaned = SummaryMatrixCa.drop_duplicates(subset=SummaryMatrixCa.columns[1:])
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_CaCorrelationAB.xlsx'
-                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)
                 
                 df_reset = SummaryMatrixCa_cleaned.reset_index()       
-                columns_to_keep = df_reset.columns[[0, 1, 3, 5]]  # Columns 2, 4, and 6 (0-based index)
+                columns_to_keep = df_reset.columns[[0, 2, 4, 6]]  # Columns 2, 4, and 6 (0-based index)
                 df_reset = df_reset[columns_to_keep]
-                melted_df = pd.melt(df_reset, id_vars=['combined_index'], var_name='VigilanceSt', value_name='CorrCoeff')
-                extracted_micename = [extract_micename(idx) for idx in melted_df['combined_index']]
-                melted_df['Mice']=extracted_micename            
-                
+                if len(df_reset)>0:
+                    melted_df = pd.melt(df_reset, id_vars=['combined_index'], var_name='VigilanceSt', value_name='CorrCoeff')
+                    extracted_micename = [extract_micename(idx) for idx in melted_df['combined_index']]
+                    melted_df['Mice']=extracted_micename            
+                else: 
+                    melted_df = pd.DataFrame()
+
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_CaCorrelationAB.xlsx'
                 SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)   
                 
                 filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_VigSt_FlattenPairwise_CaCorrelationAB.xlsx'
                 melted_df.to_excel(filenameOut, index=True, header=True)   
 
-                # Sp correlation
+                ## Sp correlation
 
                 # Keep only neurons from the list 
                 dfSp_filtered={}
@@ -486,18 +487,19 @@ for NrSubtype in NrSubtypeList:
 
                 SummaryMatrixSp = SummaryMatrixSp.round(5) # to better detect duplicate                   
                 SummaryMatrixSp_cleaned = SummaryMatrixSp.drop_duplicates(subset=SummaryMatrixSp.columns[1:])
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_SpCorrelationAB.xlsx'
-                SummaryMatrixSp_cleaned.to_excel(filenameOut, index=True, header=True)
         
                 df_reset = SummaryMatrixSp_cleaned.reset_index()       
-                columns_to_keep = df_reset.columns[[0, 1, 3, 5]]  # Columns 2, 4, and 6 (0-based index)
+                columns_to_keep = df_reset.columns[[0, 2, 4, 6]]  # Columns 2, 4, and 6 (0-based index)
                 df_reset = df_reset[columns_to_keep]
-                melted_df = pd.melt(df_reset, id_vars=['combined_index'], var_name='VigilanceSt', value_name='CorrCoeff')
-                extracted_micename = [extract_micename(idx) for idx in melted_df['combined_index']]
-                melted_df['Mice']=extracted_micename            
-                
+                if len(df_reset)>0:
+                    melted_df = pd.melt(df_reset, id_vars=['combined_index'], var_name='VigilanceSt', value_name='CorrCoeff')
+                    extracted_micename = [extract_micename(idx) for idx in melted_df['combined_index']]
+                    melted_df['Mice']=extracted_micename            
+                else: 
+                    melted_df = pd.DataFrame()
+                    
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_SpCorrelationAB.xlsx'
-                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)   
+                SummaryMatrixSp_cleaned.to_excel(filenameOut, index=True, header=True)   
                 
                 filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_VigSt_FlattenPairwise_SpCorrelationAB.xlsx'
                 melted_df.to_excel(filenameOut, index=True, header=True)   
