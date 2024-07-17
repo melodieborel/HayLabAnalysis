@@ -7,6 +7,9 @@ from ipyfilechooser import FileChooser
 import ipywidgets as widgets
 from IPython.display import display
 from IPython import get_ipython
+import IPython
+
+import pprint
 
 class color:
    PURPLE = '\033[95m'
@@ -66,7 +69,11 @@ class localConf(configparser.ConfigParser):
          options=[p.split('.')[1]],
          description='Sub-project (you can update the list in your localConfig.ini file):',
          ) for p in self.sections() if p not in ['DATA','ANALYSIS']} 
-
+   
+   def printAll(self):
+      for section in self.sections():
+         print(section)
+         pprint.pp(self.items(section))
 
 class expeConfigDict(dict):
    def __init__(self, expePath = None) -> None:
@@ -87,12 +94,12 @@ class expeConfigDict(dict):
          self.pathName = self.rawDataPath
          self.fileName = ""
 
-          
+      print(self.pathName,self.fileName )
       fc = FileChooser(path=self.pathName, filename=self.fileName, select_default=True, show_only_dirs = False, title = "<b>Select file</b>")
       display(fc)
          
       # Register callback function
-      fc.register_callback(self.update_my_folder)
+      fc.register_callback(self.update_my_expe_choice)
 
       self.analysisPath = self.config['ANALYSIS']['path']
       self.projectType = int(self.config['ANALYSIS']['projectType'])
@@ -220,12 +227,11 @@ class expeConfigDict(dict):
       self.iWidget.children = new_i.children
       #%store projectType
 
-   def update_my_folder(self,chooser):
+   def update_my_expe_choice(self,chooser):
     selection = chooser.selected
     if selection.endswith("pkl"):
         currentFile = str(selection)
-        print(currentFile)
-        #self.loadExpeConfigDict(expePath = selection)
+        self.loadExpeConfigDict(expePath = selection)
     else:
         print("this is not a config file and we should deal with that")
         display(self.iWidget)
@@ -238,10 +244,29 @@ class expeConfigDict(dict):
         currentFile = os.path.join(os.path.split(path)[0],'saved_dictionary.pkl')
         self.generateExpeConfigDict(currentFile, rawDataPath = selection)
         self.loadExpeConfigDict(expePath = currentFile)
-    #%store currentFile
-    get_ipython().run_line_magic('store', 'currentFile')
-    temp = get_ipython().run_line_magic('store', 'r', 'currentFile')
-    print(temp)
+    magicstore('currentFile', currentFile)
+
+   def rawDataSelector(self):
+      #print(rawDataPath)
+      if self.rawDataPath is not None:
+         rawDirname, rawFN = os.path.split(self.rawDataPath)
+         rfc = FileChooser(path=rawDirname, filename=rawFN,select_default=True, show_only_dirs = False, title = "<b>ePhys data</b>")
+      else:
+         rfc = FileChooser(show_only_dirs = False, title = "<b>ePhys data</b>")
+      display(rfc)
+      # Register callback function
+      rfc.register_callback(self.update_rawDataPath)
+
+   def update_rawDataPath(self,chooser):
+      self.rawDataPath = chooser.selected
+      self.updateExpeConfigDict('rawDataPath', self.rawDataPath)
+
+
+def magicstore(stored_var, value):
+   # myvar will contain the variable previously stored with "%store test"
+   myvar_filename = get_ipython().ipython_dir + '/profile_default/db/autorestore/' + stored_var
+   with open(myvar_filename, 'wb') as f:
+      pickle.dump(value,f)
 
 def getPathComponent(filename,projectType):
     
