@@ -2,6 +2,10 @@ import os
 import configparser
 import pickle
 import ast
+import fnmatch
+from pathlib import Path
+
+import numpy as np
 
 from ipyfilechooser import FileChooser
 import ipywidgets as widgets
@@ -94,7 +98,6 @@ class expeConfigDict(dict):
          self.pathName = self.rawDataPath
          self.fileName = ""
 
-      print(self.pathName,self.fileName )
       fc = FileChooser(path=self.pathName, filename=self.fileName, select_default=True, show_only_dirs = False, title = "<b>Select file</b>")
       display(fc)
          
@@ -154,8 +157,6 @@ class expeConfigDict(dict):
          self.iWidget = widgets.interactive(self.printExpeInfo, project=self.wProject, subProject=self.config.getSubProjects()[self.ProjectID], design=self.wDesign, condition=self.wCondition, animal=self.wAnimal, rec=self.wRec)
       else:
          self.iWidget = widgets.interactive(self.printExpeInfo, project=self.wProject, subProject=self.config.getSubProjects()[self.ProjectID], design=self.wDesign, animal=self.wAnimal, condition=self.wCondition, rec=self.wRec)
-
-
 
    def generateExpeConfigDict(self, expePath, rawDataPath = None):
     self.expePath = expePath
@@ -260,6 +261,65 @@ class expeConfigDict(dict):
    def update_rawDataPath(self,chooser):
       self.rawDataPath = chooser.selected
       self.updateExpeConfigDict('rawDataPath', self.rawDataPath)
+
+class experiment():
+   def __init__(self, expePath = None) -> None:
+      self.expePath = expePath
+      self.numChanels = None
+      self.channelsMap = dict()
+
+      fc1 = FileChooser(expePath,select_default=True, show_only_dirs = True, title = "<b>OpenEphys Folder</b>")
+      display(fc1)
+      fc1.register_callback(self.update_my_expe_choice)
+
+   # Function to find files containing a specific string
+   def find_files_with_string(self, folder_path, search_string):
+      matching_file = []
+      # Traverse the folder to find files
+      for root, _, files in os.walk(folder_path):
+         for file in files:
+               if fnmatch.fnmatch(file, f"*{search_string}*"):
+                  matching_file=os.path.join(root, file)
+      return matching_file
+   
+   def update_my_expe_choice(self,chooser):
+    dpath = chooser.selected
+    magicstore('dpath', dpath)
+   
+   def loadLFP(self):
+      folderpath = Path(self.expePath)
+      if self.find_files_with_string(folderpath,  ".bin"): #Bonsai
+         matching_file = self.find_files_with_string(folderpath, ".bin")
+         All = np.fromfile(matching_file, dtype=np.uint16)
+         All = All - int(65535/2)
+         All = All.astype(np.int16)
+         if 'sommeil' in self.expePath:
+            self.numchannels=64
+         All = All.reshape(-1,self.numchannels)
+         print(f'File loaded: OE32channels.bin, {self.numchannels} channels')
+         
+      elif self.find_files_with_string(folderpath,  "RawDataChannelExtractedDS.npy"): #OpenEphys Gaelle's Data
+         matching_file = self.find_files_with_string(folderpath, "RawDataChannelExtractedDS.npy")
+         All = np.load(matching_file, mmap_mode= 'r')
+         self.numchannels=32
+         #All = All.reshape(-1,numchannels)
+         print(f'File loaded: RawDataChannelExtractedDS.npy, {self.numchannels} channels')
+
+
+      elif self.find_files_with_string(folderpath,  "continuous.dat"): #OpenEphys
+         matching_file = self.find_files_with_string(folderpath, "continuous.dat")
+         All = np.fromfile(matching_file, dtype=np.int16)
+
+         #All =np.memmap(matching_file, dtype='int16', mode='c')
+         
+         #All = All - int(65535/2)
+         #All = All.astype(np.int16)    
+         if 'sommeil' in self.expePath:
+            self.numchannels=64
+         All = All.reshape(-1,self.numchannels)
+         print(f'File loaded: continuous.dat, {self.numchannels} channels')
+
+      return All
 
 
 def magicstore(stored_var, value):
