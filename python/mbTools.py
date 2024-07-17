@@ -2,6 +2,10 @@ import os
 import configparser
 import pickle
 import ast
+import fnmatch
+from pathlib import Path
+
+import numpy as np
 
 from ipyfilechooser import FileChooser
 import ipywidgets as widgets
@@ -86,6 +90,7 @@ class expeConfigDict(dict):
       self.projectType = None
       self.expeInfo = dict()
       self.iWidget = None
+      self.All = None
 
       if self.expePath is not None and os.path.isfile(self.expePath): # a file is currently being used
          self.pathName, self.fileName = os.path.split(self.expePath)
@@ -94,7 +99,6 @@ class expeConfigDict(dict):
          self.pathName = self.rawDataPath
          self.fileName = ""
 
-      print(self.pathName,self.fileName )
       fc = FileChooser(path=self.pathName, filename=self.fileName, select_default=True, show_only_dirs = False, title = "<b>Select file</b>")
       display(fc)
          
@@ -261,6 +265,210 @@ class expeConfigDict(dict):
       self.rawDataPath = chooser.selected
       self.updateExpeConfigDict('rawDataPath', self.rawDataPath)
 
+   def loadLFP(self):
+      rawDataDir, rawFileBaseName = os.path.split(self.rawDataPath)
+
+      if rawFileBaseName == "continuous.dat":
+         All = np.memmap(self.rawDataPath, mode='r', dtype='int16')
+         #All = np.fromfile(filename, dtype="int16")
+         All = All.reshape(-1,self.numChanels)
+      elif rawFileBaseName.endswith(".npy"):
+         All = np.load(self.rawDataPath, mmap_mode= 'r')
+      else:
+         print('Could not find any raw data file')
+      self.All = All
+      return self.All
+   
+   def loadTimeStamps(self):
+      rawDataDir, rawFileBaseName = os.path.split(self.rawDataPath)
+      filenameT = os.path.join(rawDataDir,"timestamps.npy")
+      if os.path.isfile(filenameT):
+         Timestamps = np.load(filenameT)
+         Timestamps.shape
+         Timestamps = Timestamps*2000
+         Timestamps = Timestamps.astype(int)
+      return Timestamps
+
+   def combineStructures(self,structures, start = 0, end = None):
+      if end is None:
+         end = self.All.shape[0]
+      combined = np.empty((end-start,0),np.int16)
+      self.channelLabels = []
+      for region in structures:
+         print(region, "->", self.channelsMap[region])
+         if len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2])>0:
+            c2 = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2][0]
+            c1 = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0]
+            print("Getting differential signal of channel {} - channel {} for {}".format(c2,c1,region))
+            self.channelLabels.append(region)
+            combined = np.append(combined, self.All[start:end, c2, np.newaxis] - self.All[:, c1, np.newaxis], axis=1)
+         elif len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1])>0:
+            c = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0]
+            print("Getting floating signal of channel {} for {}".format(c,region))
+            combined = np.append(combined, self.All[start:end,c, np.newaxis], axis=1)
+            self.channelLabels.append(region)
+      return combined
+class experiment():
+   def __init__(self, expePath = None) -> None:
+      self.expePath = expePath
+      self.numChanels = None
+      self.recSyst = None
+      self.fileType = None
+      self.channelsMap = dict()
+      self.All = None
+      self.channelLabels = []
+
+      fc1 = FileChooser(expePath,select_default=True, show_only_dirs = True, title = "<b>OpenEphys Folder</b>")
+      display(fc1)
+      fc1.register_callback(self.update_my_expe_choice)
+
+   # Function to find files containing a specific string
+   def find_files_with_string(self, folder_path, search_string):
+      matching_files = []
+      # Traverse the folder to find files
+      for root, _, files in os.walk(folder_path):
+         for file in files:
+               if fnmatch.fnmatch(file, f"*{search_string}*"):
+                  matching_files.append(os.path.join(root, file))
+      return matching_files
+   
+   def update_my_expe_choice(self,chooser):
+    dpath = chooser.selected
+    magicstore('dpath', dpath)
+
+   def defineMap(self,structure,channels: dict):
+      self.channelsMap[structure]= channels
+   
+   def combineStructures(self,structures, start = 0, end = None):
+      if end is None:
+         end = self.All.shape[0]
+      combined = np.empty((end-start,0),np.int16)
+      self.channelLabels = []
+      for region in structures:
+         print(region, "->", self.channelsMap[region])
+         if len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2])>0:
+            c2 = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2][0]
+            c1 = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0]
+            print("Getting differential signal of channel {} - channel {} for {}".format(c2,c1,region))
+            self.channelLabels.append(region)
+            combined = np.append(combined, self.All[start:end, c2, np.newaxis] - self.All[:, c1, np.newaxis], axis=1)
+         elif len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1])>0:
+            c = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0]
+            print("Getting floating signal of channel {} for {}".format(c,region))
+            combined = np.append(combined, self.All[start:end,c, np.newaxis], axis=1)
+            self.channelLabels.append(region)
+      return combined
+
+   def loadLFP(self):
+      folderpath = Path(self.expePath)
+      isNPY = False
+
+      if self.find_files_with_string(folderpath,  ".bin"): #Bonsai or IgorPro
+         self.recSyst = "Bonsai" #"IgorPro"
+         matching_files = self.find_files_with_string(folderpath, ".bin")
+         self.fileType="OE32channels.bin"
+         print('found some .bin files')
+      elif self.find_files_with_string(folderpath,  "continuous.dat"): #OpenEphys
+         self.recSyst = "OpenEphys" #"IgorPro"
+         self.fileType="OE32channels.bin"
+         matching_files = self.find_files_with_string(folderpath, "continuous.dat")
+         print('found some .dat files')
+      elif self.find_files_with_string(folderpath,  "RawDataChannelExtractedDS.npy"): #OpenEphys Gaelle's Data
+         isNPY = True
+         self.fileType="NPY"
+         matching_files = self.find_files_with_string(folderpath, "RawDataChannelExtractedDS.npy")
+      else:
+         raise Exception(f"Couldn't find any .bin or .dat file. Please check your path : {folderpath}")
+
+      if 'sommeil' in self.expePath:
+         self.numchannels=64
+
+      match self.recSyst:
+         case "Bonsai":
+            dtype=np.uint16
+            offset=int(65535/2)
+         case _:
+            dtype=np.int16
+            offset=0
+
+      if isNPY==True:
+         if len(matching_files) == 1:
+            file = matching_files[0]
+            All = np.load(file, mmap_mode= 'r')
+            self.numchannels = All.shape[1]
+         else:
+            raise Exception(f"Several npy files ({len(matching_files)}) to merge but this is not in place yet")
+      else:
+         All = np.zeros([0], dtype=dtype)
+         for file in matching_files:
+            print("importing {}".format(file))
+            file_data = np.fromfile(file, dtype=dtype)
+            All=np.append(All, file_data, axis=0)
+         if offset != 0:
+            All = All - offset
+         if All.dtype is not np.dtype(np.int16):
+            All = All.astype(np.int16)
+         All = All.reshape(-1,self.numchannels)
+
+      print(f'{self.fileType} file loaded, with {self.numchannels} channels and {All.shape[0]} datapoint')
+      self.All = All
+      return self.All
+
+   def loadRecording_TimeStamps(self):
+      print('warning: this function is not confirmed yet. Please see with MB, that it is porperly working when you want to use it')
+      if True:
+         folder = Path('.').absolute()
+         print(folder)
+         path_list_ERS = []
+         Ephys_rec_stamps = {}
+
+         for file in folder.glob('**/*continuous/Rhythm_FPGA-112.0/timestamps.npy'):
+            path_list_ERS.append(file)
+
+         for file_path in folder.glob('**/*continuous/Rhythm_FPGA-112.0/timestamps.npy'):
+            recording = file_path.parents[2].stem
+            arr = np.load(file_path)
+            Ephys_rec_stamps[recording] = arr
+         ## Here the timestamps are stored in a dict which is not necessarily what I want, maybe will need to amend that
+      else:
+         # Not working yet as synchronised timestamps and timestamps for recording 2 are of different size.
+         TTL_stamp2 = []
+         for file_path in folder.glob('**/*.npy'):
+            subfolder = file_path.parents[1].stem
+            if subfolder == 'continuous':
+               recording = file_path.parents[2].stem.replace('recording','')
+               print(recording)
+               file = file_path.stem
+               print(recording, file)
+               np_arr = np.load(file_path)
+               datalen = len(np_arr)
+               print(file, datalen)
+               if recording == 1: #not in TTL_stamp2:
+                     TTL_stamp2.append(recording)
+                     coords = {
+                        'channels' : np.array(['synchronized_timestamps', 'timestamps']),
+                        'duration_rec' : np.arange(datalen)
+                     }
+                     globals()[f"StampsCont_{recording}"] = xr.DataArray(coords=coords, dims=['channels', 'duration_rec'])
+               globals()[f"StampsCont_{recording}"].loc[file,:] = np_arr   
+
+   def loadTTL_TimeStamps(self):
+      print('warning: this function is not confirmed yet. Please see with MB, that it is porperly working when you want to use it')
+      folder = Path('.').absolute()
+      print(folder)
+      TTL_stamps = []
+      list_recordings = []
+      for file_path in folder.glob('**/*.npy'):
+         subfolder = file_path.parents[0].stem
+         if subfolder == 'TTL_1':
+            recording = file_path.parents[3].stem.replace('recording','')
+            file = file_path.stem
+            np_arr = np.load(file_path)
+            datalen = len(np_arr)
+            if recording not in TTL_stamps:
+                  TTL_stamps.append(recording)
+                  list_recordings.append(file_path.parents[3].stem)
+      return TTL_stamps
 
 def magicstore(stored_var, value):
    # myvar will contain the variable previously stored with "%store test"
