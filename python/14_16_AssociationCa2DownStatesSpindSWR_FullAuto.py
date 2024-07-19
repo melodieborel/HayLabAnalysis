@@ -4,8 +4,13 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=1 #if CGP Experiment
-#DrugExperiment=0 #if Baseline Experiment
+#DrugExperiment=0 #if Baseline Experiment =1#if CGP Experiment
+DrugExperiment=0 
+
+Method=0 # 1=AB 0=AH
+AnalysisID='_Zscored' 
+
+suffix='_AB' if Method else '_AH'
 
 #######################################################################################
                                 # Load packages #
@@ -24,6 +29,7 @@ import matplotlib.pyplot as plt
 from matplotlib.widgets import Slider, Button, Cursor
 from scipy.interpolate import interp2d
 from scipy.signal import find_peaks
+from scipy.stats import zscore
 import pickle
 import os
 from scipy.interpolate import griddata
@@ -152,20 +158,19 @@ MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK
 # Get the current date and time
 FolderNameSave=str(datetime.now())
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_").replace("-", "_")
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/OscillationsAnalysis_PerMouse_{FolderNameSave}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/OscillationsAnalysis_PerMouse_{FolderNameSave}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/OscillationsAnalysis_PerMouse_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/OscillationsAnalysis_PerMouse_{FolderNameSave}{suffix}{AnalysisID}"
 
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/Code python audrey/code python aurelie/HayLabAnalysis/python/14_16_AssociationCa2DownStatesSpindSWR_FullAuto.py"
+source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayLabAnalysis/python/14_16_AssociationCa2DownStatesSpindSWR_FullAuto.py"
 destination_file_path = f"{destination_folder}/14_16_AssociationCa2DownStatesSpindSWR_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 
 for mice in MiceList:
 
-    #dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
-    dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/"
+    dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/" if DrugExperiment else "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
     dpath=dpath0 + mice
     print(f"####################################################################################")
     print(f"################################### {mice} ####################################")
@@ -202,11 +207,11 @@ for mice in MiceList:
         session_path=Path(sessions_path[sess])
         folder_mini = session_path / f'V4_Miniscope'
         nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
-        SWRproperties = session_path / f'OpenEphys/SWRproperties_8sd_AB.xlsx'
-        Spindleproperties_PFC = session_path / f'OpenEphys/Spindlesproperties_PFC_7sd_AB.xlsx'
-        Spindleproperties_S1 = session_path / f'OpenEphys/Spindlesproperties_S1_7sd_AB.xlsx'
-        DownStatesproperties_S1 = session_path / f'OpenEphys/DownStatesproperties_S1_2Pro3Height_AB.xlsx'
-        DownStatesproperties_PFC = session_path / f'OpenEphys/DownStatesproperties_PFC_2Pro3Height_AB.xlsx'
+        SWRproperties = session_path / f'OpenEphys/SWRproperties_8sd_AB.xlsx' if Method else session_path / f'OpenEphys/SWRproperties.csv'
+        Spindleproperties_PFC = session_path / f'OpenEphys/Spindlesproperties_PFC_7sd_AB.xlsx' if Method else session_path / f'OpenEphys/Spindleproperties_PFC.csv'
+        Spindleproperties_S1 = session_path / f'OpenEphys/Spindlesproperties_S1_7sd_AB.xlsx' if Method else session_path / f'OpenEphys/Spindleproperties_S1.csv'
+        DownStatesproperties_S1 = session_path / f'OpenEphys/DownStatesproperties_S1_2Pro3Height_AB.xlsx' 
+        DownStatesproperties_PFC = session_path / f'OpenEphys/DownStatesproperties_PFC_2Pro3Height_AB.xlsx' 
         StampsFile = session_path / f'SynchroFile.xlsx'
         StampsMiniscopeFile = folder_mini / f'timeStamps.csv'
         if nb_subsessions!=0:
@@ -214,11 +219,11 @@ for mice in MiceList:
                 subsession= session + str(x)
                 subsessions.append(subsession)    
                 minian_ds = open_minian(folder_mini / subsession / f'minian')      # OR minianAB
-                dict_SWRprop[subsession]  = pd.read_excel(SWRproperties)
-                dict_Spindleprop_PFC[subsession]  = pd.read_excel(Spindleproperties_PFC)
-                dict_Spindleprop_S1[subsession]  = pd.read_excel(Spindleproperties_S1)            
-                dict_DSprop_S1[subsession]  = pd.read_excel(DownStatesproperties_S1)            
-                dict_DSprop_PFC[subsession]  = pd.read_excel(DownStatesproperties_PFC)            
+                dict_SWRprop[subsession]  = pd.read_excel(SWRproperties) if Method else pd.read_csv(SWRproperties)
+                dict_Spindleprop_PFC[subsession]  = pd.read_excel(Spindleproperties_PFC) if Method else pd.read_csv(Spindleproperties_PFC)
+                dict_Spindleprop_S1[subsession]  = pd.read_excel(Spindleproperties_S1) if Method else pd.read_csv(Spindleproperties_S1)           
+                dict_DSprop_S1[subsession]  = pd.read_excel(DownStatesproperties_S1)           
+                dict_DSprop_PFC[subsession]  = pd.read_excel(DownStatesproperties_PFC)       
                 dict_Path[subsession] = session_path
                 dict_Calcium[subsession] = minian_ds['C'] # calcium traces 
                 dict_Spike[subsession] = minian_ds['S'] # estimated spikes
@@ -239,11 +244,11 @@ for mice in MiceList:
             dict_Path[session] = session_path
             dict_Calcium[session] = minian_ds['C'] # calcium traces 
             dict_Spike[session] = minian_ds['S'] # estimated spikes
-            dict_SWRprop[session]  = pd.read_excel(SWRproperties)
-            dict_Spindleprop_PFC[session]  = pd.read_excel(Spindleproperties_PFC)
-            dict_Spindleprop_S1[session]  = pd.read_excel(Spindleproperties_S1)
-            dict_DSprop_S1[session]  = pd.read_excel(DownStatesproperties_S1)            
-            dict_DSprop_PFC[session]  = pd.read_excel(DownStatesproperties_PFC)            
+            dict_SWRprop[session]  = pd.read_excel(SWRproperties) if Method else pd.read_csv(SWRproperties)
+            dict_Spindleprop_PFC[session]  = pd.read_excel(Spindleproperties_PFC) if Method else pd.read_csv(Spindleproperties_PFC)
+            dict_Spindleprop_S1[session]  = pd.read_excel(Spindleproperties_S1) if Method else pd.read_csv(Spindleproperties_S1)
+            dict_DSprop_S1[session]  = pd.read_excel(DownStatesproperties_S1)     
+            dict_DSprop_PFC[session]  = pd.read_excel(DownStatesproperties_PFC)        
             dict_Stamps[session]  = pd.read_excel(StampsFile)
             dict_StampsMiniscope[session]  = pd.read_csv(StampsMiniscopeFile)
             try:
@@ -274,6 +279,8 @@ for mice in MiceList:
                 listSpdlPFCends=listSpdlPFC["end time"]
                 listSpdlS1starts=listSpdlS1["start time"]
                 listSpdlS1ends=listSpdlS1["end time"]
+                listSpdlS1['GlobalSpindle']=None
+                listSpdlPFC['GlobalSpindle']=None
                 for ss in range(len(listSpdlPFCstarts)): # for PFC 
                     startPFC=listSpdlPFCstarts[ss]
                     endPFC=listSpdlPFCends[ss]
@@ -281,11 +288,9 @@ for mice in MiceList:
                     listSpdlPFC.loc[ss, 'GlobalSpindle'] =Istrue
                 dict_Spindleprop_PFC[subsession]=listSpdlPFC
                 if x==1 : #no need to overwritte for each subsession
-                    filenameOut = session_path / f'OpenEphys/Spindlesproperties_PFC_7sd_AB.xlsx'
+                    filenameOut = session_path / f'OpenEphys/Spindlesproperties_PFC_7sd_AB.xlsx'  if Method else session_path / f'OpenEphys/Spindleproperties_PFC.csv'
                     print(filenameOut)
-                    writer = pd.ExcelWriter(filenameOut)
-                    dict_Spindleprop_PFC[subsession].to_excel(writer)
-                    writer.close()
+                    #dict_Spindleprop_PFC[subsession].to_excel(filenameOut) if Method else dict_Spindleprop_PFC[subsession].to_csv(filenameOut)
                 for ss in range(len(listSpdlS1starts)): # for S1 
                     startS1=listSpdlS1starts[ss]
                     endS1=listSpdlS1ends[ss]
@@ -293,11 +298,9 @@ for mice in MiceList:
                     listSpdlS1.loc[ss, 'GlobalSpindle'] =Istrue       
                 dict_Spindleprop_S1[subsession]=listSpdlS1
                 if x==1 : #no need to overwritte for each subsession
-                    filenameOut = session_path / f'OpenEphys/Spindlesproperties_S1_7sd_AB.xlsx'
+                    filenameOut = session_path / f'OpenEphys/Spindlesproperties_S1_7sd_AB.xlsx'  if Method else session_path / f'OpenEphys/Spindleproperties_S1.csv'
                     print(filenameOut)
-                    writer = pd.ExcelWriter(filenameOut)
-                    dict_Spindleprop_S1[subsession].to_excel(writer)
-                    writer.close()
+                    #dict_Spindleprop_S1[subsession].to_excel(filenameOut) if Method else dict_Spindleprop_S1[subsession].to_csv(filenameOut) 
         else: 
             listSpdlPFC= dict_Spindleprop_PFC[session]
             listSpdlS1= dict_Spindleprop_S1[session]
@@ -305,28 +308,26 @@ for mice in MiceList:
             listSpdlPFCends=listSpdlPFC["end time"]
             listSpdlS1starts=listSpdlS1["start time"]
             listSpdlS1ends=listSpdlS1["end time"]
+            listSpdlS1['GlobalSpindle']=None
+            listSpdlPFC['GlobalSpindle']=None
             for ss in range(len(listSpdlPFCstarts)): # for PFC 
                 startPFC=listSpdlPFCstarts[ss]
                 endPFC=listSpdlPFCends[ss]
                 Istrue=is_overlapping(startPFC, endPFC, listSpdlS1starts, listSpdlS1ends)
                 listSpdlPFC.loc[ss, 'GlobalSpindle'] =Istrue
             dict_Spindleprop_PFC[session]=listSpdlPFC
-            filenameOut = session_path / f'OpenEphys/Spindlesproperties_PFC_7sd_AB.xlsx'
+            filenameOut = session_path / f'OpenEphys/Spindlesproperties_PFC_7sd_AB.xlsx' if Method else session_path / f'OpenEphys/Spindleproperties_PFC.csv'
             print(filenameOut)
-            writer = pd.ExcelWriter(filenameOut)
-            dict_Spindleprop_PFC[session].to_excel(writer)
-            writer.close()
+            #dict_Spindleprop_PFC[session].to_excel(filenameOut) if Method else dict_Spindleprop_PFC[session].to_csv(filenameOut)
             for ss in range(len(listSpdlS1starts)): # for S1 
                 startS1=listSpdlS1starts[ss]
                 endS1=listSpdlS1ends[ss]
                 Istrue=is_overlapping(startS1, endS1, listSpdlPFCstarts, listSpdlPFCends)
                 listSpdlS1.loc[ss, 'GlobalSpindle'] =Istrue       
             dict_Spindleprop_S1[session]=listSpdlS1
-            filenameOut = session_path / f'OpenEphys/Spindlesproperties_S1_7sd_AB.xlsx'
+            filenameOut = session_path / f'OpenEphys/Spindlesproperties_S1_7sd_AB.xlsx' if Method else session_path / f'OpenEphys/Spindleproperties_S1.csv'
             print(filenameOut)
-            writer = pd.ExcelWriter(filenameOut)
-            dict_Spindleprop_S1[session].to_excel(writer)
-            writer.close()
+            #dict_Spindleprop_S1[session].to_excel(filenameOut) if Method else dict_Spindleprop_S1[session].to_csv(filenameOut)
     
     #######################################################################################
                             # Cross registration results #
@@ -360,9 +361,9 @@ for mice in MiceList:
 
         norm_freq=20 # final miniscope frequency used for all recordings
 
-        Spindles_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug', 'SpdlStatut','SpdlNumber','SpdlDuration (ms)','SWR inside Spdl','GlobalSpindle','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
-        SWR_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug','SWRStatut','SWRNumber','SWRDuration (ms)','SWR inside Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
-        DS_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug','DSStatut','DSNumber','DSDuration (ms)','DS inside Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
+        Spindles_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug', 'SpdlStatut','SpdlNumber','SpdlDuration','SWR_inside_Spdl','GlobalSpindle','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
+        SWR_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug','SWRStatut','SWRNumber','SWRDuration','SWR_inside_Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
+        DS_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug','DSStatut','DSNumber','DSDuration','DS_inside_Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
 
         dict_All_ActivityCa_ds_Baseline={}
         dict_All_ActivityCa_ds_Precoupled_Baseline={}
@@ -522,6 +523,10 @@ for mice in MiceList:
                 
                 if nb_unit==0:
                     continue  # next iteration
+                
+                # Zscore traces
+                Carray=zscore(Carray, axis=0)
+                Sarray=zscore(Sarray, axis=0)
 
                 # Replace dropped frame in calcium and spike traces with the previous value
 
@@ -673,7 +678,7 @@ for mice in MiceList:
 
                             Spindles_GlobalResults.loc[counter, 'SpdlStatut'] = Spdl_statut
                             Spindles_GlobalResults.loc[counter, 'SpdlNumber'] = Pspin
-                            Spindles_GlobalResults.loc[counter, 'SpdlDuration(ms)'] = endSpi- startSpi
+                            Spindles_GlobalResults.loc[counter, 'SpdlDuration'] = endSpi- startSpi
                             IsTrue=is_between(startSWRList,startSpi, endSpi)
                             Spindles_GlobalResults.loc[counter, 'SWR_inside_Spdl'] = IsTrue
 
@@ -709,7 +714,7 @@ for mice in MiceList:
                                 Spindles_GlobalResults.loc[counter, 'AUC_calciumBefore'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))
                                 Spindles_GlobalResults.loc[counter, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
                                 Spindles_GlobalResults.loc[counter, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
-                            
+
                                 ActBefore=np.mean(SpTrace[:durOsc],0)
                                 ActDuring=np.mean(SpTrace[durOsc:durOsc*2],0)
                                 ActAfter=np.mean(SpTrace[durOsc*2:durOsc*3],0)
@@ -860,11 +865,11 @@ for mice in MiceList:
                             SWR_GlobalResults.loc[counter2, 'UnitNumber'] = unit 
                             SWR_GlobalResults.loc[counter2, 'UnitValue'] = C_upd_unit_id[unit] 
                             
-                            SWR_GlobalResults.loc[counter2, 'Drug'] = os.path.basename(os.path.dirname(dict_Path[session]))
+                            SWR_GlobalResults.loc[counter2, 'Drug'] = os.path.basename(os.path.dirname(dict_Path[session])) if DrugExperiment else 'Baseline'
 
                             SWR_GlobalResults.loc[counter2, 'SWRStatut'] = SWR_statut
                             SWR_GlobalResults.loc[counter2, 'SWRNumber'] = Pswr
-                            SWR_GlobalResults.loc[counter2, 'SWRDuration(ms)'] = endSwr- startSwr
+                            SWR_GlobalResults.loc[counter2, 'SWRDuration'] = endSwr- startSwr
                             SWR_GlobalResults.loc[counter2, 'SWR_inside_Spdl'] = IsTrue
 
                             # Activity before/ during/after oscillation
@@ -1047,12 +1052,11 @@ for mice in MiceList:
                             DS_GlobalResults.loc[counter3, 'UnitNumber'] = unit 
                             DS_GlobalResults.loc[counter3, 'UnitValue'] = C_upd_unit_id[unit] 
 
-                            DS_GlobalResults.loc[counter3, 'Drug'] =  os.path.basename(os.path.dirname(dict_Path[session]))
-
+                            DS_GlobalResults.loc[counter3, 'Drug'] =  os.path.basename(os.path.dirname(dict_Path[session])) if DrugExperiment else 'Baseline'
 
                             DS_GlobalResults.loc[counter3, 'DSStatut'] = DS_statut
                             DS_GlobalResults.loc[counter3, 'DSNumber'] = Pds
-                            DS_GlobalResults.loc[counter3, 'DSDuration(ms)'] = endds- startds
+                            DS_GlobalResults.loc[counter3, 'DSDuration'] = endds- startds
                             DS_GlobalResults.loc[counter3, 'DS_inside_Spdl'] = IsTrue
                             
                             # Activity before/ during/after oscillation

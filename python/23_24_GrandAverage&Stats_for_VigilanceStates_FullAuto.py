@@ -5,14 +5,14 @@
 #######################################################################################
 
 #DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
-DrugExperiment=0
+DrugExperiment=1
 
-AnalysisID='_AB_Zscored_Final' #to identify this analysis from another
+AnalysisID='_AB_Zscored_Ultimate_N2' #to identify this analysis from another
 
-choosed_folder='Analysis_VigStates_2024-07-16_11_13_35_510449_ABZscored_Final'
+choosed_folder='Analysis_VigStates_2024-07-19_00_14_29_173266_ABZscored_Ultimate_N2'
 
-desired_order = ['Wake','NREM', 'REM']   
-#desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
+#desired_order = ['Wake','NREM', 'REM']   
+desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
 
 #######################################################################################
                                 # Load packages #
@@ -51,7 +51,7 @@ def extract_micename(index_value):
 ########################################################################
 
 # Specify the directory containing the Excel files
-InitialDirectory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_analysis" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis"
+InitialDirectory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis"
 directory= f'{InitialDirectory}/{choosed_folder}'
 
 # Get the current date and time
@@ -435,23 +435,26 @@ for NrSubtype in NrSubtypeList:
                 
                 SummaryMatrixCa = SummaryMatrixCa.round(5) # to better detect duplicate                   
                 SummaryMatrixCa_cleaned = SummaryMatrixCa.drop_duplicates(subset=SummaryMatrixCa.columns[1:])
-                
+                                
                 df_reset = SummaryMatrixCa_cleaned.reset_index()       
-                columns_to_keep = df_reset.columns[[0, 2, 4, 6]]  # Columns 2, 4, and 6 (0-based index)
+                columns_to_keep = df_reset.columns[[0, 2, 4, 6, 8, 10, 12]] if DrugExperiment else df_reset.columns[[0, 2, 4, 6]] # Columns 2, 4, and 6 (0-based index)
                 df_reset = df_reset[columns_to_keep]
                 if len(df_reset)>0:
                     melted_df = pd.melt(df_reset, id_vars=['combined_index'], var_name='VigilanceSt', value_name='CorrCoeff')
+                    split_columns = melted_df['VigilanceSt'].str.split('_', expand=True)
+                    split_columns.columns = ['Transformation','Drug','Substate'] if DrugExperiment else ['Drug','Substate']
+                    melted_df = pd.concat([melted_df, split_columns], axis=1)
                     extracted_micename = [extract_micename(idx) for idx in melted_df['combined_index']]
                     melted_df['Mice']=extracted_micename            
                 else: 
                     melted_df = pd.DataFrame()
 
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_CaCorrelationAB.xlsx'
-                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)   
-                
-                filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_VigSt_FlattenPairwise_CaCorrelationAB.xlsx'
-                melted_df.to_excel(filenameOut, index=True, header=True)   
+                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)  
 
+                filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairwise_CaCorrAB.xlsx'
+                melted_df.to_excel(filenameOut, index=True, header=True)   
+                
                 ## Sp correlation
 
                 # Keep only neurons from the list 
@@ -489,10 +492,12 @@ for NrSubtype in NrSubtypeList:
                 SummaryMatrixSp_cleaned = SummaryMatrixSp.drop_duplicates(subset=SummaryMatrixSp.columns[1:])
         
                 df_reset = SummaryMatrixSp_cleaned.reset_index()       
-                columns_to_keep = df_reset.columns[[0, 2, 4, 6]]  # Columns 2, 4, and 6 (0-based index)
+                columns_to_keep = df_reset.columns[[0, 2, 4, 6, 8, 10, 12]] if DrugExperiment else df_reset.columns[[0, 2, 4, 6]] # Columns 2, 4, and 6 (0-based index)
                 df_reset = df_reset[columns_to_keep]
                 if len(df_reset)>0:
                     melted_df = pd.melt(df_reset, id_vars=['combined_index'], var_name='VigilanceSt', value_name='CorrCoeff')
+                    split_columns = melted_df['VigilanceSt'].str.split('_', expand=True)
+                    split_columns.columns = ['Transformation','Drug','Substate'] if DrugExperiment else ['Drug','Substate']
                     extracted_micename = [extract_micename(idx) for idx in melted_df['combined_index']]
                     melted_df['Mice']=extracted_micename            
                 else: 
@@ -500,9 +505,8 @@ for NrSubtype in NrSubtypeList:
                     
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_SpCorrelationAB.xlsx'
                 SummaryMatrixSp_cleaned.to_excel(filenameOut, index=True, header=True)   
-                
-                filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_VigSt_FlattenPairwise_SpCorrelationAB.xlsx'
-                melted_df.to_excel(filenameOut, index=True, header=True)   
+                filenameOutGLM = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairwise_SpCorrAB.xlsx'
+                melted_df.to_excel(filenameOutGLM, index=True, header=True)   
 
             if len(filtered_df)>0:
 
@@ -717,16 +721,20 @@ for NrSubtype in NrSubtypeList:
         # Propreties VigStates
         #######################
 
-        filenameOut = f'{folder_to_save}/{NrSubtype}_PropretiesVigStatesAB.xlsx'
+        filenameOut = f'{folder_to_save}/{Drug}_{NrSubtype}_PropretiesVigStatesAB.xlsx'
         writer = pd.ExcelWriter(filenameOut)
 
-        ProportionVigStates = filtered_df.pivot_table(index='Session_ID', columns='Substate', values='DurationSubstate', aggfunc='sum')
+        combined_df_Drug2 = combined_df_Drug.drop_duplicates(subset='Substate_ID', keep='first')
+
+        ProportionVigStates = combined_df_Drug2.pivot_table(index='Session_ID', columns='Substate', values='DurationSubstate', aggfunc='sum')
         try: ProportionVigStates = ProportionVigStates[desired_order]
         except: pass
         ProportionVigStates2=ProportionVigStates.div(ProportionVigStates.sum(axis=1), axis=0)*100
         ProportionVigStates2.to_excel(writer, sheet_name='ProportionVigStates')
 
-        DurationVigStates = combined_df.pivot_table(index='Session_ID', columns='Substate', values='DurationSubstate', aggfunc='mean')
+        DurationVigStates = combined_df_Drug2.pivot_table(index='Session_ID', columns='Substate', values='DurationSubstate', aggfunc='mean')
+        DurationVigStates = combined_df_Drug2.pivot_table(index='Substate_ID', columns='Substate', values='DurationSubstate', fill_value=None)
+        
         try: DurationVigStates = DurationVigStates[desired_order]
         except: pass
         DurationVigStates.to_excel(writer, sheet_name='EpisodeDurations')

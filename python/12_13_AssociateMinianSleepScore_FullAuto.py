@@ -5,10 +5,10 @@
 #######################################################################################
 
 #DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
-DrugExperiment=0
+DrugExperiment=1
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
-AnalysisID='Zscored_Ultimate' 
+AnalysisID='Zscored_Ultimate_N2' 
 
 #######################################################################################
                                 # Load packages #
@@ -346,7 +346,7 @@ for mice in MiceList:
         SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled[StartTime_frame:StartTime_frame+upd_rec_dur]
 
         # Remove N2 stage
-        SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
+        #SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
             
         # Determine each substate identity and duration
         array=SleepScoredTS_upscaled_ministart
