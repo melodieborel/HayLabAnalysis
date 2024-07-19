@@ -1,4 +1,18 @@
 
+#######################################################################################
+                            # Define Experiment type #
+#######################################################################################
+
+DrugExperiment=1 #if CGP Experiment
+#DrugExperiment=0 #if Baseline Experiment
+
+Method=0 # 1=AB 0=AH
+
+#######################################################################################
+                                # Load packages #
+#######################################################################################
+
+
 # ## Load LFP and packages
 import os
 from scipy import signal
@@ -37,20 +51,39 @@ def find_session_folders(root_path):
 
 # Perform analysis for each mouse
 
-MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
-#MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'Purple', 'ThreeColDotsOK']
-
-dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
-#dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/"
+MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] if DrugExperiment else ['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
+dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/" if DrugExperiment else "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
 
 # Choose threshold for detection
 
-SWRfactor=8
-SpdlfactorS1=7
-SpdlfactorPFC=7
 
-DownStatesProminence=2
-DownStatesHeight=3
+if Method==0:
+    LowFactor= [3,1,2,1,2] if DrugExperiment else [3,1,2,1.5,1,1.2,2,5]
+    HighFactor= [6,2,4,2,3] if DrugExperiment else [6,2,4,2,3,2,3,2,8]
+    LowFactorSd=LowFactor[m]
+    HighFactorSd=HighFactor[m]
+
+    
+    SWRfactor=[4,4,5,4,4,4,4,4] if DrugExperiment else [4,4,5,4,4,4,4,4] 
+    SpdlfactorPFC=[6,4,3,4,3,4,4,4] if DrugExperiment else [6,4,3,4,3,4,4,4]
+    SpdlfactorS1=[6,4,3,4,3,4,4,4] if DrugExperiment else [6,4,3,4,3,4,4,4]
+    SWRfactor=SWRfactor[m]
+    SpdlfactorPFC=SpdlfactorPFC[m]
+    SpdlfactorS1=SpdlfactorS1[m]
+
+else:
+    LowFactorSd=1
+    HighFactorSd=3
+        
+    SWRfactor=8
+    SpdlfactorS1=7
+    SpdlfactorPFC=7
+
+
+    DownStatesProminence=2
+    DownStatesHeight=3
+
+
 
 # Process
 
