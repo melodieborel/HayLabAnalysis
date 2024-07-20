@@ -165,26 +165,26 @@ class expeConfigDict(dict):
          self.iWidget = self.iWidgetConstructor()
 
    def generateExpeConfigDict(self, expePath, rawDataPath = None):
-    self.expePath = expePath
-    self.rawDataPath = rawDataPath
+      self.expePath = expePath
+      self.rawDataPath = rawDataPath
 
-    self.projectType = int(self.config['ANALYSIS']['projectType'])
-    self.expeInfo = getPathComponent(self.expePath,self.projectType)
+      self.projectType = int(self.config['ANALYSIS']['projectType'])
+      self.expeInfo = getPathComponent(self.expePath,self.projectType)
 
-    allParamsDict = dict(rawDataPath = self.rawDataPath, expeInfo = self.expeInfo)
+      allParamsDict = dict(rawDataPath = self.rawDataPath, expeInfo = self.expeInfo)
 
-    with open(self.expePath, 'wb') as f:
-        pickle.dump(allParamsDict, f)
+      with open(self.expePath, 'wb') as f:
+         pickle.dump(allParamsDict, f)
 
    def loadExpeConfigDict(self, expePath = None):
-    if expePath is None:
-       expePath = self.expePath
-    with open(expePath, 'rb') as f:
-        loaded_dict = pickle.load(f, encoding='UTF8')
-        self.rawDataPath = loaded_dict['rawDataPath']
-        if 'expeInfo' in loaded_dict:
+      if expePath is None:
+         expePath = self.expePath
+      with open(expePath, 'rb') as f:
+         loaded_dict = pickle.load(f, encoding='UTF8')
+         self.rawDataPath = loaded_dict['rawDataPath']
+         if 'expeInfo' in loaded_dict:
             self.expeInfo = loaded_dict['expeInfo']
-        else:
+         else:
             self.expeInfo = getPathComponent(expePath,self.projectType)
             self.updateExpeConfigDict(expePath,'expeInfo',self.expeInfo)
 
@@ -219,8 +219,8 @@ class expeConfigDict(dict):
       self.recordingID = self.wRec.value
       self.conditionID = self.wCondition.value
       with self.wOutput:
-        print("Button clicked.")
-        print(self.AnimalID)
+         print("Button clicked.")
+         print(self.AnimalID)
       if self.projectType == 0:
          path = os.path.join(self.config['ANALYSIS']['path'], self.ProjectID, self.subProjectID, self.conditionID, str(self.AnimalID), str(self.recordingID))
       else:
@@ -242,17 +242,17 @@ class expeConfigDict(dict):
       magicstore('projectType', projectType)
 
    def update_my_expe_choice(self,chooser):
-    print("this is a config file so we are loading it")
-    selection = chooser.selected
-    if selection.endswith("pkl") and os.path.isfile(selection):
-        currentFile = str(selection)
-        self.loadExpeConfigDict(expePath = selection)
-    else:
-        print("this is not a config file and we should deal with that")
-        self.rawDataPath = selection
-        print(self.rawDataPath)
-        display(self.iWidget)
-        display(self.wValidateBtn, self.wOutput)
+      print("this is a config file so we are loading it")
+      selection = chooser.selected
+      if selection.endswith("pkl") and os.path.isfile(selection):
+         currentFile = str(selection)
+         self.loadExpeConfigDict(expePath = selection)
+      else:
+         print("this is not a config file and we should deal with that")
+         self.rawDataPath = selection
+         print(self.rawDataPath)
+         display(self.iWidget)
+         display(self.wValidateBtn, self.wOutput)
 
    def rawDataSelector(self):
       #print(rawDataPath)
@@ -302,8 +302,8 @@ class experiment():
       return matching_files
    
    def update_my_expe_choice(self,chooser):
-    dpath = chooser.selected
-    magicstore('dpath', dpath)
+      dpath = chooser.selected
+      magicstore('dpath', dpath)
 
    def defineMap(self,structure,channels: dict):
       self.channelsMap[structure]= channels
@@ -350,10 +350,16 @@ class experiment():
       """findData: function that analyse the content of the raw data folder and detects component of the experiment to load all of them
       """
       folderpath = Path(self.expePath)
+      print(folderpath)
       if self.find_files_with_string(folderpath,  ".bin"): #Bonsai or IgorPro
          print('found some .bin files')
          matching_files = self.find_files_with_string(folderpath, ".bin")
-         self.data['OE_LFP'] = IntanLFP(matching_files)
+         self.data['OE_LFP'] = IntanLFP(self, matching_files)
+      
+      if self.find_files_with_string(folderpath,  "NP_spikes_*.raw"): #NPX's Data
+         print('found some NPX files')
+         matching_files = self.find_files_with_string(folderpath, "NP_spikes_*.raw")
+         self.data['NPX'] = NPX(self, matching_files)
 
    def loadLFP(self):
       folderpath = Path(self.expePath)
@@ -473,40 +479,40 @@ def magicstore(stored_var, value):
       pickle.dump(value,f)
 
 def getPathComponent(filename,projectType):
-    
-    dirPathComponents = os.path.normpath(filename).split(os.sep)
-    expeInfo = dict()
+   
+   dirPathComponents = os.path.normpath(filename).split(os.sep)
+   expeInfo = dict()
 
-    expeInfo['analysisPath'] = os.path.join('/',*dirPathComponents[0:-5])
-    expeInfo['ProjectID'] = dirPathComponents[-5]
-    expeInfo['subProjectID'] = dirPathComponents[-4]
+   expeInfo['analysisPath'] = os.path.join('/',*dirPathComponents[0:-5])
+   expeInfo['ProjectID'] = dirPathComponents[-5]
+   expeInfo['subProjectID'] = dirPathComponents[-4]
 
-    projectConfig = os.path.join('/',*dirPathComponents[0:-3],'projectConfig.pkl')
-    if os.path.isfile(projectConfig):
-        with open(projectConfig, 'rb') as f:
-            loaded_dict = pickle.load(f)
-            expeInfo['projectType'] = loaded_dict['projectType']
-    else:
-        with open(projectConfig, 'wb') as f:
-            projDict = dict(projectType = projectType)
-            pickle.dump(projDict, f)
-            print('Project config dict created')
+   projectConfig = os.path.sep.join([*dirPathComponents[0:-3],'projectConfig.pkl'])
+   if os.path.isfile(projectConfig):
+      with open(projectConfig, 'rb') as f:
+         loaded_dict = pickle.load(f)
+         expeInfo['projectType'] = loaded_dict['projectType']
+   else:
+      with open(projectConfig, 'wb') as f:
+         projDict = dict(projectType = projectType)
+         pickle.dump(projDict, f)
+         print('Project config dict created')
 
-    if projectType == 0:
-        expeInfo['conditionID'] = dirPathComponents[-3]
-        expeInfo['AnimalID'] = dirPathComponents[-2]
-    else:
-        expeInfo['AnimalID'] = dirPathComponents[-3]
-        expeInfo['conditionID'] = dirPathComponents[-2]
-        
-    expeInfo['recordingID'] = dirPathComponents[-1]
+   if projectType == 0:
+      expeInfo['conditionID'] = dirPathComponents[-3]
+      expeInfo['AnimalID'] = dirPathComponents[-2]
+   else:
+      expeInfo['AnimalID'] = dirPathComponents[-3]
+      expeInfo['conditionID'] = dirPathComponents[-2]
+      
+   expeInfo['recordingID'] = dirPathComponents[-1]
 
-    return expeInfo
+   return expeInfo
 
 
 
 class ePhy():
-   def __init__(self, numChannels = None) -> None:
+   def __init__(self, parent, numChannels = None) -> None:
       #super().__init__()
       self.numChannels = numChannels
       self.recSyst = None
@@ -517,6 +523,7 @@ class ePhy():
       self.files_list = []
       self.signal = None
       self.offset = 0
+      self.expe = parent
 
 
    def loadData(self):
@@ -561,14 +568,70 @@ class ePhy():
       return combined
 
 class IntanLFP(ePhy):
-   def __init__(self, files_list, numChannels = 32, recSyst = 'Bonsai') -> None:
-      super().__init__(numChannels = numChannels)
+   def __init__(self, parent: experiment, files_list, numChannels = 32, recSyst = 'Bonsai') -> None:
+      super().__init__(parent, numChannels = numChannels)
       self.files_list = files_list
       self.recSyst = recSyst
+      self.fileType = 'IntanLFP'
       self.signal = None
       self.dtype=np.uint16
+      self.offset = int(np.iinfo(self.dtype).max/2)
+      self.signal = self.loadData()
 
 
    def loadData(self):
-
       return super().loadData()
+   
+   def combineStructures(self,structures, start = 0, end = None):
+      if end is None:
+         end = self.signal.shape[0]
+      combined = np.empty((end-start,0),np.int16)
+      self.channelLabels = []
+      if structures is None:
+         #self.generateChannelsMap()
+         combined = self.signal
+         self.channelLabels = [i for i in range(self.signal.shape[0])]
+      else:
+         for region in structures:
+            print(region, "->", self.channelsMap[region])
+            if len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2])>0:
+               c2 = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2][0]
+               c1 = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0]
+               print("Getting differential signal of channel {} - channel {} for {}".format(c2,c1,region))
+               self.channelLabels.append(region)
+               combined = np.append(combined, self.signal[start:end, c2, np.newaxis] - self.signal[:, c1, np.newaxis], axis=1)
+            elif len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1])>0:
+               c = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0]
+               print("Getting floating signal of channel {} for {}".format(c,region))
+               combined = np.append(combined, self.signal[start:end,c, np.newaxis], axis=1)
+               self.channelLabels.append(region)
+      return combined
+   
+class NPX(ePhy):
+   def __init__(self, parent: experiment, files_list, numChannels = 384) -> None:
+      super().__init__(parent, numChannels = numChannels)
+      self.files_list = files_list
+      self.fileType = 'NPX'
+      self.signal = None
+      self.dtype=np.uint16
+      self.signal = self.loadData()
+
+   def loadData(self):
+      spikesPrefix = 'NP_spikes_'
+      if len(self.files_list)>1:
+         raise Exception(f"Multiple files not yet in place, please contact MB if you are interested by this option")
+      for filename in self.files_list:
+         # Neuropixels V1 Probe
+         npix = {}
+         npix['frame-counter'] = np.fromfile(filename.replace(spikesPrefix,'NP_FrameCounter_'), dtype=np.int32)
+
+
+         npix['spike'] = np.fromfile(filename, dtype=np.uint16).reshape(-1, self.numChannels)
+         npix['spike-clock'] = np.fromfile(filename.replace(spikesPrefix,'NP_timestamps_'), dtype=np.uint64)
+
+         npix['lfp'] = np.fromfile(filename.replace(spikesPrefix,'NP_LFPdata_'), dtype=np.uint16).reshape(-1, self.numChannels)
+         # npix['lfp-clock'] = np.fromfile(filename.replace(spikesPrefix,'NP_FrameCounter_'), dtype=np.uint64)
+      
+      self.signal = npix
+      self.channelLabels = [i for i in range(384)]
+      return self.signal
