@@ -473,35 +473,34 @@ def magicstore(stored_var, value):
       pickle.dump(value,f)
 
 def getPathComponent(filename,projectType):
-    
-    dirPathComponents = os.path.normpath(filename).split(os.sep)
-    expeInfo = dict()
+   dirPathComponents = os.path.normpath(filename).split(os.sep)
+   expeInfo = dict()
 
-    expeInfo['analysisPath'] = os.path.join('/',*dirPathComponents[0:-5])
-    expeInfo['ProjectID'] = dirPathComponents[-5]
-    expeInfo['subProjectID'] = dirPathComponents[-4]
+   expeInfo['analysisPath'] = os.path.join('/',*dirPathComponents[0:-5])
+   expeInfo['ProjectID'] = dirPathComponents[-5]
+   expeInfo['subProjectID'] = dirPathComponents[-4]
 
-    projectConfig = os.path.join('/',*dirPathComponents[0:-3],'projectConfig.pkl')
-    if os.path.isfile(projectConfig):
-        with open(projectConfig, 'rb') as f:
-            loaded_dict = pickle.load(f)
-            expeInfo['projectType'] = loaded_dict['projectType']
-    else:
-        with open(projectConfig, 'wb') as f:
-            projDict = dict(projectType = projectType)
-            pickle.dump(projDict, f)
-            print('Project config dict created')
+   projectConfig = os.path.sep.join([*dirPathComponents[0:-3],'projectConfig.pkl'])
+   if os.path.isfile(projectConfig):
+      with open(projectConfig, 'rb') as f:
+         loaded_dict = pickle.load(f)
+         expeInfo['projectType'] = loaded_dict['projectType']
+   else:
+      with open(projectConfig, 'wb') as f:
+         projDict = dict(projectType = projectType)
+         pickle.dump(projDict, f)
+         print('Project config dict created')
 
-    if projectType == 0:
-        expeInfo['conditionID'] = dirPathComponents[-3]
-        expeInfo['AnimalID'] = dirPathComponents[-2]
-    else:
-        expeInfo['AnimalID'] = dirPathComponents[-3]
-        expeInfo['conditionID'] = dirPathComponents[-2]
-        
-    expeInfo['recordingID'] = dirPathComponents[-1]
+   if projectType == 0:
+      expeInfo['conditionID'] = dirPathComponents[-3]
+      expeInfo['AnimalID'] = dirPathComponents[-2]
+   else:
+      expeInfo['AnimalID'] = dirPathComponents[-3]
+      expeInfo['conditionID'] = dirPathComponents[-2]
+      
+   expeInfo['recordingID'] = dirPathComponents[-1]
 
-    return expeInfo
+   return expeInfo
 
 
 
