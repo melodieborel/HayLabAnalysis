@@ -93,9 +93,11 @@ class expeConfigDict(dict):
       self.iWidget = None
 
       if self.expePath is not None and os.path.isfile(self.expePath): # a file is currently being used
+         print(f"the file is {self.expePath}")
          self.pathName, self.fileName = os.path.split(self.expePath)
          self.loadExpeConfigDict()
       else:
+         print(f"the file {self.expePath} was not found")
          self.pathName = self.rawDataPath
          self.fileName = ""
 
@@ -256,7 +258,7 @@ class expeConfigDict(dict):
 
    def rawDataSelector(self):
       #print(rawDataPath)
-      if self.rawDataPath is not None:
+      if self.rawDataPath is not None and os.path.isfile(self.rawDataPath):
          rawDirname, rawFN = os.path.split(self.rawDataPath)
          rfc = FileChooser(path=rawDirname, filename=rawFN,select_default=True, show_only_dirs = False, title = "<b>ePhys data</b>")
       else:
