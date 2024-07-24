@@ -5,10 +5,10 @@
 #######################################################################################
 
 #DrugExperiment=0 #if Baseline Experiment =1#if CGP Experiment
-DrugExperiment=0 
+DrugExperiment=1
 
 Method=0 # 1=AB 0=AH
-AnalysisID='_Zscored' 
+AnalysisID='_FINAL' 
 
 suffix='_AB' if Method else '_AH'
 
@@ -156,9 +156,9 @@ def find_session_folders(root_path):
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] if DrugExperiment else ['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
 
 # Get the current date and time
-FolderNameSave=str(datetime.now())
+FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_").replace("-", "_")
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/OscillationsAnalysis_PerMouse_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/OscillationsAnalysis_PerMouse_{FolderNameSave}{suffix}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Osc_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Osc_{FolderNameSave}{suffix}{AnalysisID}"
 
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
@@ -337,7 +337,6 @@ for mice in MiceList:
     if mice == 'Purple' and DrugExperiment==0:
         index = B.columns
         B.columns = index.str.replace('part', 'session2')
-
 
     #######################################################################################
       # Distribute Ca2+ intensity & spikes to oscillations for each sessions/subsessions #
@@ -525,8 +524,8 @@ for mice in MiceList:
                     continue  # next iteration
                 
                 # Zscore traces
-                Carray=zscore(Carray, axis=0)
-                Sarray=zscore(Sarray, axis=0)
+                #Carray=zscore(Carray, axis=0)
+                #Sarray=zscore(Sarray, axis=0)
 
                 # Replace dropped frame in calcium and spike traces with the previous value
 
@@ -1169,14 +1168,14 @@ for mice in MiceList:
 
         # Save the big summary table Spindles_GlobalResults
 
-        filenameOut = folder_to_save / f'Spindles_{Cortex}_ABdetection_GlobalResultsAB_{mice}.xlsx'
+        filenameOut = folder_to_save / f'Spindles_{Cortex}_Global_{mice}.xlsx'
         writer = pd.ExcelWriter(filenameOut)
         Spindles_GlobalResults.to_excel(writer)
         writer.close()
 
         # Do average Calcium results for Spindles Peristimulus Time Histogram 
         
-        filenameOut = folder_to_save / f'Spindles_{Cortex}_ABdetection_CalciumAvgResultsAB_{mice}.xlsx'
+        filenameOut = folder_to_save / f'Spindles_{Cortex}_CalciumAvg_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
         for Drug in Drugs:
@@ -1213,7 +1212,7 @@ for mice in MiceList:
 
         # Do average Spike results for Spindles Peristimulus Time Histogram 
 
-        filenameOut = folder_to_save / f'Spindles_{Cortex}_ABdetection_SpikeAvgResultsAB_{mice}.xlsx'
+        filenameOut = folder_to_save / f'Spindles_{Cortex}_SpikeAvg_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
         
         for Drug in Drugs:
@@ -1248,57 +1247,20 @@ for mice in MiceList:
 
         excel_writer.close()
 
-        # Do sum Spike results for Spindles Peristimulus Time Histogram 
-
-        filenameOut = folder_to_save / f'Spindles_{Cortex}_ABdetection_SpikeSumResultsAB_{mice}.xlsx'
-        excel_writer = pd.ExcelWriter(filenameOut)
-
-        for Drug in Drugs:
-
-            dict_All_ActivitySp_spin=locals()[f'dict_All_ActivitySp_spin_{Drug}']
-            dict_All_ActivitySp_spin_Uncoupled=locals()[f'dict_All_ActivitySp_spin_Uncoupled_{Drug}']
-            dict_All_ActivitySp_spin_Precoupled=locals()[f'dict_All_ActivitySp_spin_Precoupled_{Drug}']
-            dict_All_ActivitySp_spin_Postcoupled=locals()[f'dict_All_ActivitySp_spin_Postcoupled_{Drug}']
-            dict_All_ActivitySp_GlobalSpdl=locals()[f'dict_All_ActivitySp_GlobalSpdl_{Drug}']
-            dict_All_ActivitySp_LocalSpdl=locals()[f'dict_All_ActivitySp_LocalSpdl_{Drug}']
-
-            AVG_dict_All_ActivitySp_spin = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_spin.items()}
-            AVG_dict_All_ActivitySp_spin_Uncoupled = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_spin_Uncoupled.items()}
-            AVG_dict_All_ActivitySp_spin_Precoupled = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_spin_Precoupled.items()}
-            AVG_dict_All_ActivitySp_spin_Postcoupled = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_spin_Postcoupled.items()}
-            AVG_dict_All_ActivitySp_spin_GlobalSpdl = {key: np.sum(matrix,0) for key, matrix in dict_All_ActivitySp_GlobalSpdl.items()}
-            AVG_dict_All_ActivitySp_spin_LocalSpdl = {key: np.sum(matrix,0) for key, matrix in dict_All_ActivitySp_LocalSpdl.items()}
-
-            Array=pd.DataFrame(AVG_dict_All_ActivitySp_spin).T
-            ArrayUn=pd.DataFrame(AVG_dict_All_ActivityCa_spin_Uncoupled).T
-            ArrayPre=pd.DataFrame(AVG_dict_All_ActivitySp_spin_Precoupled).T
-            ArrayPost=pd.DataFrame(AVG_dict_All_ActivitySp_spin_Postcoupled).T    
-            ArrayGlobalSpdl=pd.DataFrame(AVG_dict_All_ActivitySp_spin_GlobalSpdl).T
-            ArrayLocalSpdl=pd.DataFrame(AVG_dict_All_ActivitySp_spin_LocalSpdl).T
-
-            Array.to_excel(excel_writer, sheet_name=f'{Drug}_All_Spindles', index=True, header=False)
-            ArrayUn.to_excel(excel_writer, sheet_name=f'{Drug}_Uncoupled_Spindles', index=True, header=False)
-            ArrayPre.to_excel(excel_writer, sheet_name=f'{Drug}_Precoupled_Spindles', index=True, header=False)
-            ArrayPost.to_excel(excel_writer, sheet_name=f'{Drug}_Postcoupled_Spindles', index=True, header=False)        
-            ArrayGlobalSpdl.to_excel(excel_writer, sheet_name=f'{Drug}_Global_Spindles', index=True, header=False)
-            ArrayLocalSpdl.to_excel(excel_writer, sheet_name=f'{Drug}_Local_Spindles', index=True, header=False)
-
-        excel_writer.close()
-
         #######################################################################################
                                         # Save SWR analysis #
         #######################################################################################
 
         # Save the big summary table SWR_GlobalResults
 
-        filenameOut = folder_to_save / f'SWR_{Cortex}_ABdetection_GlobalResultsAB_{mice}.xlsx'
+        filenameOut = folder_to_save / f'SWR_{Cortex}_Global_{mice}.xlsx'
         writer = pd.ExcelWriter(filenameOut)
         SWR_GlobalResults.to_excel(writer)
         writer.close()
 
         # Do average Calcium results for SWR Peristimulus Time Histogram 
 
-        filenameOut = folder_to_save / f'SWR_{Cortex}_ABdetection_CalciumAvgResultsAB_{mice}.xlsx'
+        filenameOut = folder_to_save / f'SWR_{Cortex}_CalciumAvg_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
         for Drug in Drugs:
@@ -1327,7 +1289,7 @@ for mice in MiceList:
 
         # Do average Spike results for SWR Peristimulus Time Histogram 
 
-        filenameOut = folder_to_save / f'SWR_{Cortex}_ABdetection_SpikeAvgResultsAB_{mice}.xlsx'
+        filenameOut = folder_to_save / f'SWR_{Cortex}_SpikeAvg_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
         for Drug in Drugs:
@@ -1354,48 +1316,20 @@ for mice in MiceList:
 
         excel_writer.close() 
 
-        # Do sum Spike results for SWR Peristimulus Time Histogram 
-        filenameOut = folder_to_save / f'SWR_{Cortex}_ABdetection_SpikeSumResultsAB_{mice}.xlsx'
-        excel_writer = pd.ExcelWriter(filenameOut)
-
-        for Drug in Drugs:
-
-            dict_All_ActivitySp_swr=locals()[f'dict_All_ActivitySp_swr_{Drug}']
-            dict_All_ActivitySp_swr_Uncoupled=locals()[f'dict_All_ActivitySp_swr_Uncoupled_{Drug}']
-            dict_All_ActivitySp_swr_Precoupled=locals()[f'dict_All_ActivitySp_swr_Precoupled_{Drug}']
-            dict_All_ActivitySp_swr_Postcoupled=locals()[f'dict_All_ActivitySp_swr_Postcoupled_{Drug}']
-
-            AVG_dict_All_ActivitySp_swr = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_swr.items()}
-            AVG_dict_All_ActivitySp_swr_Uncoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_swr_Uncoupled.items()}
-            AVG_dict_All_ActivitySp_swr_Precoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_swr_Precoupled.items()}
-            AVG_dict_All_ActivitySp_swr_Postcoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_swr_Postcoupled.items()}
-
-            Array=pd.DataFrame(AVG_dict_All_ActivitySp_swr).T
-            ArrayUn=pd.DataFrame(AVG_dict_All_ActivitySp_swr_Uncoupled).T
-            ArrayPre=pd.DataFrame(AVG_dict_All_ActivitySp_swr_Precoupled).T
-            ArrayPost=pd.DataFrame(AVG_dict_All_ActivitySp_swr_Postcoupled).T
-
-            Array.to_excel(excel_writer, sheet_name=f'{Drug}_All_SWR', index=True, header=False)
-            ArrayUn.to_excel(excel_writer, sheet_name=f'{Drug}_Uncoupled_SWR', index=True, header=False)
-            ArrayPre.to_excel(excel_writer, sheet_name=f'{Drug}_Precoupled_SWR', index=True, header=False)
-            ArrayPost.to_excel(excel_writer, sheet_name=f'{Drug}_Postcoupled_SWR', index=True, header=False)
-
-        excel_writer.close() 
-
         #######################################################################################
                                         # Save DownStates analysis #
         #######################################################################################
 
         # Save the big summary table DS_GlobalResults
 
-        filenameOut = folder_to_save / f'DS_{Cortex}_ABdetection_GlobalResultsAB_{mice}.xlsx'
+        filenameOut = folder_to_save / f'DS_{Cortex}_Global_{mice}.xlsx'
         writer = pd.ExcelWriter(filenameOut)
         DS_GlobalResults.to_excel(writer)
         writer.close()
 
         # Do average Calcium results for DS Peristimulus Time Histogram 
         
-        filenameOut = folder_to_save / f'DS_{Cortex}_ABdetection_CalciumAvgResultsAB_{mice}.xlsx'
+        filenameOut = folder_to_save / f'DS_{Cortex}_CalciumAvg_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
         for Drug in Drugs:
@@ -1423,7 +1357,7 @@ for mice in MiceList:
         excel_writer.close()
 
         # Do average Spike results for DS Peristimulus Time Histogram 
-        filenameOut = folder_to_save / f'DS_{Cortex}_ABdetection_SpikeAvgResultsAB_{mice}.xlsx'
+        filenameOut = folder_to_save / f'DS_{Cortex}_SpikeAvg_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
 
         for Drug in Drugs:
@@ -1448,35 +1382,7 @@ for mice in MiceList:
             ArrayPre.to_excel(excel_writer, sheet_name=f'{Drug}_Precoupled_DS', index=True, header=False)
             ArrayPost.to_excel(excel_writer, sheet_name=f'{Drug}_Postcoupled_DS', index=True, header=False)
 
-        excel_writer.close() 
-
-        # Do sum Spike results for DS Peristimulus Time Histogram 
-        filenameOut = folder_to_save / f'DS_{Cortex}_ABdetection_SpikeSumResultsAB_{mice}.xlsx'
-        excel_writer = pd.ExcelWriter(filenameOut)
-
-        for Drug in Drugs:
-
-            dict_All_ActivitySp_ds=locals()[f'dict_All_ActivitySp_ds_{Drug}']
-            dict_All_ActivitySp_ds_Uncoupled=locals()[f'dict_All_ActivitySp_ds_Uncoupled_{Drug}']
-            dict_All_ActivitySp_ds_Precoupled=locals()[f'dict_All_ActivitySp_ds_Precoupled_{Drug}']
-            dict_All_ActivitySp_ds_Postcoupled=locals()[f'dict_All_ActivitySp_ds_Postcoupled_{Drug}']
-
-            AVG_dict_All_ActivitySp_ds = {key: np.sum(matrix, axis=0) for key, matrix in dict_All_ActivitySp_ds.items()}
-            AVG_dict_All_ActivitySp_ds_Uncoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_ds_Uncoupled.items()}
-            AVG_dict_All_ActivitySp_ds_Precoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_ds_Precoupled.items()}
-            AVG_dict_All_ActivitySp_ds_Postcoupled = {key: np.sum(matrix,axis=0) for key, matrix in dict_All_ActivitySp_ds_Postcoupled.items()}
-
-            Array=pd.DataFrame(AVG_dict_All_ActivitySp_ds).T
-            ArrayUn=pd.DataFrame(AVG_dict_All_ActivitySp_ds_Uncoupled).T
-            ArrayPre=pd.DataFrame(AVG_dict_All_ActivitySp_ds_Precoupled).T
-            ArrayPost=pd.DataFrame(AVG_dict_All_ActivitySp_ds_Postcoupled).T
-
-            Array.to_excel(excel_writer, sheet_name=f'{Drug}_All_DS', index=True, header=False)
-            ArrayUn.to_excel(excel_writer, sheet_name=f'{Drug}_Uncoupled_DS', index=True, header=False)
-            ArrayPre.to_excel(excel_writer, sheet_name=f'{Drug}_Precoupled_DS', index=True, header=False)
-            ArrayPost.to_excel(excel_writer, sheet_name=f'{Drug}_Postcoupled_DS', index=True, header=False)
-
-        excel_writer.close() 
+        excel_writer.close()  
 
     sentence3=f"Nb of unique units for {mice} = {len(dict_All_ActivityCa_spin)}"
     print(sentence3)    

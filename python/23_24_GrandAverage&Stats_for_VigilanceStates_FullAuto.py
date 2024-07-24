@@ -7,12 +7,12 @@
 #DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 DrugExperiment=1
 
-AnalysisID='_AB_Zscored_Ultimate_N2' #to identify this analysis from another
+AnalysisID='_AB_FINAL' #to identify this analysis from another
 
-choosed_folder='Analysis_VigStates_2024-07-19_00_14_29_173266_ABZscored_Ultimate_N2'
+choosed_folder='VigSt_2024-07-22_18_21_32_AB_FINAL'
 
-#desired_order = ['Wake','NREM', 'REM']   
-desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
+desired_order = ['Wake','NREM', 'REM']   
+#desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
 
 #######################################################################################
                                 # Load packages #
@@ -46,6 +46,28 @@ def extract_micename(index_value):
     match = re.match(r"([a-zA-Z]+)", index_value)
     return match.group(1) if match else index_value
 
+def max_column_name(row):
+    return row.idxmax()
+    
+def discrimination_index(df):
+    #Index = (AUCa-AUCb)/(AUCa+AUCb)
+    if 'REM' in df.columns and 'NREM' in df.columns :
+        disc_index =(df['NREM']-df['REM'])/(df['NREM']+df['REM'])
+        nan_rows = df['NREM'].isna() | df['REM'].isna()
+        disc_index[nan_rows] = np.nan
+    else:
+        disc_index=np.full(len(df), np.nan)
+    #min=df[['NREM', 'REM']].min(axis=1).abs()+1
+    #NREMadj=df['NREM']#+min
+    #REMadj=df['REM']#+min
+    #disc_index=NREMadj/REMadj
+    return disc_index
+
+def normalize_row(row):
+    max_col = row.idxmax()  # Find the column with the maximum value
+    max_val = row[max_col]  # Get the maximum value
+    return row / max_val   # Normalize the row by dividing by the maximum value    
+
 ########################################################################
         # SCRIPT 23AB_GrandAverages&Stats_for_VigilanceStates
 ########################################################################
@@ -55,9 +77,9 @@ InitialDirectory = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedM
 directory= f'{InitialDirectory}/{choosed_folder}'
 
 # Get the current date and time
-FolderNameSave=str(datetime.now())
+FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_AVG_VigStates_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/AVG_VigSt_{FolderNameSave}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/AVG_VigSt_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -84,9 +106,9 @@ for NrSubtype in NrSubtypeList:
     else:
         MiceList=['Purple', 'ThreeColDotsOK', 'ThreeBlueCrossesOK']
     
-    nametofind='VigilanceState_GlobalResults'
-    nametofind2='VigilanceState_CaCorrelation'
-    nametofind3='VigilanceState_SpCorrelation'
+    nametofind='Global'
+    nametofind2='CaCorr'
+    nametofind3='SpCorr'
 
     # Recursively traverse the directory structure
     for root, _, files in os.walk(directory):
@@ -168,21 +190,21 @@ for NrSubtype in NrSubtypeList:
 
     # Save big dataset for stats
 
-    filenameOut = f'{folder_to_save}/{NrSubtype}_VigilanceStates_GrandGlobalAB.xlsx'
+    filenameOut = f'{folder_to_save}/{NrSubtype}_VigSt_Global.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     combined_df.to_excel(writer)
     writer.close()
 
     # Save the Ca correlation matrix  
 
-    file_path = f'{folder_to_save}/{NrSubtype}_VigilanceStates_CaCorrelationAB.xlsx'
+    file_path = f'{folder_to_save}/{NrSubtype}_VigSt_CaCorr.xlsx'
     with pd.ExcelWriter(file_path) as writer:
         for sheet_name, df in dfs2_per_sheet.items():
             df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
 
     # Save the Sp correlation matrix  
 
-    file_path = f'{folder_to_save}/{NrSubtype}_VigilanceStates_SpCorrelationAB.xlsx'
+    file_path = f'{folder_to_save}/{NrSubtype}_VigSt_SpCorr.xlsx'
     with pd.ExcelWriter(file_path) as writer:
         for sheet_name, df in dfs3_per_sheet.items():
             df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
@@ -191,28 +213,20 @@ for NrSubtype in NrSubtypeList:
             # SCRIPT 24AB_Load&Stats_for_VigilanceStates
 ########################################################################
 
-def max_column_name(row):
-    return row.idxmax()
-
-def normalize_row(row):
-    max_col = row.idxmax()  # Find the column with the maximum value
-    max_val = row[max_col]  # Get the maximum value
-    return row / max_val   # Normalize the row by dividing by the maximum value    
-
 for NrSubtype in NrSubtypeList:
 
-    analysisfile='VigilanceStates_GrandGlobalAB'
-    combined_df = pd.read_excel(f'{folder_to_save}/{NrSubtype}_{analysisfile}.xlsx', index_col=0)
+    analysisfile='VigSt_Global'
+    combined_dfO = pd.read_excel(f'{folder_to_save}/{NrSubtype}_{analysisfile}.xlsx', index_col=0)
     
     combined_dfCa = {}
-    analysisfileCa='VigilanceStates_CaCorrelationAB'
+    analysisfileCa='VigSt_CaCorr'
     excel_data = pd.read_excel(f'{folder_to_save}/{NrSubtype}_{analysisfileCa}.xlsx', sheet_name=None, index_col=0)           
     for sheet_name, df in excel_data.items():
         if len(df)>0:
             combined_dfCa[sheet_name] = df  
 
     combined_dfSp = {}
-    analysisfileSp='VigilanceStates_SpCorrelationAB'
+    analysisfileSp='VigSt_SpCorr'
     excel_data = pd.read_excel(f'{folder_to_save}/{NrSubtype}_{analysisfileSp}.xlsx', sheet_name=None, index_col=0)           
     for sheet_name, df in excel_data.items():
         if len(df)>0:
@@ -223,7 +237,7 @@ for NrSubtype in NrSubtypeList:
     ######################
 
     # MINIMUM VIG STATES DURATION #
-    combined_df = combined_df[combined_df['DurationSubstate'] >= 20] 
+    combined_df = combined_dfO[combined_dfO['DurationSubstate'] >= 20] 
     
     Drugs= ['Baseline', 'CGP'] if DrugExperiment else ['Baseline']
 
@@ -231,160 +245,77 @@ for NrSubtype in NrSubtypeList:
     #combined_df = combined_df[combined_df['Avg_SpikeActivityHz'] >= 0.05] 
     
     #####################
-    # GLM #
-    #####################      
-    """   
-    print(NrSubtype)
-
-    mixedlm_model = sm.MixedLM.from_formula("SpikeActivityHz ~ Substate", groups='Unit_ID', data=combined_df)
-    result = mixedlm_model.fit()
-    print(result.summary())      
-    
-    mixedlm_model3 = sm.MixedLM.from_formula("NormalizedAUC_calcium ~ Substate", groups='Unit_ID', data=combined_df)
-    result3 = mixedlm_model3.fit()
-    print(result3.summary())      
-
-    try: 
-        mixedlm_model4 = sm.MixedLM.from_formula("DeconvSpikeMeanActivity ~ Substate", groups='Unit_ID', data=combined_df)
-        result4 = mixedlm_model4.fit()
-        print(result4.summary())   
-    except: 
-        print('Error on DeconvSpikeMeanActivity') 
-    """ 
-    #####################
     # PREFERENCE #
     #####################
-    #"""
     
-    for Drug in Drugs: 
-        
-        folder_to_save2= f'{folder_to_save}/{Drug}/'
-        if NrSubtype=='All':
-            os.makedirs(folder_to_save2)
+    # /!\ The ones from Baseline (not CGP)
 
+    combined_df_Drug=combined_df.copy()
+    combined_df_Drug = combined_df_Drug[combined_df_Drug['Drug'] == 'Baseline'] if DrugExperiment else combined_df_Drug
+
+    # the highest mean = the preference OR discrimination factor 
+    AllUnits = combined_df_Drug['Unit_ID'].unique()
+    
+    AresultActivity_perUnit = combined_df_Drug.pivot_table(index='Unit_ID', columns='Substate', values='NormalizedAUC_calcium', aggfunc='mean')   
+    try : AresultActivity_perUnit = AresultActivity_perUnit[desired_order]
+    except: pass
+    AresultActivity_perUnit['Activated_by'] = AresultActivity_perUnit.apply(max_column_name, axis=1)
+    AresultActivity_perUnit['RatioNREM_REM'] =discrimination_index(AresultActivity_perUnit)
+    lower_threshold = -0.5 # 5 times more active in REM  #AresultActivity_perUnit['DiscriminationIndex'].quantile(0.20)
+    upper_threshold = .5 # 5 times more active in NREM #AresultActivity_perUnit['DiscriminationIndex'].quantile(0.80)
+    REMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] <= lower_threshold].index
+    NREMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] >= upper_threshold].index
+    NotSpeunits = AresultActivity_perUnit[(AresultActivity_perUnit['RatioNREM_REM'] > lower_threshold) & (AresultActivity_perUnit['RatioNREM_REM'] < upper_threshold)].index
+    """
+    index_lists = {}
+    for unitindex in AresultActivity_perUnit['Activated_by'].unique():
+        indices = AresultActivity_perUnit.index[AresultActivity_perUnit['Activated_by'] == unitindex].tolist()
+        index_lists[unitindex] = indices    
+    NREMprefUnits=index_lists['NREM']
+    try: REMprefUnits=index_lists['REM'] 
+    except: REMprefUnits=[]
+    WakeprefUnits=index_lists['Wake']
+    """
+    # Save the List of significant Unit more active in one vigilance state
+    if NrSubtype=='All':
+        os.makedirs(f'{folder_to_save}/Baseline/')
+    filenameOut = f'{folder_to_save}/Baseline/{NrSubtype}_ActivityPreference.xlsx'
+    writer = pd.ExcelWriter(filenameOut)    
+    AllUnitsDF = pd.DataFrame(AllUnits)
+    REMspeunitsDF = pd.DataFrame(REMspeunits)
+    NREMspeunitsDF = pd.DataFrame(NREMspeunits)
+    NotSpeunitsDF = pd.DataFrame(NotSpeunits)
+    AllUnitsDF.to_excel(writer, sheet_name='AllUnits', index=True, header=False) 
+    REMspeunitsDF.to_excel(writer, sheet_name='REMspe', index=True, header=False) 
+    NREMspeunitsDF.to_excel(writer, sheet_name='NREMspe', index=True, header=False) 
+    NotSpeunitsDF.to_excel(writer, sheet_name='NotSpe', index=True, header=False) 
+    """
+    NREMprefUnitsDF = pd.DataFrame(NREMprefUnits)
+    REMprefUnitsDF = pd.DataFrame(REMprefUnits)
+    WakeprefUnitsDF = pd.DataFrame(WakeprefUnits)
+    NREMprefUnitsDF.to_excel(writer, sheet_name='NREMpref', index=True, header=False) 
+    REMprefUnitsDF.to_excel(writer, sheet_name='REMpref', index=True, header=False) 
+    WakeprefUnitsDF.to_excel(writer, sheet_name='Wakepref', index=True, header=False)     
+    """
+    writer.close()
+
+    # /!\ The ones from Baseline (not CGP)
+    List_SignFiringPreference=[NREMspeunits, REMspeunits, NotSpeunits, AllUnits] #NREMprefUnits, REMprefUnits, WakeprefUnits] 
+    List_Names=['NREMspeUnits','REMspeUnits','NotSpeUnits', 'AllUnits'] #'NREMprefUnits', 'REMprefUnits', 'WakeprefUnits' ] 
+
+    for Drug in Drugs:
+
+        combined_df_DrugO=combined_dfO.copy()
+        combined_df_DrugO = combined_df_DrugO[combined_df_DrugO['Drug'] == Drug] if DrugExperiment else combined_df_DrugO
         combined_df_Drug=combined_df.copy()
-
         combined_df_Drug = combined_df_Drug[combined_df_Drug['Drug'] == Drug] if DrugExperiment else combined_df_Drug
 
-        AllUnits = combined_df_Drug['Unit_ID'].unique()
-
-        combined_df_DrugNREM=combined_df_Drug.copy()
-        combined_df_DrugNREM['Substate'] = combined_df_DrugNREM['Substate'].apply(lambda x: 'NREM' if x == 'NREM' else 'other')
-        grouped = combined_df_DrugNREM.groupby('Unit_ID')
-        NREMprefUnits=[]
-        NREMmatrix={}
-        for key, group in grouped:
-            nrem_values = group[group['Substate'] == 'NREM']['DeconvSpikeMeanActivity'].tolist()
-            other_values = group[group['Substate'] == 'other']['DeconvSpikeMeanActivity'].tolist()
-            NREMmatrix[key]=[nrem_values, other_values]
-            if len(nrem_values) > 1 and len(other_values) > 1:  # Ensure there are enough values to perform the test
-                t_stat, p_value = ttest_ind(nrem_values, other_values, equal_var=False)
-                if p_value<0.2 and np.mean(nrem_values)>np.mean(other_values): 
-                    NREMprefUnits.append(key)
-        
-        combined_df_DrugREM=combined_df_Drug.copy()
-        combined_df_DrugREM['Substate'] = combined_df_DrugREM['Substate'].apply(lambda x: 'REM' if x == 'REM' else 'other')
-        grouped = combined_df_DrugREM.groupby('Unit_ID')
-        REMprefUnits=[]
-        REMmatrix={}
-        for key, group in grouped:
-            rem_values = group[group['Substate'] == 'REM']['DeconvSpikeMeanActivity'].tolist()
-            other_values = group[group['Substate'] == 'other']['DeconvSpikeMeanActivity'].tolist()
-            REMmatrix[key]=[rem_values, other_values]
-            if len(rem_values) > 1 and len(other_values) > 1:  # Ensure there are enough values to perform the test
-                t_stat, p_value = ttest_ind(rem_values, other_values, equal_var=False)
-                if p_value<0.2  and np.mean(rem_values)>np.mean(other_values):  
-                    REMprefUnits.append(key)
-    
-        combined_df_DrugWake=combined_df_Drug.copy()
-        combined_df_DrugWake['Substate'] = combined_df_DrugWake['Substate'].apply(lambda x: 'Wake' if x == 'Wake' else 'other')
-        grouped = combined_df_DrugWake.groupby('Unit_ID')
-        WakeprefUnits=[]
-        Wmatrix={}
-        for key, group in grouped:
-            w_values = group[group['Substate'] == 'Wake']['DeconvSpikeMeanActivity'].tolist()
-            other_values = group[group['Substate'] == 'other']['DeconvSpikeMeanActivity'].tolist()
-            Wmatrix[key]=[w_values, other_values]
-            if len(w_values) > 1 and len(other_values) > 1:  # Ensure there are enough values to perform the test
-                t_stat, p_value = ttest_ind(w_values, other_values, equal_var=False)
-                if p_value<0.2 and np.mean(w_values)>np.mean(other_values):  
-                    WakeprefUnits.append(key)
-
-        # Save the List of significant Unit more active in one vigilance state
-        filenameOut = f'{folder_to_save2}/{NrSubtype}_SignDeconvPreference.xlsx'
-        writer = pd.ExcelWriter(filenameOut)
-        AllUnits = pd.DataFrame(AllUnits)
-        NREMprefUnits = pd.DataFrame(NREMprefUnits)
-        REMprefUnits = pd.DataFrame(REMprefUnits)
-        WakeprefUnits = pd.DataFrame(WakeprefUnits)
-        NREMprefUnits.to_excel(writer, sheet_name='NREMpref', index=True, header=False) 
-        REMprefUnits.to_excel(writer, sheet_name='REMpref', index=True, header=False) 
-        WakeprefUnits.to_excel(writer, sheet_name='Wakepref', index=True, header=False) 
-        AllUnits.to_excel(writer, sheet_name='AllUnits', index=True, header=False) 
-        writer.close()
-
-        # Save the Matrix with activity values for one state compare to all the other per Unit
-        excel_file =  f'{folder_to_save2}/{NrSubtype}_NREMmatrix.xlsx'
-        with pd.ExcelWriter(excel_file) as writer:
-            for key, df in NREMmatrix.items():
-                df=pd.DataFrame(df)
-                df.index = ['NREM', 'Other']
-                df.to_excel(writer, sheet_name=key, header=False)
-
-        excel_file =  f'{folder_to_save2}/{NrSubtype}_REMmatrix.xlsx'
-        with pd.ExcelWriter(excel_file) as writer:
-            for key, df in REMmatrix.items():
-                df=pd.DataFrame(df)
-                df.index = ['REM', 'Other']
-                df.to_excel(writer, sheet_name=key, header=False)
-
-        excel_file =  f'{folder_to_save2}/{NrSubtype}_Wakematrix.xlsx'
-        with pd.ExcelWriter(excel_file) as writer:
-            for key, df in Wmatrix.items():
-                df=pd.DataFrame(df)
-                df.index = ['Wake', 'Other']
-                df.to_excel(writer, sheet_name=key, header=False)
-
-        #"""
-
-        # Just the highest mean = the preference
-
-        AresultSpikeActivity_perUnit = combined_df_Drug.pivot_table(index='Unit_ID', columns='Substate', values='DeconvSpikeMeanActivity', aggfunc='mean')   
-        try : AresultSpikeActivity_perUnit = AresultSpikeActivity_perUnit[desired_order]
-        except: pass
-        AresultSpikeActivity_perUnit['Activated_by'] = AresultSpikeActivity_perUnit.apply(max_column_name, axis=1)
-
-        index_lists = {}
-        for unitindex in AresultSpikeActivity_perUnit['Activated_by'].unique():
-            indices = AresultSpikeActivity_perUnit.index[AresultSpikeActivity_perUnit['Activated_by'] == unitindex].tolist()
-            index_lists[unitindex] = indices
-        
-        NREMprefUnits=index_lists['NREM']
-        try: REMprefUnits=index_lists['REM'] 
-        except: REMprefUnits=[]
-        WakeprefUnits=index_lists['Wake']
-        AllUnits = combined_df_Drug['Unit_ID'].unique()
-
-        # Save the List of significant Unit more active in one vigilance state
-        filenameOut = f'{folder_to_save2}/{NrSubtype}_AverageDeconvPreference.xlsx'
-        writer = pd.ExcelWriter(filenameOut)
-        AllUnitsDF = pd.DataFrame(AllUnits)
-        NREMprefUnitsDF = pd.DataFrame(NREMprefUnits)
-        REMprefUnitsDF = pd.DataFrame(REMprefUnits)
-        WakeprefUnitsDF = pd.DataFrame(WakeprefUnits)
-        NREMprefUnitsDF.to_excel(writer, sheet_name='NREMpref', index=True, header=False) 
-        REMprefUnitsDF.to_excel(writer, sheet_name='REMpref', index=True, header=False) 
-        WakeprefUnitsDF.to_excel(writer, sheet_name='Wakepref', index=True, header=False) 
-        AllUnitsDF.to_excel(writer, sheet_name='AllUnits', index=True, header=False) 
-        writer.close()
-
-
-        List_SignFiringPreference=[NREMprefUnits, REMprefUnits, WakeprefUnits, AllUnits]
-        List_Names=['NREMprefUnits', 'REMprefUnits', 'WakeprefUnits', 'AllUnits']    
+        folder_to_save2= f'{folder_to_save}/{Drug}/'
+        if NrSubtype=='All' and Drug=='CGP':
+            os.makedirs(folder_to_save2)
 
         for listnb, listI  in enumerate(List_SignFiringPreference):
             
-            #list=listI[0] #convert df to list if with pvalue
             filtered_df = combined_df_Drug[combined_df_Drug['Unit_ID'].isin(listI)]
             List_name=List_Names[listnb]
 
@@ -420,7 +351,7 @@ for NrSubtype in NrSubtypeList:
                     common_indices = common_indices.intersection(df.index)
                 dfCa_DoubleFiltered = {name: df.loc[common_indices, common_columns] for name, df in dfCa_filtered.items()}
 
-                file_path = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Pairwise_CaCorrelationAB.xlsx'
+                file_path = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Pairwise_CaCorr.xlsx'
                 with pd.ExcelWriter(file_path) as writer:
                     for sheet_name, dfCa in dfCa_DoubleFiltered.items():
                         dfCa.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
@@ -442,17 +373,17 @@ for NrSubtype in NrSubtypeList:
                 if len(df_reset)>0:
                     melted_df = pd.melt(df_reset, id_vars=['combined_index'], var_name='VigilanceSt', value_name='CorrCoeff')
                     split_columns = melted_df['VigilanceSt'].str.split('_', expand=True)
-                    split_columns.columns = ['Transformation','Drug','Substate'] if DrugExperiment else ['Drug','Substate']
+                    split_columns.columns = ['Transformation','Drug','Substate']
                     melted_df = pd.concat([melted_df, split_columns], axis=1)
                     extracted_micename = [extract_micename(idx) for idx in melted_df['combined_index']]
                     melted_df['Mice']=extracted_micename            
                 else: 
                     melted_df = pd.DataFrame()
 
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_CaCorrelationAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlatPairwise_CaCorr.xlsx'
                 SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)  
 
-                filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairwise_CaCorrAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairwise_CaCorr.xlsx'
                 melted_df.to_excel(filenameOut, index=True, header=True)   
                 
                 ## Sp correlation
@@ -475,7 +406,7 @@ for NrSubtype in NrSubtypeList:
                     common_indices = common_indices.intersection(df.index)
                 dfSp_DoubleFiltered = {name: df.loc[common_indices, common_columns] for name, df in dfSp_filtered.items()}
 
-                file_path = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Pairwise_SpCorrelationAB.xlsx'
+                file_path = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Pairwise_SpCorr.xlsx'
                 with pd.ExcelWriter(file_path) as writer:
                     for sheet_name, dfSp in dfSp_DoubleFiltered.items():
                         dfSp.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
@@ -497,15 +428,15 @@ for NrSubtype in NrSubtypeList:
                 if len(df_reset)>0:
                     melted_df = pd.melt(df_reset, id_vars=['combined_index'], var_name='VigilanceSt', value_name='CorrCoeff')
                     split_columns = melted_df['VigilanceSt'].str.split('_', expand=True)
-                    split_columns.columns = ['Transformation','Drug','Substate'] if DrugExperiment else ['Drug','Substate']
+                    split_columns.columns = ['Transformation','Drug','Substate']
                     extracted_micename = [extract_micename(idx) for idx in melted_df['combined_index']]
                     melted_df['Mice']=extracted_micename            
                 else: 
                     melted_df = pd.DataFrame()
                     
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlattenPairwise_SpCorrelationAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlatPairwise_SpCorr.xlsx'
                 SummaryMatrixSp_cleaned.to_excel(filenameOut, index=True, header=True)   
-                filenameOutGLM = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairwise_SpCorrAB.xlsx'
+                filenameOutGLM = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairwise_SpCorr.xlsx'
                 melted_df.to_excel(filenameOutGLM, index=True, header=True)   
 
             if len(filtered_df)>0:
@@ -524,7 +455,7 @@ for NrSubtype in NrSubtypeList:
                 except: pass
 
                 # Save CorrCoeff_calcium_perUnit
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Rsquared_CaCorrCoeff_perUnitAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Rsq_CaCorrCoeff.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 CorrCoeff_calcium_perUnit.to_excel(writer)
                 writer.close()
@@ -533,7 +464,7 @@ for NrSubtype in NrSubtypeList:
                 try: CorrCoeff_spike_perUnit = CorrCoeff_spike_perUnit[desired_order]
                 except: pass
                 # Save CorrCoeff_spike_perUnit 
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Rsquared_SpCorrCoeff_perUnitAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Rsq_SpCorrCoeff.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 CorrCoeff_spike_perUnit.to_excel(writer)
                 writer.close()
@@ -546,7 +477,7 @@ for NrSubtype in NrSubtypeList:
                 try: CorrCoeff_calcium_perUnit = CorrCoeff_calcium_perUnit[desired_order]
                 except: pass
                 # Save CorrCoeff_calcium_perUnit
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_CaCorrCoeff_perUnitAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_CaCorrCoeff.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 CorrCoeff_calcium_perUnit.to_excel(writer)
                 writer.close()
@@ -555,7 +486,7 @@ for NrSubtype in NrSubtypeList:
                 try: CorrCoeff_spike_perUnit = CorrCoeff_spike_perUnit[desired_order]
                 except: pass
                 # Save CorrCoeff_spike_perUnit 
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_SpCorrCoeff_perUnitAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_SpCorrCoeff.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 CorrCoeff_spike_perUnit.to_excel(writer)
                 writer.close()
@@ -563,39 +494,41 @@ for NrSubtype in NrSubtypeList:
                 #####################    
                 # CORRELATION COEFF #
                 #####################
-
+                """
                 CaPopCoupling_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='CaPopCoupling', aggfunc='mean')
                 try: CaPopCoupling_perUnit = CaPopCoupling_perUnit[desired_order]
                 except: pass
                 # Save CaPopCoupling_perUnit
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_CaPopCoupling_perUnitAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_CaPopCoupling.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 CaPopCoupling_perUnit.to_excel(writer)
                 writer.close()
-
+                """
                 CaPopCoupling_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='Z_CaPopCoupling', aggfunc='mean')
                 try: CaPopCoupling_perUnit = CaPopCoupling_perUnit[desired_order]
                 except: pass
                 # Save CaPopCoupling_perUnit
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Z_CaPopCoupling_perUnitAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Z_CaPopCoupling.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 CaPopCoupling_perUnit.to_excel(writer)
                 writer.close()
-                
+
+                """
                 SpPopCoupling_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='SpPopCoupling', aggfunc='mean')
                 try: SpPopCoupling_perUnit = SpPopCoupling_perUnit[desired_order]
                 except: pass
                 # Save SpPopCoupling_perUnit 
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_SpPopCoupling_perUnitAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_SpPopCoupling.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 SpPopCoupling_perUnit.to_excel(writer)
                 writer.close()
+                """
 
                 SpPopCoupling_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='Z_SpPopCoupling', aggfunc='mean')
                 try: SpPopCoupling_perUnit = SpPopCoupling_perUnit[desired_order]
                 except: pass
                 # Save SpPopCoupling_perUnit 
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Z_SpPopCoupling_perUnitAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Z_SpPopCoupling.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 SpPopCoupling_perUnit.to_excel(writer)
                 writer.close()
@@ -603,39 +536,26 @@ for NrSubtype in NrSubtypeList:
                 #####################
                 # AUC CALCIUM #
                 #####################
-                
-                resultNormalizedAUC_calcium_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='NormalizedAUC_calcium', aggfunc='mean')
-                try: resultNormalizedAUC_calcium_perUnit = resultNormalizedAUC_calcium_perUnit[desired_order]
+
+                resultNormalizedAUC_calcium_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='NormalizedAUC_calcium', aggfunc='mean')   
+                try : resultNormalizedAUC_calcium_perUnit = resultNormalizedAUC_calcium_perUnit[desired_order]
                 except: pass
-                max_values_per_row = resultNormalizedAUC_calcium_perUnit.max(axis=1)
-                Diff_resultNormalizedAUC_calcium_perUnit = (resultNormalizedAUC_calcium_perUnit.sub(max_values_per_row, axis=0) +100)
-                Diff_resultNormalizedAUC_calcium_perUnit['Activated_by'] = resultNormalizedAUC_calcium_perUnit.apply(max_column_name, axis=1)
-
-                # Add a new column with the column name that has the maximum value
                 resultNormalizedAUC_calcium_perUnit['Activated_by'] = resultNormalizedAUC_calcium_perUnit.apply(max_column_name, axis=1)
+                resultNormalizedAUC_calcium_perUnit['RatioNREM_REM'] =discrimination_index(resultNormalizedAUC_calcium_perUnit)
 
-                # Save  df
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_AUC_perUnitAB_N.xlsx'
-                writer = pd.ExcelWriter(filenameOut)
-                resultNormalizedAUC_calcium_perUnit.to_excel(writer)
-                writer.close()
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_nAUC.xlsx'
+                resultNormalizedAUC_calcium_perUnit.to_excel(filenameOut)
 
-                # Save  df
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_DiffVigSt_AUC_perUnitAB_N.xlsx'
-                writer = pd.ExcelWriter(filenameOut)
-                Diff_resultNormalizedAUC_calcium_perUnit.to_excel(writer)
-                writer.close()
+                if Drug == 'Baseline':
+                    BaselineResultNormalizedAUC=resultNormalizedAUC_calcium_perUnit
 
                 proportions = resultNormalizedAUC_calcium_perUnit['Activated_by'].value_counts(normalize=True)*100
-                #print(proportions)
 
                 resultNormalizedAUC_calcium_perMouse = filtered_df.pivot_table(index='Mice', columns='Substate', values='NormalizedAUC_calcium', aggfunc='mean')
                 try: resultNormalizedAUC_calcium_perMouse = resultNormalizedAUC_calcium_perMouse[desired_order]
                 except: pass
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_AUC_perMouseAB.xlsx'
-                writer = pd.ExcelWriter(filenameOut)
-                resultNormalizedAUC_calcium_perMouse.to_excel(writer)
-                writer.close()
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_AUC_perMouse.xlsx'
+                resultNormalizedAUC_calcium_perMouse.to_excel(filenameOut)
 
                 #####################
                 # SPIKE ACTIVITY #
@@ -644,38 +564,28 @@ for NrSubtype in NrSubtypeList:
                 resultSpikeActivity_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='SpikeActivityHz', aggfunc='mean')    
                 try: resultSpikeActivity_perUnit = resultSpikeActivity_perUnit[desired_order]
                 except: pass
-                max_values_per_row = resultSpikeActivity_perUnit.max(axis=1)
-                Diff_resultSpikeActivity_perUnit = (resultSpikeActivity_perUnit.sub(max_values_per_row, axis=0) +100)
-                Diff_resultSpikeActivity_perUnit['Activated_by'] = resultSpikeActivity_perUnit.apply(max_column_name, axis=1)
-
-                # Add a new column with the column name that has the maximum value
                 resultSpikeActivity_perUnit['Activated_by'] = resultSpikeActivity_perUnit.apply(max_column_name, axis=1)
 
                 # Save  df
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Spike_perUnitAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Spike.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 resultSpikeActivity_perUnit.to_excel(writer)
-                writer.close()
-
-                # Save  df
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_DiffVigSt_Spike_perUnitAB_N.xlsx'
-                writer = pd.ExcelWriter(filenameOut)
-                Diff_resultSpikeActivity_perUnit.to_excel(writer)
                 writer.close()
 
                 resultSpikeActivity_perMouse = filtered_df.pivot_table(index='Mice', columns='Substate', values='SpikeActivityHz', aggfunc='mean')
                 try: resultSpikeActivity_perMouse = resultSpikeActivity_perMouse[desired_order]
                 except: pass
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Spike_perMouseAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_Spike_perMouse.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 resultSpikeActivity_perMouse.to_excel(writer)
                 writer.close()
-
+                """
                 proportions = resultSpikeActivity_perUnit['Activated_by'].value_counts(normalize=True)*100
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_ActivityVigSt_proportions.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 proportions.to_excel(writer)
                 writer.close()
+                """
 
                 #####################
                 # DECONV ACTIVITY #
@@ -684,47 +594,44 @@ for NrSubtype in NrSubtypeList:
                 resultSpikeActivity_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='DeconvSpikeMeanActivity', aggfunc='mean')    
                 try: resultSpikeActivity_perUnit = resultSpikeActivity_perUnit[desired_order]
                 except: pass
-                max_values_per_row = resultSpikeActivity_perUnit.max(axis=1)
-                Diff_resultSpikeActivity_perUnit = (resultSpikeActivity_perUnit.sub(max_values_per_row, axis=0) +100)
-                Diff_resultSpikeActivity_perUnit['Activated_by'] = resultSpikeActivity_perUnit.apply(max_column_name, axis=1)
-
-                # Add a new column with the column name that has the maximum value
                 resultSpikeActivity_perUnit['Activated_by'] = resultSpikeActivity_perUnit.apply(max_column_name, axis=1)
 
                 # Save  df
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_DeconvSpike_perUnitAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_DeconvSpike.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 resultSpikeActivity_perUnit.to_excel(writer)
-                writer.close()
-
-                # Save  df
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_DiffVigSt_DeconvSpike_perUnitAB_N.xlsx'
-                writer = pd.ExcelWriter(filenameOut)
-                Diff_resultSpikeActivity_perUnit.to_excel(writer)
                 writer.close()
 
                 resultSpikeActivity_perMouse = filtered_df.pivot_table(index='Mice', columns='Substate', values='DeconvSpikeMeanActivity', aggfunc='mean')
                 try: resultSpikeActivity_perMouse = resultSpikeActivity_perMouse[desired_order]
                 except: pass
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_DeconvSpike_perMouseAB.xlsx'
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_DeconvSpike_perMouse.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 resultSpikeActivity_perMouse.to_excel(writer)
                 writer.close()
 
+                """
                 proportions = resultSpikeActivity_perUnit['Activated_by'].value_counts(normalize=True)*100
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_ActivityVigSt_DeconvSpike_proportions.xlsx'
                 writer = pd.ExcelWriter(filenameOut)
                 proportions.to_excel(writer)
                 writer.close()
+                """
+
+        if DrugExperiment:
+            resultNormalizedAUC_calcium_perUnit = resultNormalizedAUC_calcium_perUnit.rename(columns={'Wake': 'CGP Wake', 'NREM': 'CGP NREM', 'REM': 'CGP REM', 'Activated_by':'CGP Activated_by', 'RatioNREM_REM':'CGP RatioNREM_REM'})
+            mergeRes=pd.concat([BaselineResultNormalizedAUC,resultNormalizedAUC_calcium_perUnit], axis=1)
+            filenameOut = f'{folder_to_save}/{NrSubtype}_SelectivityIndex.xlsx'
+            mergeRes.to_excel(filenameOut)
 
         #######################
         # Propreties VigStates
         #######################
 
-        filenameOut = f'{folder_to_save}/{Drug}_{NrSubtype}_PropretiesVigStatesAB.xlsx'
+        filenameOut = f'{folder_to_save}/{Drug}_{NrSubtype}_VigStPropreties.xlsx'
         writer = pd.ExcelWriter(filenameOut)
 
-        combined_df_Drug2 = combined_df_Drug.drop_duplicates(subset='Substate_ID', keep='first')
+        combined_df_Drug2 = combined_df_DrugO.drop_duplicates(subset='Substate_ID', keep='first')
 
         ProportionVigStates = combined_df_Drug2.pivot_table(index='Session_ID', columns='Substate', values='DurationSubstate', aggfunc='sum')
         try: ProportionVigStates = ProportionVigStates[desired_order]
