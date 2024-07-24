@@ -1,0 +1,32 @@
+ipykernel
+
+#pour ephysviewer:
+numpy
+scipy
+joblib
+tqdm
+matplotlib
+h5py
+pandas
+xarray
+zarr
+scikit-learn
+hdbscan
+networkx
+pybind11
+loky
+numba
+jupyter
+PyQt5
+pyqtgraph
+ipywidgets
+ipympl
+
+ephyviewer
+MEArec
+spikeinterface[full,widgets] @ git+https://github.com/SpikeInterface/spikeinterface.git
+spikeinterface-gui @ git+https://github.com/SpikeInterface/spikeinterface.git
+tridesclous
+
+neo @ git+https://github.com/NeuralEnsemble/python-neo.git
+probeinterface @ git+https://github.com/SpikeInterface/probeinterface.git
