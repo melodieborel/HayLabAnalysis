@@ -8,7 +8,7 @@
 DrugExperiment=1
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
-AnalysisID='Zscored_Ultimate_N2' 
+AnalysisID='_N2_FINAL' 
 
 #######################################################################################
                                 # Load packages #
@@ -87,10 +87,10 @@ def find_session_folders(root_path):
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] if DrugExperiment else ['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
 
 # Get the current date and time
-FolderNameSave=str(datetime.now())
+FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Analysis_VigStates_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Analysis_VigStates_{FolderNameSave}{suffix}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/VigSt_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/VigStates_{FolderNameSave}{suffix}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -241,16 +241,16 @@ for mice in MiceList:
 
     Drugs=['Baseline', 'CGP'] if DrugExperiment else ['Baseline']
 
-    filenameOut = folder_to_save / f'VigilanceState_CaCorrelationAB_{mice}.xlsx'
+    filenameOut = folder_to_save / f'VigSt_CaCorr_{mice}.xlsx'
     excel_writerCa = pd.ExcelWriter(filenameOut)
     
-    filenameOut = folder_to_save / f'VigilanceState_SpCorrelationAB_{mice}.xlsx'
+    filenameOut = folder_to_save / f'VigSt_SpCorr_{mice}.xlsx'
     excel_writerSp = pd.ExcelWriter(filenameOut)
 
-    filenameOut = folder_to_save / f'VigilanceState_RawCaTracesAB_{mice}.xlsx'
+    filenameOut = folder_to_save / f'VigSt_RawCaTraces_{mice}.xlsx'
     excel_writerRawCa = pd.ExcelWriter(filenameOut)
     
-    filenameOut = folder_to_save / f'VigilanceState_RawSpTracesAB_{mice}.xlsx'
+    filenameOut = folder_to_save / f'VigSt_RawSpTraces_{mice}.xlsx'
     excel_writerRawSp = pd.ExcelWriter(filenameOut)
 
     for session in list(dict_Stamps.keys()):
@@ -325,10 +325,15 @@ for mice in MiceList:
         if nb_unit==0:
             continue  # next iteration
 
-        # Zscore traces
+        # Normalize traces
+        """
         Carray=zscore(Carray, axis=0)
+        min=np.min(Carray,axis=0) 
+        Carray=Carray-min
         Sarray=zscore(Sarray, axis=0)
-
+        min=np.min(Sarray,axis=0) 
+        Sarray=Sarray-min
+        """
         # Replace dropped frame in calcium and spike traces with the previous value
 
         for droppedframe in droppedframes_inrec: 
@@ -586,7 +591,7 @@ for mice in MiceList:
     excel_writerRawCa.close()
     excel_writerRawSp.close()
 
-    filenameOut = folder_to_save / f'VigilanceState_GlobalResultsAB_{mice}.xlsx'
+    filenameOut = folder_to_save / f'VigSt_Global_{mice}.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     VigilanceState_GlobalResults.to_excel(writer)
     writer.close()
