@@ -109,6 +109,7 @@ for m,mice in enumerate(MiceList):
         sdproj_EMGcwt = np.std(proj_EMGcwt)
 
         if Method==0:
+            #MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] 
             LowFactor= [3,1,2,1,2] if DrugExperiment else [3,1,2,1.5,1,1.2,2,5]
             HighFactor= [6,2,4,2,3] if DrugExperiment else [6,2,4,2,3,2,3,2,8]
             LowFactorSd=LowFactor[m]
