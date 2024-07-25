@@ -113,7 +113,7 @@ def is_between(myList, starttime, endtime):
 
 def is_overlapping(starttime, endtime, starttimeList, endtimeList):
     IsTrue='False'
-    for ind in range(len(starttimeList)):
+    for ind in starttimeList.index: #range(len(starttimeList)):
         if starttime<=starttimeList[ind] and starttimeList[ind]<=endtime: # event n°2 begins after the start n°1               
             if (endtime-starttimeList[ind])>=int(0.5*(endtime-starttime)): # overlapp > to 50% of the duration of the event n°1
                 IsTrue='True'
@@ -219,9 +219,12 @@ for mice in MiceList:
                 subsession= session + str(x)
                 subsessions.append(subsession)    
                 minian_ds = open_minian(folder_mini / subsession / f'minian')      # OR minianAB
-                dict_SWRprop[subsession]  = pd.read_excel(SWRproperties) if Method else pd.read_csv(SWRproperties)
-                dict_Spindleprop_PFC[subsession]  = pd.read_excel(Spindleproperties_PFC) if Method else pd.read_csv(Spindleproperties_PFC)
-                dict_Spindleprop_S1[subsession]  = pd.read_excel(Spindleproperties_S1) if Method else pd.read_csv(Spindleproperties_S1)           
+                SWRlist= pd.read_excel(SWRproperties) if Method else pd.read_csv(SWRproperties)
+                dict_SWRprop[subsession]  = SWRlist[SWRlist['toKeep']=='VRAI']
+                PFClist = pd.read_excel(Spindleproperties_PFC) if Method else pd.read_csv(Spindleproperties_PFC)
+                dict_Spindleprop_PFC[subsession]  = PFClist[PFClist['toKeep']=='VRAI']
+                S1list  = pd.read_excel(Spindleproperties_S1) if Method else pd.read_csv(Spindleproperties_S1)   
+                dict_Spindleprop_S1[subsession]  = S1list[S1list['toKeep']=='VRAI']
                 dict_DSprop_S1[subsession]  = pd.read_excel(DownStatesproperties_S1)           
                 dict_DSprop_PFC[subsession]  = pd.read_excel(DownStatesproperties_PFC)       
                 dict_Path[subsession] = session_path
@@ -244,9 +247,12 @@ for mice in MiceList:
             dict_Path[session] = session_path
             dict_Calcium[session] = minian_ds['C'] # calcium traces 
             dict_Spike[session] = minian_ds['S'] # estimated spikes
-            dict_SWRprop[session]  = pd.read_excel(SWRproperties) if Method else pd.read_csv(SWRproperties)
-            dict_Spindleprop_PFC[session]  = pd.read_excel(Spindleproperties_PFC) if Method else pd.read_csv(Spindleproperties_PFC)
-            dict_Spindleprop_S1[session]  = pd.read_excel(Spindleproperties_S1) if Method else pd.read_csv(Spindleproperties_S1)
+            SWRlist= pd.read_excel(SWRproperties) if Method else pd.read_csv(SWRproperties)
+            dict_SWRprop[session]  = SWRlist[SWRlist['toKeep']=='VRAI']
+            PFClist = pd.read_excel(Spindleproperties_PFC) if Method else pd.read_csv(Spindleproperties_PFC)
+            dict_Spindleprop_PFC[session]  = PFClist[PFClist['toKeep']=='VRAI']
+            S1list  = pd.read_excel(Spindleproperties_S1) if Method else pd.read_csv(Spindleproperties_S1)   
+            dict_Spindleprop_S1[session]  = S1list[S1list['toKeep']=='VRAI']
             dict_DSprop_S1[session]  = pd.read_excel(DownStatesproperties_S1)     
             dict_DSprop_PFC[session]  = pd.read_excel(DownStatesproperties_PFC)        
             dict_Stamps[session]  = pd.read_excel(StampsFile)
@@ -281,7 +287,7 @@ for mice in MiceList:
                 listSpdlS1ends=listSpdlS1["end time"]
                 listSpdlS1['GlobalSpindle']=None
                 listSpdlPFC['GlobalSpindle']=None
-                for ss in range(len(listSpdlPFCstarts)): # for PFC 
+                for ss in listSpdlPFCstarts.index : #range(len(listSpdlPFCstarts)): # for PFC 
                     startPFC=listSpdlPFCstarts[ss]
                     endPFC=listSpdlPFCends[ss]
                     Istrue=is_overlapping(startPFC, endPFC, listSpdlS1starts, listSpdlS1ends)
@@ -291,7 +297,7 @@ for mice in MiceList:
                     filenameOut = session_path / f'OpenEphys/Spindlesproperties_PFC_7sd_AB.xlsx'  if Method else session_path / f'OpenEphys/Spindleproperties_PFC.csv'
                     print(filenameOut)
                     #dict_Spindleprop_PFC[subsession].to_excel(filenameOut) if Method else dict_Spindleprop_PFC[subsession].to_csv(filenameOut)
-                for ss in range(len(listSpdlS1starts)): # for S1 
+                for ss in listSpdlS1starts.index : #range(len(listSpdlS1starts)): # for S1 
                     startS1=listSpdlS1starts[ss]
                     endS1=listSpdlS1ends[ss]
                     Istrue=is_overlapping(startS1, endS1, listSpdlPFCstarts, listSpdlPFCends)
@@ -310,7 +316,7 @@ for mice in MiceList:
             listSpdlS1ends=listSpdlS1["end time"]
             listSpdlS1['GlobalSpindle']=None
             listSpdlPFC['GlobalSpindle']=None
-            for ss in range(len(listSpdlPFCstarts)): # for PFC 
+            for ss in listSpdlPFCstarts.index : #range(len(listSpdlPFCstarts)): # for PFC 
                 startPFC=listSpdlPFCstarts[ss]
                 endPFC=listSpdlPFCends[ss]
                 Istrue=is_overlapping(startPFC, endPFC, listSpdlS1starts, listSpdlS1ends)
@@ -319,7 +325,7 @@ for mice in MiceList:
             filenameOut = session_path / f'OpenEphys/Spindlesproperties_PFC_7sd_AB.xlsx' if Method else session_path / f'OpenEphys/Spindleproperties_PFC.csv'
             print(filenameOut)
             #dict_Spindleprop_PFC[session].to_excel(filenameOut) if Method else dict_Spindleprop_PFC[session].to_csv(filenameOut)
-            for ss in range(len(listSpdlS1starts)): # for S1 
+            for ss in listSpdlS1starts.index : #range(len(listSpdlS1starts)): # for S1 
                 startS1=listSpdlS1starts[ss]
                 endS1=listSpdlS1ends[ss]
                 Istrue=is_overlapping(startS1, endS1, listSpdlPFCstarts, listSpdlPFCends)
