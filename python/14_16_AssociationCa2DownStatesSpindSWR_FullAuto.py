@@ -220,11 +220,14 @@ for mice in MiceList:
                 subsessions.append(subsession)    
                 minian_ds = open_minian(folder_mini / subsession / f'minian')      # OR minianAB
                 SWRlist= pd.read_excel(SWRproperties) if Method else pd.read_csv(SWRproperties)
-                dict_SWRprop[subsession]  = SWRlist[SWRlist['toKeep']=='VRAI']
+                SWRlist['toKeep'] = SWRlist['toKeep'].astype(str)
+                dict_SWRprop[subsession]  =SWRlist[SWRlist['toKeep'].isin(['VRAI', 'True'])]
                 PFClist = pd.read_excel(Spindleproperties_PFC) if Method else pd.read_csv(Spindleproperties_PFC)
-                dict_Spindleprop_PFC[subsession]  = PFClist[PFClist['toKeep']=='VRAI']
+                PFClist['toKeep'] = PFClist['toKeep'].astype(str)
+                dict_Spindleprop_PFC[subsession]  = PFClist[PFClist['toKeep'].isin(['VRAI', 'True'])]
                 S1list  = pd.read_excel(Spindleproperties_S1) if Method else pd.read_csv(Spindleproperties_S1)   
-                dict_Spindleprop_S1[subsession]  = S1list[S1list['toKeep']=='VRAI']
+                S1list['toKeep'] = S1list['toKeep'].astype(str)
+                dict_Spindleprop_S1[subsession]  = S1list[S1list['toKeep'].isin(['VRAI', 'True'])]
                 dict_DSprop_S1[subsession]  = pd.read_excel(DownStatesproperties_S1)           
                 dict_DSprop_PFC[subsession]  = pd.read_excel(DownStatesproperties_PFC)       
                 dict_Path[subsession] = session_path
@@ -248,11 +251,14 @@ for mice in MiceList:
             dict_Calcium[session] = minian_ds['C'] # calcium traces 
             dict_Spike[session] = minian_ds['S'] # estimated spikes
             SWRlist= pd.read_excel(SWRproperties) if Method else pd.read_csv(SWRproperties)
-            dict_SWRprop[session]  = SWRlist[SWRlist['toKeep']=='VRAI']
+            SWRlist['toKeep'] = SWRlist['toKeep'].astype(str)
+            dict_SWRprop[session]  =SWRlist[SWRlist['toKeep'].isin(['VRAI', 'True'])]
             PFClist = pd.read_excel(Spindleproperties_PFC) if Method else pd.read_csv(Spindleproperties_PFC)
-            dict_Spindleprop_PFC[session]  = PFClist[PFClist['toKeep']=='VRAI']
+            PFClist['toKeep'] = PFClist['toKeep'].astype(str)
+            dict_Spindleprop_PFC[session]  = PFClist[PFClist['toKeep'].isin(['VRAI', 'True'])]
             S1list  = pd.read_excel(Spindleproperties_S1) if Method else pd.read_csv(Spindleproperties_S1)   
-            dict_Spindleprop_S1[session]  = S1list[S1list['toKeep']=='VRAI']
+            S1list['toKeep'] = S1list['toKeep'].astype(str)
+            dict_Spindleprop_S1[session]  = S1list[S1list['toKeep'].isin(['VRAI', 'True'])]
             dict_DSprop_S1[session]  = pd.read_excel(DownStatesproperties_S1)     
             dict_DSprop_PFC[session]  = pd.read_excel(DownStatesproperties_PFC)        
             dict_Stamps[session]  = pd.read_excel(StampsFile)
@@ -267,7 +273,7 @@ for mice in MiceList:
                 with open(TodropFile, 'r') as f:
                     unit_to_drop = json.load(f)
                     dict_TodropFile[session]  = unit_to_drop
-    
+
     #######################################################################################
                              # Detect Global Spindles #
     #######################################################################################
@@ -1162,11 +1168,11 @@ for mice in MiceList:
                                     resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
                                     key=mice + str(indexMapp).replace('[','').replace(']','')
                                     dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
-
+                sentence2=f"... in {Cortex}: {nb_ds} down states ({cPreCoupledDS} Pre, {cPostCoupledDS} Post & {cUnCoupledDS} Uncoupled DS), {nb_spindle} spindles ({cPreCoupled} Pre, {cPostCoupled} Post & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global & {cLocal} Local) and {nb_swr} SWR detected ({cPreCoupledSWR} Pre, {cPostCoupledSWR} Post & {cUnCoupledSWR} Uncoupled SWR)"
+                print(sentence2) 
             else:
                 print(f'/!\ {session} not taken into account cause minian frequency = {minian_freq}')
-            sentence2=f"... in {Cortex}: {nb_ds} down states ({cPreCoupledDS} Pre, {cPostCoupledDS} Post & {cUnCoupledDS} Uncoupled DS), {nb_spindle} spindles ({cPreCoupled} Pre, {cPostCoupled} Post & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global & {cLocal} Local) and {nb_swr} SWR detected ({cPreCoupledSWR} Pre, {cPostCoupledSWR} Post & {cUnCoupledSWR} Uncoupled SWR)"
-            print(sentence2)       
+                  
 
         #######################################################################################
                                 # Save Spindles analysis #

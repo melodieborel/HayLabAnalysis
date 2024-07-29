@@ -254,8 +254,8 @@ for NrSubtype in NrSubtypeList:
     combined_df_Drug = combined_df_Drug[combined_df_Drug['Drug'] == 'Baseline'] if DrugExperiment else combined_df_Drug
 
     # the highest mean = the preference OR discrimination factor 
-    AllUnits = combined_df_Drug['Unit_ID'].unique()
-    
+    AllBaselineUnits = combined_df_Drug['Unit_ID'].unique()
+        
     AresultActivity_perUnit = combined_df_Drug.pivot_table(index='Unit_ID', columns='Substate', values='NormalizedAUC_calcium', aggfunc='mean')   
     try : AresultActivity_perUnit = AresultActivity_perUnit[desired_order]
     except: pass
@@ -266,6 +266,17 @@ for NrSubtype in NrSubtypeList:
     REMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] <= lower_threshold].index
     NREMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] >= upper_threshold].index
     NotSpeunits = AresultActivity_perUnit[(AresultActivity_perUnit['RatioNREM_REM'] > lower_threshold) & (AresultActivity_perUnit['RatioNREM_REM'] < upper_threshold)].index
+    
+    # Only keep units that appears in CGP & Baseline
+    if DrugExperiment:
+        combined_df_CGP=combined_df.copy()
+        combined_df_CGP = combined_df_CGP[combined_df_CGP['Drug'] == 'CGP'] 
+        AllCGPUnits = combined_df_CGP['Unit_ID'].unique()
+        AllBaselineUnits= np.intersect1d(AllCGPUnits, AllBaselineUnits)
+        REMspeunits=np.intersect1d(REMspeunits, AllCGPUnits)
+        NREMspeunits=np.intersect1d(NREMspeunits, AllCGPUnits)
+        NotSpeunits=np.intersect1d(NotSpeunits, AllCGPUnits)
+    
     """
     index_lists = {}
     for unitindex in AresultActivity_perUnit['Activated_by'].unique():
@@ -276,16 +287,17 @@ for NrSubtype in NrSubtypeList:
     except: REMprefUnits=[]
     WakeprefUnits=index_lists['Wake']
     """
+    
     # Save the List of significant Unit more active in one vigilance state
     if NrSubtype=='All':
         os.makedirs(f'{folder_to_save}/Baseline/')
     filenameOut = f'{folder_to_save}/Baseline/{NrSubtype}_ActivityPreference.xlsx'
     writer = pd.ExcelWriter(filenameOut)    
-    AllUnitsDF = pd.DataFrame(AllUnits)
+    AllBaselineUnitsDF = pd.DataFrame(AllBaselineUnits)
     REMspeunitsDF = pd.DataFrame(REMspeunits)
     NREMspeunitsDF = pd.DataFrame(NREMspeunits)
     NotSpeunitsDF = pd.DataFrame(NotSpeunits)
-    AllUnitsDF.to_excel(writer, sheet_name='AllUnits', index=True, header=False) 
+    AllBaselineUnitsDF.to_excel(writer, sheet_name='AllBaselineUnits', index=True, header=False) 
     REMspeunitsDF.to_excel(writer, sheet_name='REMspe', index=True, header=False) 
     NREMspeunitsDF.to_excel(writer, sheet_name='NREMspe', index=True, header=False) 
     NotSpeunitsDF.to_excel(writer, sheet_name='NotSpe', index=True, header=False) 
@@ -299,10 +311,6 @@ for NrSubtype in NrSubtypeList:
     """
     writer.close()
 
-    # /!\ The ones from Baseline (not CGP)
-    List_SignFiringPreference=[NREMspeunits, REMspeunits, NotSpeunits, AllUnits] #NREMprefUnits, REMprefUnits, WakeprefUnits] 
-    List_Names=['NREMspeUnits','REMspeUnits','NotSpeUnits', 'AllUnits'] #'NREMprefUnits', 'REMprefUnits', 'WakeprefUnits' ] 
-
     for Drug in Drugs:
 
         combined_df_DrugO=combined_dfO.copy()
@@ -313,6 +321,14 @@ for NrSubtype in NrSubtypeList:
         folder_to_save2= f'{folder_to_save}/{Drug}/'
         if NrSubtype=='All' and Drug=='CGP':
             os.makedirs(folder_to_save2)
+
+        if DrugExperiment: 
+            combined_df_CGP=combined_df.copy()
+            combined_df_CGP = combined_df_CGP[combined_df_CGP['Drug'] == Drug]
+            AllUnits= combined_df_CGP['Unit_ID'].unique()
+
+        List_SignFiringPreference=[NREMspeunits, REMspeunits, NotSpeunits, AllBaselineUnits, AllUnits] if DrugExperiment else [NREMspeunits, REMspeunits, NotSpeunits, AllBaselineUnits] #NREMprefUnits, REMprefUnits, WakeprefUnits] 
+        List_Names=['NREMspeUnits','REMspeUnits','NotSpeUnits', 'AllBaselineUnits', 'AllUnits'] if DrugExperiment else ['NREMspeUnits','REMspeUnits','NotSpeUnits', 'AllUnits'] #'NREMprefUnits', 'REMprefUnits', 'WakeprefUnits' ] 
 
         for listnb, listI  in enumerate(List_SignFiringPreference):
             
