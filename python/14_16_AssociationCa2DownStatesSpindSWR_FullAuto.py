@@ -124,6 +124,7 @@ def find_session_folders(root_path):
 #######################################################################################
 
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] if DrugExperiment else ['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
+MiceList=['BlackLinesOK']
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())[:19]
@@ -148,14 +149,14 @@ for mice in MiceList:
     print(f"Path to the folder : {dpath}")
     folder_base = Path(dpath)
 
-    try:
-        mfile = open(folder_base / f'mappingsAB.pkl', 'rb')
-        mapping = pickle.load(mfile)
-        print('mappingsAB.pkl opened')
-    except:
-        mfile = open(folder_base / f'mappings.pkl', 'rb')
-        mapping = pickle.load(mfile)
-        print('mappings.pkl opened')
+    #try:
+    mfile = open(folder_base / f'mappingsAB_ALL.pkl', 'rb')
+    mapping = pickle.load(mfile)
+    print('mappingsAB_ALL.pkl opened')
+    #except:
+    #    mfile = open(folder_base / f'mappings.pkl', 'rb')
+    #    mapping = pickle.load(mfile)
+    #    print('mappings.pkl opened')
 
     subsessions = []
     dict_Calcium = {}
@@ -184,7 +185,7 @@ for mice in MiceList:
                 subsessions.append(subsession)    
                 minian_ds = open_minian(folder_mini / subsession / f'minian')      # OR minianAB
                 SWRlist= pd.read_excel(SWRproperties) if Method else pd.read_csv(SWRproperties)
-                SWRlist['toKeep'] = SWRlist['toKeep'].astype(str)
+                SWRlist['toKeep'] = SWRlist['toKeep'].astype(str)  if DrugExperiment else 'True'
                 dict_SWRprop[subsession]  =SWRlist[SWRlist['toKeep'].isin(['VRAI', 'True'])]
                 Spdllist = pd.read_excel(Spindleproperties) if Method else pd.read_csv(Spindleproperties)
                 Spdllist['toKeep'] = Spdllist['toKeep'].astype(str)
@@ -210,10 +211,10 @@ for mice in MiceList:
             dict_Calcium[session] = minian_ds['C'] # calcium traces 
             dict_Spike[session] = minian_ds['S'] # estimated spikes
             SWRlist= pd.read_excel(SWRproperties) if Method else pd.read_csv(SWRproperties)
-            SWRlist['toKeep'] = SWRlist['toKeep'].astype(str)
+            SWRlist['toKeep'] = SWRlist['toKeep'].astype(str) if DrugExperiment else 'True'
             dict_SWRprop[session]  =SWRlist[SWRlist['toKeep'].isin(['VRAI', 'True'])]
             Spdllist = pd.read_excel(Spindleproperties) if Method else pd.read_csv(Spindleproperties)
-            Spdllist['toKeep'] = Spdllist['toKeep'].astype(str)
+            Spdllist['toKeep'] = Spdllist['toKeep'].astype(str) 
             dict_Spindleprop[session]  = Spdllist[Spdllist['toKeep'].isin(['VRAI', 'True'])]
             dict_Stamps[session]  = pd.read_excel(StampsFile)
             dict_StampsMiniscope[session]  = pd.read_csv(StampsMiniscopeFile)
@@ -423,8 +424,7 @@ for mice in MiceList:
                             cLocalS1+=1 if unit==0 else 0
                         elif ctxSpi=='PFC': 
                             cLocalPFC+=1 if unit==0 else 0
-                        elif ctxSpi=='S1&PFC': 
-                            ctxSpi='S1PFC'
+                        elif ctxSpi=='S1PFC': 
                             cGlobal+=1 if unit==0 else 0    
 
                         Frame_Spindle_start = int(startSpi/1000*minian_freq)                            
@@ -736,7 +736,7 @@ for mice in MiceList:
 
     # Save the big summary table Spindles_GlobalResults
 
-    filenameOut = folder_to_save / f'Spindles_Global_{mice}.xlsx'
+    filenameOut = folder_to_save / f'Spdl_Global_{mice}.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     Spindles_GlobalResults.to_excel(writer)
     writer.close()
@@ -752,7 +752,7 @@ for mice in MiceList:
 
     Data=['Ca', 'Sp']
     for data in Data:
-        filenameOut = folder_to_save / f'SPDL_{data}Avg_{mice}.xlsx'
+        filenameOut = folder_to_save / f'Spdl_{data}PSTH_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
         for ctx in CTX: 
             for coup in Coupling:
@@ -760,9 +760,9 @@ for mice in MiceList:
                     dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SPDL{ctx}_{drug}']
                     AVG_dict_All_Activity = {key: np.mean(matrix,0) for key, matrix in dict_All_Activity.items()}
                     Array=pd.DataFrame(AVG_dict_All_Activity).T
-                    Array.to_excel(excel_writer, sheet_name=f'{ctx}_{coup}SPDL_{drug}', index=True, header=False)
+                    Array.to_excel(excel_writer, sheet_name=f'{ctx}_{coup}Spdl_{drug}', index=True, header=False)
         excel_writer.close()
-        filenameOut = folder_to_save / f'SWR_{data}Avg_{mice}.xlsx'
+        filenameOut = folder_to_save / f'SWR_{data}PSTH_{mice}.xlsx'
         excel_writer = pd.ExcelWriter(filenameOut)
         for coup in Coupling:
                 for drug in Drugs:      

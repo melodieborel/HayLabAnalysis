@@ -8,7 +8,7 @@
 DrugExperiment=1
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
-AnalysisID='_N2_FINAL' 
+AnalysisID='TEST' 
 
 #######################################################################################
                                 # Load packages #
@@ -109,12 +109,8 @@ for mice in MiceList:
     print(f"Path to the folder : {dpath}")
     folder_base = Path(dpath)
 
-    try:
-        mfile = open(folder_base / f'mappingsAB.pkl', 'rb')
-        mapping = pickle.load(mfile)
-    except:
-        mfile = open(folder_base / f'mappings.pkl', 'rb')
-        mapping = pickle.load(mfile)
+    mfile = open(folder_base / f'mappingsAB_ALL.pkl', 'rb')
+    mapping = pickle.load(mfile)
 
     sessions = []
     subsessions = []
@@ -351,7 +347,7 @@ for mice in MiceList:
         SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled[StartTime_frame:StartTime_frame+upd_rec_dur]
 
         # Remove N2 stage
-        #SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
+        SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
             
         # Determine each substate identity and duration
         array=SleepScoredTS_upscaled_ministart
@@ -538,24 +534,28 @@ for mice in MiceList:
             CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
             if len(CaCorrVigStateMatrix)>0: # cause sometimes no Baseline conditions in CGP experiments
                 combined_df = pd.concat(CaCorrVigStateMatrix, ignore_index=False)
-                combined_df = combined_df.groupby(combined_df.index).mean()
-                combined_df.index = [mice + str(idx) for idx in combined_df.index]
+                IterationNb=combined_df.groupby(combined_df.index).count()
+                combined_df = combined_df.groupby(combined_df.index).sum() #mean
+                combined_df.index= [mice + str(idx) for idx in combined_df.index]
                 combined_df = combined_df.dropna(axis=0, how='all')
                 combined_df = combined_df.dropna(axis=1, how='all')
                 combined_df.to_excel(excel_writerCa, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True) 
                 
                 combined_df = pd.concat(CaCorrVigStateMatrix, ignore_index=False)
                 combined_df = combined_df.applymap(lambda x: np.arctanh(x) if not pd.isna(x) else np.nan)
-                combined_df = combined_df.groupby(combined_df.index).mean()
+                combined_df = combined_df.groupby(combined_df.index).sum() #mean
                 combined_df.index = [mice + str(idx) for idx in combined_df.index]
                 combined_df = combined_df.dropna(axis=0, how='all')
                 combined_df = combined_df.dropna(axis=1, how='all')
                 combined_df.to_excel(excel_writerCa, sheet_name=f'Z_{Drug}_{mapp[m]}', index=True, header=True)   
 
+                IterationNb.to_excel(excel_writerCa, sheet_name=f'{Drug}_{mapp[m]}_IterationNb', index=True, header=True) 
+
                 SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix{Drug}'
                 SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
                 combined_df = pd.concat(SpCorrVigStateMatrix, ignore_index=False)
-                combined_df = combined_df.groupby(combined_df.index).mean()
+                IterationNb=combined_df.groupby(combined_df.index).count()
+                combined_df = combined_df.groupby(combined_df.index).sum()
                 combined_df.index = [mice + str(idx) for idx in combined_df.index]
                 combined_df = combined_df.dropna(axis=0, how='all')
                 combined_df = combined_df.dropna(axis=1, how='all')
@@ -563,11 +563,13 @@ for mice in MiceList:
                 
                 combined_df = pd.concat(SpCorrVigStateMatrix, ignore_index=False)
                 combined_df = combined_df.applymap(lambda x: np.arctanh(x) if not pd.isna(x) else np.nan)
-                combined_df = combined_df.groupby(combined_df.index).mean()
+                combined_df = combined_df.groupby(combined_df.index).sum()
                 combined_df.index = [mice + str(idx) for idx in combined_df.index]
                 combined_df = combined_df.dropna(axis=0, how='all')
                 combined_df = combined_df.dropna(axis=1, how='all')
                 combined_df.to_excel(excel_writerSp, sheet_name=f'Z_{Drug}_{mapp[m]}', index=True, header=True) 
+                
+                IterationNb.to_excel(excel_writerSp, sheet_name=f'{Drug}_{mapp[m]}_IterationNb', index=True, header=True) 
             
             RawCaTracesVigStateMatrixName=f'RawCaTraces{mapp[m]}_{Drug}'
             RawCaTracesVigStateMatrix= locals()[RawCaTracesVigStateMatrixName]
