@@ -88,7 +88,7 @@ source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayL
 destination_file_path = f"{destination_folder}/23_24_GrandAverage&Stats_for_VigilanceStates_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
 
-NrSubtypeList=['All', 'L1']
+NrSubtypeList=['L2&3', 'L1']
 
 for NrSubtype in NrSubtypeList:  
 
@@ -213,6 +213,10 @@ for NrSubtype in NrSubtypeList:
             # SCRIPT 24AB_Load&Stats_for_VigilanceStates
 ########################################################################
 
+AllProportionVigStates=pd.DataFrame()
+AllDurationVigStates=pd.DataFrame()
+AllTotDurationVigStates=pd.DataFrame()
+
 for NrSubtype in NrSubtypeList:
 
     analysisfile='VigSt_Global'
@@ -289,7 +293,7 @@ for NrSubtype in NrSubtypeList:
     """
     
     # Save the List of significant Unit more active in one vigilance state
-    if NrSubtype=='All':
+    if NrSubtype=='L2&3':
         os.makedirs(f'{folder_to_save}/Baseline/')
     filenameOut = f'{folder_to_save}/Baseline/{NrSubtype}_ActivityPreference.xlsx'
     writer = pd.ExcelWriter(filenameOut)    
@@ -319,7 +323,7 @@ for NrSubtype in NrSubtypeList:
         combined_df_Drug = combined_df_Drug[combined_df_Drug['Drug'] == Drug] if DrugExperiment else combined_df_Drug
 
         folder_to_save2= f'{folder_to_save}/{Drug}/'
-        if NrSubtype=='All' and Drug=='CGP':
+        if NrSubtype=='L2&3' and Drug=='CGP':
             os.makedirs(folder_to_save2)
 
         if DrugExperiment: 
@@ -345,7 +349,7 @@ for NrSubtype in NrSubtypeList:
             filtered_df_AllDrug.to_excel(writer)
             writer.close()
 
-            if NrSubtype=='All':
+            if NrSubtype=='L2&3':
                 new_folder= f"{folder_to_save2}/{List_name}/"
                 os.makedirs(new_folder)
 
@@ -856,27 +860,33 @@ for NrSubtype in NrSubtypeList:
             filenameOut = f'{folder_to_save}/{NrSubtype}_SelectivityIndex.xlsx'
             mergeRes.to_excel(filenameOut)
 
-        #######################
-        # Propreties VigStates
-        #######################
+    #######################
+    # Propreties VigStates
+    #######################
 
-        filenameOut = f'{folder_to_save}/{Drug}_{NrSubtype}_VigStPropreties.xlsx'
-        writer = pd.ExcelWriter(filenameOut)
+    filenameOut = f'{folder_to_save}/VigStPropreties.xlsx'
+    writer = pd.ExcelWriter(filenameOut)
 
-        combined_df_Drug2 = combined_df_DrugO.drop_duplicates(subset='Substate_ID', keep='first')
+    combined_df2 = combined_dfO.drop_duplicates(subset='Substate_ID', keep='first')
 
-        ProportionVigStates = combined_df_Drug2.pivot_table(index='Session_ID', columns='Substate', values='DurationSubstate', aggfunc='sum')
-        try: ProportionVigStates = ProportionVigStates[desired_order]
-        except: pass
-        ProportionVigStates2=ProportionVigStates.div(ProportionVigStates.sum(axis=1), axis=0)*100
-        ProportionVigStates2.to_excel(writer, sheet_name='ProportionVigStates')
+    ProportionVigStates = combined_df2.pivot_table(index='Session_ID', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='sum', fill_value=None)
+    try: ProportionVigStates = ProportionVigStates[desired_order]
+    except: pass
+    ProportionVigStates=ProportionVigStates.div(ProportionVigStates.sum(axis=1), axis=0)*100
+    AllProportionVigStates=pd.concat([AllProportionVigStates, ProportionVigStates], axis=0)
 
-        DurationVigStates = combined_df_Drug2.pivot_table(index='Session_ID', columns='Substate', values='DurationSubstate', aggfunc='mean')
-        DurationVigStates = combined_df_Drug2.pivot_table(index='Substate_ID', columns='Substate', values='DurationSubstate', fill_value=None)
-        
-        try: DurationVigStates = DurationVigStates[desired_order]
-        except: pass
-        DurationVigStates.to_excel(writer, sheet_name='EpisodeDurations')
+    DurationVigStates = combined_df2.pivot_table(index='Session_ID', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='mean', fill_value=None)
+    try: DurationVigStates = DurationVigStates[desired_order]
+    except: pass        
+    AllDurationVigStates=pd.concat([AllDurationVigStates, DurationVigStates], axis=0)
 
-        writer.close()
+    TotDurationVigStates = combined_df2.pivot_table(index='Session_ID', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='sum', fill_value=None)
+    try: TotDurationVigStates = TotDurationVigStates[desired_order]
+    except: pass
+    AllTotDurationVigStates=pd.concat([AllTotDurationVigStates, TotDurationVigStates], axis=0)
+
+AllProportionVigStates.to_excel(writer, sheet_name=f'ProportionVigStates')        
+AllDurationVigStates.to_excel(writer, sheet_name=f'MeanEpisodeDurations')
+AllTotDurationVigStates.to_excel(writer, sheet_name=f'TotalEpisodeDurations')
+writer.close()
      
