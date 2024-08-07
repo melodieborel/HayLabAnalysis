@@ -7,8 +7,10 @@
 #DrugExperiment=0 #if Baseline Experiment =1#if CGP Experiment
 DrugExperiment=1
 
+saveexcel=0
+
 Method=0 # 1=AB 0=AH
-AnalysisID='_FINAL' 
+AnalysisID='_ALL' 
 
 suffix='_AB' if Method else '_AH'
 
@@ -124,7 +126,6 @@ def find_session_folders(root_path):
 #######################################################################################
 
 MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] if DrugExperiment else ['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
-MiceList=['BlackLinesOK']
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())[:19]
@@ -733,44 +734,73 @@ for mice in MiceList:
     #######################################################################################
                             # Save Spindles & SWR analysis #
     #######################################################################################
+    if saveexcel: 
+        # Save the big summary table Spindles_GlobalResults
+        filenameOut = folder_to_save / f'Spdl_Global_{mice}.xlsx'
+        writer = pd.ExcelWriter(filenameOut)
+        Spindles_GlobalResults.to_excel(writer)
+        writer.close()
 
-    # Save the big summary table Spindles_GlobalResults
+        # Save the big summary table SWR_GlobalResults
+        filenameOut = folder_to_save / f'SWR_Global_{mice}.xlsx'
+        writer = pd.ExcelWriter(filenameOut)
+        SWR_GlobalResults.to_excel(writer)
+        writer.close()
 
-    filenameOut = folder_to_save / f'Spdl_Global_{mice}.xlsx'
-    writer = pd.ExcelWriter(filenameOut)
-    Spindles_GlobalResults.to_excel(writer)
-    writer.close()
-
-    # Save the big summary table SWR_GlobalResults
-
-    filenameOut = folder_to_save / f'SWR_Global_{mice}.xlsx'
-    writer = pd.ExcelWriter(filenameOut)
-    SWR_GlobalResults.to_excel(writer)
-    writer.close()
+    filenameOut = folder_to_save / f'Spdl_Global_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(Spindles_GlobalResults, pickle_file)   
+    
+    filenameOut = folder_to_save / f'SWR_Global_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(SWR_GlobalResults, pickle_file)
 
     # Do average Calcium & Spike results for Spindles & SWR Peristimulus Time Histogram 
 
     Data=['Ca', 'Sp']
     for data in Data:
-        filenameOut = folder_to_save / f'Spdl_{data}PSTH_{mice}.xlsx'
-        excel_writer = pd.ExcelWriter(filenameOut)
+        if saveexcel: 
+            filenameOut = folder_to_save / f'Spdl_{data}PSTH_{mice}.xlsx'
+            excel_writer = pd.ExcelWriter(filenameOut)
+        DataSpdl={}
+        DataSpdl['IterationNb']=pd.DataFrame()
+        DataSWR={}
+        DataSWR['IterationNb']=pd.DataFrame()
         for ctx in CTX: 
             for coup in Coupling:
                 for drug in Drugs:      
                     dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SPDL{ctx}_{drug}']
-                    AVG_dict_All_Activity = {key: np.mean(matrix,0) for key, matrix in dict_All_Activity.items()}
+                    IterationNb = {key: np.shape(matrix)[0] for key, matrix in dict_All_Activity.items()}
+                    AVG_dict_All_Activity = {key: np.sum(matrix,0) for key, matrix in dict_All_Activity.items()}
                     Array=pd.DataFrame(AVG_dict_All_Activity).T
-                    Array.to_excel(excel_writer, sheet_name=f'{ctx}_{coup}Spdl_{drug}', index=True, header=False)
-        excel_writer.close()
-        filenameOut = folder_to_save / f'SWR_{data}PSTH_{mice}.xlsx'
-        excel_writer = pd.ExcelWriter(filenameOut)
+                    IterationNb=pd.DataFrame(IterationNb.values(), index=IterationNb.keys(), columns=[f'{ctx}_{coup}Spdl_{drug}'])
+                    DataSpdl[f'{ctx}_{coup}Spdl_{drug}']=Array
+                    DataSpdl['IterationNb']=pd.concat([DataSpdl['IterationNb'], IterationNb], axis=1)
+                    if saveexcel: Array.to_excel(excel_writer, sheet_name=f'{ctx}_{coup}Spdl_{drug}', index=True, header=False)
+                    if saveexcel: IterationNb.to_excel(excel_writer, sheet_name=f'IT_{ctx}_{coup}Spdl_{drug}', index=True, header=False)
+        if saveexcel: excel_writer.close()
+        filenameOut = folder_to_save / f'Spdl_{data}PSTH_{mice}.pkl'
+        with open(filenameOut, 'wb') as pickle_file:
+            pickle.dump(DataSpdl, pickle_file)
+
+        if saveexcel: 
+            filenameOut = folder_to_save / f'SWR_{data}PSTH_{mice}.xlsx'
+            excel_writer = pd.ExcelWriter(filenameOut)
         for coup in Coupling:
-                for drug in Drugs:      
-                    dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR_{drug}']
-                    AVG_dict_All_Activity = {key: np.mean(matrix,0) for key, matrix in dict_All_Activity.items()}
-                    Array=pd.DataFrame(AVG_dict_All_Activity).T
-                    Array.to_excel(excel_writer, sheet_name=f'{coup}SWR_{drug}', index=True, header=False)
-        excel_writer.close()
+            for drug in Drugs:      
+                dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR_{drug}']
+                IterationNb = {key: np.shape(matrix)[0] for key, matrix in dict_All_Activity.items()}
+                AVG_dict_All_Activity = {key: np.sum(matrix,0) for key, matrix in dict_All_Activity.items()}
+                Array=pd.DataFrame(AVG_dict_All_Activity).T
+                IterationNb=pd.DataFrame(IterationNb.values(), index=IterationNb.keys(), columns=[f'{coup}Spdl_{drug}'])
+                DataSWR[f'{coup}SWR_{drug}']=Array
+                DataSWR['IterationNb']=pd.concat([DataSWR['IterationNb'], IterationNb], axis=1)
+                if saveexcel: Array.to_excel(excel_writer, sheet_name=f'{coup}SWR_{drug}', index=True, header=False)
+                if saveexcel: IterationNb.to_excel(excel_writer, sheet_name=f'IT_{ctx}_{coup}Spdl_{drug}', index=True, header=False)
+        if saveexcel: excel_writer.close()
+        filenameOut = folder_to_save / f'SWR_{data}PSTH_{mice}.pkl'
+        with open(filenameOut, 'wb') as pickle_file:
+            pickle.dump(DataSWR, pickle_file)
 
 sentence3=f"Nb of unique units for {mice} = {len(dict_All_Activity)}"
 print(sentence3)    

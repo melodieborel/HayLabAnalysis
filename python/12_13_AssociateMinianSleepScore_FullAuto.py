@@ -5,10 +5,13 @@
 #######################################################################################
 
 #DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
-DrugExperiment=1
+DrugExperiment=0
+
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
-AnalysisID='TEST' 
+AnalysisID='_ALL' 
+
+saveexcel=0
 
 #######################################################################################
                                 # Load packages #
@@ -90,7 +93,7 @@ MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/VigSt_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/VigStates_{FolderNameSave}{suffix}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/VigSt_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/VigSt_{FolderNameSave}{suffix}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -236,18 +239,15 @@ for mice in MiceList:
     RawSpTracesREM_CGP=[]
 
     Drugs=['Baseline', 'CGP'] if DrugExperiment else ['Baseline']
-
-    filenameOut = folder_to_save / f'VigSt_CaCorr_{mice}.xlsx'
-    excel_writerCa = pd.ExcelWriter(filenameOut)
-    
-    filenameOut = folder_to_save / f'VigSt_SpCorr_{mice}.xlsx'
-    excel_writerSp = pd.ExcelWriter(filenameOut)
-
-    filenameOut = folder_to_save / f'VigSt_RawCaTraces_{mice}.xlsx'
-    excel_writerRawCa = pd.ExcelWriter(filenameOut)
-    
-    filenameOut = folder_to_save / f'VigSt_RawSpTraces_{mice}.xlsx'
-    excel_writerRawSp = pd.ExcelWriter(filenameOut)
+    if saveexcel: 
+        filenameOut = folder_to_save / f'VigSt_CaCorr_{mice}.xlsx'
+        excel_writerCa = pd.ExcelWriter(filenameOut)        
+        filenameOut = folder_to_save / f'VigSt_SpCorr_{mice}.xlsx'
+        excel_writerSp = pd.ExcelWriter(filenameOut)
+        filenameOut = folder_to_save / f'VigSt_RawCaTraces_{mice}.xlsx'
+        excel_writerRawCa = pd.ExcelWriter(filenameOut)        
+        filenameOut = folder_to_save / f'VigSt_RawSpTraces_{mice}.xlsx'
+        excel_writerRawSp = pd.ExcelWriter(filenameOut)
 
     for session in list(dict_Stamps.keys()):
 
@@ -348,14 +348,15 @@ for mice in MiceList:
 
         # Remove N2 stage
         SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
-            
+        mapp = {1.5: 'Wake', 0: 'NREM',  1: 'REM'}
+        # mapp = {1.5: 'Wake', 0.5: 'N2', 0: 'NREM',  1: 'REM'}
+
         # Determine each substate identity and duration
         array=SleepScoredTS_upscaled_ministart
         substates_duration = [len(list(group)) for key, group in groupby(array)]
         substates_identity = [key for key, _ in groupby(array)]
         substates_end = np.array(substates_duration).cumsum()        
         substates_start =np.append([0],substates_end[:-1]) #substates_start =np.append([1],substates_end+1) create 1 second gap
-        mapp = {1.5: 'Wake', 0.5: 'N2', 0: 'NREM',  1: 'REM'}
         substates_identity = [mapp[num] for num in substates_identity]
         substates = pd.DataFrame(list(zip(substates_identity, substates_duration, substates_start, substates_end)), columns=['Identity', 'Duration', 'Start','End'])
 
@@ -528,6 +529,8 @@ for mice in MiceList:
 
                 counter+=1
 
+    dataCaCorr={}
+    dataSpCorr={}
     for Drug in Drugs:
         for m in mapp:
             CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix{Drug}'
@@ -537,19 +540,24 @@ for mice in MiceList:
                 IterationNb=combined_df.groupby(combined_df.index).count()
                 combined_df = combined_df.groupby(combined_df.index).sum() #mean
                 combined_df.index= [mice + str(idx) for idx in combined_df.index]
-                combined_df = combined_df.dropna(axis=0, how='all')
-                combined_df = combined_df.dropna(axis=1, how='all')
-                combined_df.to_excel(excel_writerCa, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True) 
+                combined_df = combined_df[~(combined_df.fillna(0) == 0).all(axis=1)]
+                combined_df = combined_df.loc[:, ~(combined_df.fillna(0) == 0).all(axis=0)]
+                IterationNb = IterationNb[~(IterationNb.fillna(0) == 0).all(axis=1)]
+                IterationNb = IterationNb.loc[:, ~(IterationNb.fillna(0) == 0).all(axis=0)]
+                IterationNb.index=combined_df.index
+                if saveexcel: combined_df.to_excel(excel_writerCa, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True) 
+                dataCaCorr[f'{Drug}_{mapp[m]}']=combined_df
                 
                 combined_df = pd.concat(CaCorrVigStateMatrix, ignore_index=False)
                 combined_df = combined_df.applymap(lambda x: np.arctanh(x) if not pd.isna(x) else np.nan)
                 combined_df = combined_df.groupby(combined_df.index).sum() #mean
                 combined_df.index = [mice + str(idx) for idx in combined_df.index]
-                combined_df = combined_df.dropna(axis=0, how='all')
-                combined_df = combined_df.dropna(axis=1, how='all')
-                combined_df.to_excel(excel_writerCa, sheet_name=f'Z_{Drug}_{mapp[m]}', index=True, header=True)   
-
-                IterationNb.to_excel(excel_writerCa, sheet_name=f'{Drug}_{mapp[m]}_IterationNb', index=True, header=True) 
+                combined_df = combined_df[~(combined_df.fillna(0) == 0).all(axis=1)]
+                combined_df = combined_df.loc[:, ~(combined_df.fillna(0) == 0).all(axis=0)]
+                if saveexcel: combined_df.to_excel(excel_writerCa, sheet_name=f'Z_{Drug}_{mapp[m]}', index=True, header=True)   
+                dataCaCorr[f'Z_{Drug}_{mapp[m]}']=combined_df
+                if saveexcel: IterationNb.to_excel(excel_writerCa, sheet_name=f'{Drug}_{mapp[m]}_IterationNb', index=True, header=True) 
+                dataCaCorr[f'{Drug}_{mapp[m]}_IterationNb']=IterationNb
 
                 SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix{Drug}'
                 SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
@@ -557,44 +565,62 @@ for mice in MiceList:
                 IterationNb=combined_df.groupby(combined_df.index).count()
                 combined_df = combined_df.groupby(combined_df.index).sum()
                 combined_df.index = [mice + str(idx) for idx in combined_df.index]
-                combined_df = combined_df.dropna(axis=0, how='all')
-                combined_df = combined_df.dropna(axis=1, how='all')
-                combined_df.to_excel(excel_writerSp, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True) 
+                combined_df = combined_df[~(combined_df.fillna(0) == 0).all(axis=1)]
+                combined_df = combined_df.loc[:, ~(combined_df.fillna(0) == 0).all(axis=0)]
+                IterationNb = IterationNb[~(IterationNb.fillna(0) == 0).all(axis=1)]
+                IterationNb = IterationNb.loc[:, ~(IterationNb.fillna(0) == 0).all(axis=0)]
+                IterationNb.index=combined_df.index
+                if saveexcel: combined_df.to_excel(excel_writerSp, sheet_name=f'{Drug}_{mapp[m]}', index=True, header=True) 
+                dataSpCorr[f'{Drug}_{mapp[m]}']=combined_df
                 
                 combined_df = pd.concat(SpCorrVigStateMatrix, ignore_index=False)
                 combined_df = combined_df.applymap(lambda x: np.arctanh(x) if not pd.isna(x) else np.nan)
                 combined_df = combined_df.groupby(combined_df.index).sum()
                 combined_df.index = [mice + str(idx) for idx in combined_df.index]
-                combined_df = combined_df.dropna(axis=0, how='all')
-                combined_df = combined_df.dropna(axis=1, how='all')
-                combined_df.to_excel(excel_writerSp, sheet_name=f'Z_{Drug}_{mapp[m]}', index=True, header=True) 
-                
-                IterationNb.to_excel(excel_writerSp, sheet_name=f'{Drug}_{mapp[m]}_IterationNb', index=True, header=True) 
+                combined_df = combined_df[~(combined_df.fillna(0) == 0).all(axis=1)]
+                combined_df = combined_df.loc[:, ~(combined_df.fillna(0) == 0).all(axis=0)]
+                if saveexcel: combined_df.to_excel(excel_writerSp, sheet_name=f'Z_{Drug}_{mapp[m]}', index=True, header=True) 
+                dataSpCorr[f'Z_{Drug}_{mapp[m]}']=combined_df                
+                if saveexcel: IterationNb.to_excel(excel_writerSp, sheet_name=f'{Drug}_{mapp[m]}_IterationNb', index=True, header=True) 
+                dataSpCorr[f'{Drug}_{mapp[m]}_IterationNb']=IterationNb
             
-            RawCaTracesVigStateMatrixName=f'RawCaTraces{mapp[m]}_{Drug}'
-            RawCaTracesVigStateMatrix= locals()[RawCaTracesVigStateMatrixName]
-            if len(RawCaTracesVigStateMatrix)>0: # cause sometimes no Baseline conditions in CGP experiments
-                combined_df = pd.concat(RawCaTracesVigStateMatrix, ignore_index=False)
-                combined_df.index = [mice + str(idx) for idx in combined_df.index]
-                combined_df = combined_df.dropna(axis=0, how='all')
-                combined_df = combined_df.dropna(axis=1, how='all')
-                combined_df.to_excel(excel_writerRawCa, sheet_name=f'{Drug}_{mapp[m]}', index=False, header=True)   
+            if saveexcel:
+                RawCaTracesVigStateMatrixName=f'RawCaTraces{mapp[m]}_{Drug}'
+                RawCaTracesVigStateMatrix= locals()[RawCaTracesVigStateMatrixName]
+                if len(RawCaTracesVigStateMatrix)>0: # cause sometimes no Baseline conditions in CGP experiments
+                    combined_df = pd.concat(RawCaTracesVigStateMatrix, ignore_index=False)
+                    combined_df.index = [mice + str(idx) for idx in combined_df.index]
+                    combined_df = combined_df.dropna(axis=0, how='all')
+                    combined_df = combined_df.dropna(axis=1, how='all')
+                    combined_df.to_excel(excel_writerRawCa, sheet_name=f'{Drug}_{mapp[m]}', index=False, header=True)   
 
-                RawSpTracesVigStateMatrixName=f'RawSpTraces{mapp[m]}_{Drug}'
-                RawSpTracesVigStateMatrix= locals()[RawSpTracesVigStateMatrixName]
-                combined_df = pd.concat(RawSpTracesVigStateMatrix, ignore_index=False)
-                combined_df.index = [mice + str(idx) for idx in combined_df.index]
-                combined_df = combined_df.dropna(axis=0, how='all')
-                combined_df = combined_df.dropna(axis=1, how='all')
-                combined_df.to_excel(excel_writerRawSp, sheet_name=f'{Drug}_{mapp[m]}', index=False, header=True)   
+                    RawSpTracesVigStateMatrixName=f'RawSpTraces{mapp[m]}_{Drug}'
+                    RawSpTracesVigStateMatrix= locals()[RawSpTracesVigStateMatrixName]
+                    combined_df = pd.concat(RawSpTracesVigStateMatrix, ignore_index=False)
+                    combined_df.index = [mice + str(idx) for idx in combined_df.index]
+                    combined_df = combined_df.dropna(axis=0, how='all')
+                    combined_df = combined_df.dropna(axis=1, how='all')
+                    combined_df.to_excel(excel_writerRawSp, sheet_name=f'{Drug}_{mapp[m]}', index=False, header=True)   
 
-    excel_writerCa.close()
-    excel_writerSp.close()
-    excel_writerRawCa.close()
-    excel_writerRawSp.close()
+    if saveexcel: 
+        excel_writerCa.close() 
+        excel_writerSp.close() 
+        excel_writerRawCa.close()
+        excel_writerRawSp.close()
+        filenameOut = folder_to_save / f'VigSt_Global_{mice}.xlsx'
+        writer = pd.ExcelWriter(filenameOut)
+        VigilanceState_GlobalResults.to_excel(writer)
+        writer.close()
 
-    filenameOut = folder_to_save / f'VigSt_Global_{mice}.xlsx'
-    writer = pd.ExcelWriter(filenameOut)
-    VigilanceState_GlobalResults.to_excel(writer)
-    writer.close()
+    filenameOut = folder_to_save / f'VigSt_CaCorr_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(dataCaCorr, pickle_file)
+    filenameOut = folder_to_save / f'VigSt_SpCorr_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(dataSpCorr, pickle_file)
+    filenameOut = folder_to_save / f'VigSt_Global_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(VigilanceState_GlobalResults, pickle_file)
+
+    
 
