@@ -150,14 +150,9 @@ for mice in MiceList:
     print(f"Path to the folder : {dpath}")
     folder_base = Path(dpath)
 
-    #try:
     mfile = open(folder_base / f'mappingsAB_ALL.pkl', 'rb')
     mapping = pickle.load(mfile)
     print('mappingsAB_ALL.pkl opened')
-    #except:
-    #    mfile = open(folder_base / f'mappings.pkl', 'rb')
-    #    mapping = pickle.load(mfile)
-    #    print('mappings.pkl opened')
 
     subsessions = []
     dict_Calcium = {}
@@ -792,11 +787,11 @@ for mice in MiceList:
                 IterationNb = {key: np.shape(matrix)[0] for key, matrix in dict_All_Activity.items()}
                 AVG_dict_All_Activity = {key: np.sum(matrix,0) for key, matrix in dict_All_Activity.items()}
                 Array=pd.DataFrame(AVG_dict_All_Activity).T
-                IterationNb=pd.DataFrame(IterationNb.values(), index=IterationNb.keys(), columns=[f'{coup}Spdl_{drug}'])
+                IterationNb=pd.DataFrame(IterationNb.values(), index=IterationNb.keys(), columns=[f'{coup}SWR_{drug}'])
                 DataSWR[f'{coup}SWR_{drug}']=Array
                 DataSWR['IterationNb']=pd.concat([DataSWR['IterationNb'], IterationNb], axis=1)
                 if saveexcel: Array.to_excel(excel_writer, sheet_name=f'{coup}SWR_{drug}', index=True, header=False)
-                if saveexcel: IterationNb.to_excel(excel_writer, sheet_name=f'IT_{ctx}_{coup}Spdl_{drug}', index=True, header=False)
+                if saveexcel: IterationNb.to_excel(excel_writer, sheet_name=f'IT_{ctx}_{coup}SWR_{drug}', index=True, header=False)
         if saveexcel: excel_writer.close()
         filenameOut = folder_to_save / f'SWR_{data}PSTH_{mice}.pkl'
         with open(filenameOut, 'wb') as pickle_file:
