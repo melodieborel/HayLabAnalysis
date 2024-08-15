@@ -5,11 +5,11 @@
 #######################################################################################
 
 #DrugExperiment=1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
-DrugExperiment=0
+DrugExperiment=1
 
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
-AnalysisID='_ALL' 
+AnalysisID='_ALL_zscored' 
 
 saveexcel=0
 
@@ -322,14 +322,14 @@ for mice in MiceList:
             continue  # next iteration
 
         # Normalize traces
-        """
+        
         Carray=zscore(Carray, axis=0)
-        min=np.min(Carray,axis=0) 
-        Carray=Carray-min
+        #min=np.min(Carray,axis=0) 
+        #Carray=Carray-min
         Sarray=zscore(Sarray, axis=0)
-        min=np.min(Sarray,axis=0) 
-        Sarray=Sarray-min
-        """
+        #min=np.min(Sarray,axis=0) 
+        #Sarray=Sarray-min
+        
         # Replace dropped frame in calcium and spike traces with the previous value
 
         for droppedframe in droppedframes_inrec: 
