@@ -9,7 +9,7 @@ DrugExperiment=1
 
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
-AnalysisID='_ALL_zscored' 
+AnalysisID='_moreCorr' 
 
 saveexcel=0
 
@@ -19,6 +19,7 @@ saveexcel=0
 
 import os
 import numpy as np
+from scipy import signal
 import quantities as pq
 import math 
 import neo
@@ -35,8 +36,10 @@ import shutil
 from ast import literal_eval
 from scipy.signal import find_peaks
 from scipy.stats import zscore
+from scipy import stats
 from itertools import groupby
 from IPython.display import display
+from scipy.interpolate import griddata
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -83,6 +86,25 @@ def find_session_folders(root_path):
                         
     return sessions, sessions_path
 
+def filterLFP(lfp, f_lowcut, f_hicut):
+    range=f_hicut-f_lowcut
+    fs = 1000
+    nyq = 0.5 * fs
+    N = 3 # Filtre order
+    Wn = [f_lowcut/nyq,f_hicut/nyq]  # Nyquist frequency fraction
+    b, a = signal.butter(N, Wn, 'band')
+    filt= signal.filtfilt(b, a, lfp)
+    # Parameter and computation of CWT
+    w = 100. #window size
+    freq = np.linspace(f_lowcut, f_hicut, range)
+    widths = w*fs / (2*freq*np.pi)
+    CWT = signal.cwt(filt, signal.morlet2, widths, w=w)
+    # Projection calculation
+    absCWT = np.absolute(CWT)
+    zabsCWT = stats.zscore(absCWT, axis=None)
+    proj_CWT = np.max(zabsCWT, axis = 0)/range
+    return proj_CWT
+
 #######################################################################################
                 # Load sleep score and Ca2+ time series numpy arrays #
 #######################################################################################
@@ -101,6 +123,9 @@ folder_to_save=Path(destination_folder)
 source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayLabAnalysis/python/12_13_AssociateMinianSleepScore_FullAuto.py"
 destination_file_path = f"{destination_folder}/12_13_AssociateMinianSleepScore_FullAuto.txt"
 shutil.copy(source_script, destination_file_path)
+
+Channels = '//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/LFPChannels_perMice.xlsx' 
+allchannels = pd.read_excel(Channels)
 
 for mice in MiceList:
     # Load sleep score and Ca2+ time series numpy arrays
@@ -125,6 +150,7 @@ for mice in MiceList:
     dict_TodropFile = {}
     dict_StampsMiniscope = {}
     dict_Path={}
+    dict_LFP={}
 
     sessions, sessions_path = find_session_folders(folder_base)
     nb_sessions=len(sessions)
@@ -134,6 +160,7 @@ for mice in MiceList:
         folder_mini = session_path / f'V4_Miniscope'
         nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
         ScoringFile = session_path/ f'OpenEphys/ScoredSleep{suffix}.npy'
+        LFPFile = session_path/ f'OpenEphys/RawDataChannelExtractedDS.npy'
         StampsFile = session_path/ f'SynchroFile.xlsx'
         StampsMiniscopeFile = folder_mini / f'timeStamps.csv'
 
@@ -146,6 +173,7 @@ for mice in MiceList:
                 dict_Calcium[subsession] = minian_ds['C'] # calcium traces 
                 dict_Spike[subsession] = minian_ds['S'] # estimated spikes
                 dict_Scoring[subsession]  = np.load(ScoringFile)
+                dict_LFP[subsession] = np.load(LFPFile, mmap_mode= 'r')
                 dict_Stamps[subsession]  = pd.read_excel(StampsFile)
                 dict_StampsMiniscope[subsession]  = pd.read_csv(StampsMiniscopeFile)
                 try:
@@ -165,6 +193,7 @@ for mice in MiceList:
             dict_Calcium[session] = minian_ds['C'] # calcium traces 
             dict_Spike[session] = minian_ds['S'] # estimated spikes
             dict_Scoring[session]  = np.load(ScoringFile) 
+            dict_LFP[session]  = np.load(LFPFile, mmap_mode= 'r')
             dict_Stamps[session]  = pd.read_excel(StampsFile)
             dict_StampsMiniscope[session]  = pd.read_csv(StampsMiniscopeFile)
             try:
@@ -193,10 +222,20 @@ for mice in MiceList:
     
     data = {}
     counter=0
-    VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','Session', 'Session_Time', 'Unique_Unit','UnitNumber','UnitValue', 'Drug', 'Substate','SubstateNumber','DurationSubstate', 'CalciumActivity', 'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'DeconvSpikeMeanActivity', 'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz'])
-
+    VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','Session', 'Session_Time', 'Unique_Unit','UnitNumber','UnitValue', 
+                                                              'Drug', 'Substate','SubstateNumber','DurationSubstate', 'CalciumActivity', 
+                                                              'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'DeconvSpikeMeanActivity', 
+                                                              'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz', 'TotCaPopCoupling', 
+                                                              'TotZ_CaPopCoupling', 'TotSpPopCoupling', 'TotZ_SpPopCoupling',
+                                                               'SigmaPFC_corr', 'SigmaS1_corr', 'ThetaCA1_corr', 'DeltaS1_corr', 
+                                                               'BetaPFC_corr', 'BetaS1_corr', 'Z_SigmaPFC_corr', 'Z_SigmaS1_corr', 
+                                                               'Z_ThetaCA1_corr', 'Z_DeltaS1_corr','Z_BetaPFC_corr', 'Z_BetaS1_corr' ])
+    
     previousEndTime=0
     InitialStartTime=0
+
+    TotCaCorr=[]
+    TotSpCorr=[]
 
     CaCorrWakeMatrixBaseline=[]
     CaCorrNREMMatrixBaseline=[]
@@ -323,10 +362,10 @@ for mice in MiceList:
 
         # Normalize traces
         
-        Carray=zscore(Carray, axis=0)
+        #Carray=zscore(Carray, axis=0)
         #min=np.min(Carray,axis=0) 
         #Carray=Carray-min
-        Sarray=zscore(Sarray, axis=0)
+        #Sarray=zscore(Sarray, axis=0)
         #min=np.min(Sarray,axis=0) 
         #Sarray=Sarray-min
         
@@ -360,60 +399,87 @@ for mice in MiceList:
         substates_identity = [mapp[num] for num in substates_identity]
         substates = pd.DataFrame(list(zip(substates_identity, substates_duration, substates_start, substates_end)), columns=['Identity', 'Duration', 'Start','End'])
 
+        # Aligned LFP to Calcium traces
+        PFCch1=int(allchannels[mice][0].split(',')[0])
+        PFCch2=int(allchannels[mice][0].split(',')[1])
+        CA1ch1=int(allchannels[mice][2].split(',')[0])
+        CA1ch2=int(allchannels[mice][2].split(',')[1])
+        S1ch1=int(allchannels[mice][1].split(',')[0])
+        S1ch2=int(allchannels[mice][1].split(',')[1])
+        EMGch1=int(allchannels[mice][3])
+        
+        All=dict_LFP[session]
+        Allcut=All[int(StartTime*1000): int(EndTime*1000),:]
+
+        PFC  =  Allcut[:, PFCch1]-Allcut[:, PFCch2] 
+        CA1  =  Allcut[:, CA1ch1]-Allcut[:, CA1ch2] 
+        S1  =  Allcut[:, S1ch1]-Allcut[:, S1ch2] 
+        EMG  =  Allcut[:, EMGch1]
+
+        SigmaPFC=filterLFP(PFC, 10, 18)
+        SigmaS1=filterLFP(S1, 10, 18)
+        ThetaCA1=filterLFP(CA1, 5, 9)
+        DeltaS1=filterLFP(S1, 1, 4)       
+        BetaPFC=filterLFP(PFC, 16, 35)
+        BetaS1=filterLFP(S1, 16, 35)
+
+        # Downscale to Calcium traces
+        SigmaPFCds = griddata(np.linspace(0, 1, len(SigmaPFC)), SigmaPFC, np.linspace(0, 1, len(Carray)), method='linear')
+        SigmaS1ds = griddata(np.linspace(0, 1, len(SigmaS1)), SigmaS1, np.linspace(0, 1, len(Carray)), method='linear')
+        ThetaCA1ds = griddata(np.linspace(0, 1, len(ThetaCA1)), ThetaCA1, np.linspace(0, 1, len(Carray)), method='linear')
+        DeltaS1ds = griddata(np.linspace(0, 1, len(DeltaS1)), DeltaS1, np.linspace(0, 1, len(Carray)), method='linear')
+        BetaPFCds = griddata(np.linspace(0, 1, len(BetaPFC)), BetaPFC, np.linspace(0, 1, len(Carray)), method='linear')
+        BetaS1ds = griddata(np.linspace(0, 1, len(BetaS1)), BetaS1, np.linspace(0, 1, len(Carray)), method='linear')
+
         for m in mapp:
 
+            # Correlation between each neurons according to vigilance states 
             Bool = (SleepScoredTS_upscaled_ministart == m)
             Carray_VigSpe = Carray.copy()
             Carray_VigSpe = Carray_VigSpe[0:np.shape(SleepScoredTS_upscaled_ministart)[0],:] # if Calcium imaging longer than LFP rec
             Carray_VigSpe = Carray_VigSpe[Bool, :]
-
-            RawCaTracesVigStateMatrixName=f'RawCaTraces{mapp[m]}_{drug}'
-            RawCaTracesVigStateMatrix = locals()[RawCaTracesVigStateMatrixName]
-            RawCaTraces=[]
-            RawCaTraces=pd.DataFrame(Carray_VigSpe, columns=[f"{mice}{str(i).replace('[','').replace(']','')}" for i in kept_uniq_unit_List])
-            unique_columns = RawCaTraces.columns[RawCaTraces.columns.to_series().duplicated()] # remove units that has an empty unique index '[]'
-            RawCaTraces = RawCaTraces.drop(columns=unique_columns)
-            RawCaTracesVigStateMatrix.append(RawCaTraces)
-
-            Sarray_VigSpe = Sarray.copy()
-            Sarray_VigSpe = Sarray_VigSpe[0:np.shape(SleepScoredTS_upscaled_ministart)[0],:] # if Calcium imaging longer than LFP rec
-            Sarray_VigSpe = Sarray_VigSpe[Bool, :]         
-
-            RawSpTracesVigStateMatrixName=f'RawSpTraces{mapp[m]}_{drug}'
-            RawSpTracesVigStateMatrix = locals()[RawSpTracesVigStateMatrixName]
-            RawSpTraces=[]
-            RawSpTraces=pd.DataFrame(Sarray_VigSpe, columns=[f"{mice}{str(i).replace('[','').replace(']','')}" for i in kept_uniq_unit_List])
-            unique_columns = RawSpTraces.columns[RawSpTraces.columns.to_series().duplicated()] # remove units that has an empty unique index '[]'
-            RawSpTraces = RawSpTraces.drop(columns=unique_columns)
-            RawSpTracesVigStateMatrix.append(RawSpTraces) 
             
             CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix{drug}'
             CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
             CaCorrMatrix=[]
             CaCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
-            
+             
+            Sarray_VigSpe = Sarray.copy()
+            Sarray_VigSpe = Sarray_VigSpe[0:np.shape(SleepScoredTS_upscaled_ministart)[0],:] # if Calcium imaging longer than LFP rec
+            Sarray_VigSpe = Sarray_VigSpe[Bool, :]    
+
             SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix{drug}'
             SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
             SpCorrMatrix=[]
             SpCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
 
+            if saveexcel:
+                RawCaTracesVigStateMatrixName=f'RawCaTraces{mapp[m]}_{drug}'
+                RawCaTracesVigStateMatrix = locals()[RawCaTracesVigStateMatrixName]
+                RawCaTraces=[]
+                RawCaTraces=pd.DataFrame(Carray_VigSpe, columns=[f"{mice}{str(i).replace('[','').replace(']','')}" for i in kept_uniq_unit_List])
+                unique_columns = RawCaTraces.columns[RawCaTraces.columns.to_series().duplicated()] # remove units that has an empty unique index '[]'
+                RawCaTraces = RawCaTraces.drop(columns=unique_columns)
+                RawCaTracesVigStateMatrix.append(RawCaTraces)                
+
+                RawSpTracesVigStateMatrixName=f'RawSpTraces{mapp[m]}_{drug}'
+                RawSpTracesVigStateMatrix = locals()[RawSpTracesVigStateMatrixName]
+                RawSpTraces=[]
+                RawSpTraces=pd.DataFrame(Sarray_VigSpe, columns=[f"{mice}{str(i).replace('[','').replace(']','')}" for i in kept_uniq_unit_List])
+                unique_columns = RawSpTraces.columns[RawSpTraces.columns.to_series().duplicated()] # remove units that has an empty unique index '[]'
+                RawSpTraces = RawSpTraces.drop(columns=unique_columns)
+                RawSpTracesVigStateMatrix.append(RawSpTraces) 
+            
             for unit in range(nb_unit): 
 
                 Carray_unit =Carray_VigSpe[:,unit]
-                Darray_unit =Sarray_VigSpe[:,unit] # on deconv spike not on spike rate                
-                #peaks, _ = find_peaks(Darray_unit)
-                #Sarray_unit=np.zeros(len(Darray_unit))
-                #Sarray_unit[peaks]=1     
-
+                Darray_unit =Sarray_VigSpe[:,unit] # on deconv spike not on spike rate 
                 otherunit_range = [x for x in range(nb_unit) if x != unit]
 
                 for unit2 in range(nb_unit):
 
                     Carray_unit2 =Carray_VigSpe[:,unit2]
-                    Darray_unit2 =Sarray_VigSpe[:,unit2]                    
-                    #peaks2, _ = find_peaks(Darray_unit2)
-                    #Sarray_unit2=np.zeros(len(Darray_unit2))
-                    #Sarray_unit2[peaks2]=1
+                    Darray_unit2 =Sarray_VigSpe[:,unit2]         
 
                     indexMapp = str(np.where(B[session] == C_upd_unit_id[unit])[0]).replace('[','').replace(']','')
                     indexMapp2 = np.where(B[session] == C_upd_unit_id[unit2])[0]
@@ -429,14 +495,85 @@ for mice in MiceList:
             CaCorrVigStateMatrix.append(CaCorrMatrix)
             SpCorrVigStateMatrix.append(SpCorrMatrix) 
 
+        TotCaCorrMatrix=[]
+        TotCaCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+        TotSpCorrMatrix=[]
+        TotSpCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+                 
         for unit in range(nb_unit): 
 
             Carray_unit =Carray[:,unit]
             Darray_unit =Sarray[:,unit]
             peaks, _ = find_peaks(Darray_unit)
             Sarray_unit=np.zeros(len(Darray_unit))
-            Sarray_unit[peaks]=1     
+            Sarray_unit[peaks]=1    
 
+            # Correlation with LFP power density
+    
+            corr_matrix = np.corrcoef(Carray_unit, SigmaPFCds)
+            CorrSigmaPFC= np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            Z_CorrSigmaPFC = np.arctanh(corCorrected)
+            corr_matrix = np.corrcoef(Carray_unit, SigmaS1ds)
+            CorrSigmaS1= np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            Z_CorrSigmaS1 = np.arctanh(corCorrected)
+            corr_matrix = np.corrcoef(Carray_unit, ThetaCA1ds)
+            CorrThetaCA1= np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            Z_CorrThetaCA1 = np.arctanh(corCorrected)
+            corr_matrix = np.corrcoef(Carray_unit, DeltaS1ds)
+            CorrDeltaS1= np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            Z_CorrDeltaS1 = np.arctanh(corCorrected)
+            corr_matrix = np.corrcoef(Carray_unit, BetaPFCds)
+            CorrBetaPFC= np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            Z_CorrBetaPFC = np.arctanh(corCorrected)
+            corr_matrix = np.corrcoef(Carray_unit, BetaS1ds)
+            CorrBetaS1= np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            Z_CorrBetaS1 = np.arctanh(corCorrected)
+            
+            # Population Coupling independent of vigilance states 
+
+            Carray_Population =np.mean(Carray[:,otherunit_range], axis=1)
+            corr_matrix = np.corrcoef(Carray_unit, Carray_Population)
+            TotCaPopCoupling= np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            TotZ_CaPopCoupling = np.arctanh(corCorrected)
+
+            Sarray_Population =np.mean(Sarray[:,otherunit_range], axis=1)
+            corr_matrix = np.corrcoef(Darray_unit, Sarray_Population)
+            TotSpPopCoupling = np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            TotZ_SpPopCoupling= np.arctanh(corCorrected)
+
+            TotCaCorrCoeff=[]
+            TotSpCorrCoeff=[]
+            TotZ_CaCorrCoeff=[]
+            TotZ_SpCorrCoeff=[]
+
+            # Correlation between each neurons independent of vigilance states 
+
+            otherunit_range = [x for x in range(nb_unit) if x != unit]
+            for unit2 in otherunit_range:
+
+                Carray_unit2 =Carray[:,unit2]
+                Darray_unit2 =Sarray[:,unit2]  
+            
+                indexMapp = str(np.where(B[session] == C_upd_unit_id[unit])[0]).replace('[','').replace(']','')
+                indexMapp2 = np.where(B[session] == C_upd_unit_id[unit2])[0]
+
+                if any(indexMapp) and len(indexMapp2)>0:    
+                      
+                    corr_matrix = np.corrcoef(Carray_unit, Carray_unit2)
+                    TotCaCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]={1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+                    
+                    corr_matrix = np.corrcoef(Darray_unit, Darray_unit2)
+                    TotSpCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]={1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+
+            # For each substates
             for index in range(len(substates)):
                 
                 ca_input_sub=Carray_unit[substates.Start[index]:substates.End[index]]
@@ -471,51 +608,10 @@ for mice in MiceList:
                 VigilanceState_GlobalResults.loc[counter, 'Avg_SpikeActivityHz'] = Sarray_unit.sum()/(len(Sarray_unit)/minian_freq)
 
                 otherunit_range = [x for x in range(nb_unit) if x != unit]
-
-                CaCorrCoeff=[]
-                SpCorrCoeff=[]
-                Z_CaCorrCoeff=[]
-                Z_SpCorrCoeff=[]
-
-                for unit2 in otherunit_range:
-
-                    Carray_unit2 =Carray[:,unit2]
-                    Darray_unit2 =Sarray[:,unit2]                    
-                    #peaks2, _ = find_peaks(Sarray_unit2)
-                    #Sarray_unit2=np.zeros(len(Sarray_unit2))
-                    #Sarray_unit2[peaks2]=1
-                    ca_input_sub2=Carray_unit2[substates.Start[index]:substates.End[index]]
-                    ds_input_sub2=Darray_unit2[substates.Start[index]:substates.End[index]]
-
-                    corr_matrix = np.corrcoef(ca_input_sub, ca_input_sub2)
-                    CaCorrCoeff_unit = np.round(corr_matrix[0, 1],5)
-                    CaCorrCoeff_unit = {1: 0.99999, -1: -0.99999}.get(CaCorrCoeff_unit, CaCorrCoeff_unit)
-                    CaCorrCoeff.append(CaCorrCoeff_unit)
-                    Z_CaCorrCoeff_unit=np.arctanh(CaCorrCoeff_unit)
-                    Z_CaCorrCoeff.append(Z_CaCorrCoeff_unit)
-
-                    corr_matrix = np.corrcoef(ds_input_sub, ds_input_sub2)
-                    SpCorrCoeff_unit =  np.round(corr_matrix[0, 1],5)
-                    SpCorrCoeff_unit = {1: 0.99999, -1: -0.99999}.get(SpCorrCoeff_unit, SpCorrCoeff_unit)
-                    SpCorrCoeff.append(SpCorrCoeff_unit)
-                    Z_SpCorrCoeff_unit=np.arctanh(SpCorrCoeff_unit)
-                    Z_SpCorrCoeff.append(Z_SpCorrCoeff_unit)
-                
-                VigilanceState_GlobalResults.loc[counter, 'CaCorrCoeff'] = np.nanmean(CaCorrCoeff)
-                VigilanceState_GlobalResults.loc[counter, 'SpCorrCoeff'] = np.nanmean(SpCorrCoeff)
-                
-                VigilanceState_GlobalResults.loc[counter, 'Rsquared_CaCorrCoeff'] = np.nanmean([x ** 2 for x in CaCorrCoeff])
-                VigilanceState_GlobalResults.loc[counter, 'Rsquared_SpCorrCoeff'] = np.nanmean([x ** 2 for x in SpCorrCoeff])
-
-                VigilanceState_GlobalResults.loc[counter, 'Z_CaCorrCoeff'] = np.nanmean(Z_CaCorrCoeff)
-                VigilanceState_GlobalResults.loc[counter, 'Z_SpCorrCoeff'] = np.nanmean(Z_SpCorrCoeff)
-                
-                VigilanceState_GlobalResults.loc[counter, 'Z_Rsquared_CaCorrCoeff'] = np.nanmean([x ** 2 for x in Z_CaCorrCoeff])
-                VigilanceState_GlobalResults.loc[counter, 'Z_Rsquared_SpCorrCoeff'] = np.nanmean([x ** 2 for x in Z_SpCorrCoeff])   
-
                 Carray_Population =np.mean(Carray[:,otherunit_range], axis=1)
                 ca_input_sub2=Carray_Population[substates.Start[index]:substates.End[index]]
                 corr_matrix = np.corrcoef(ca_input_sub, ca_input_sub2)
+
                 VigilanceState_GlobalResults.loc[counter, 'CaPopCoupling'] = np.round(corr_matrix[0, 1],5)
                 corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
                 VigilanceState_GlobalResults.loc[counter, 'Z_CaPopCoupling'] = np.arctanh(corCorrected)
@@ -523,15 +619,81 @@ for mice in MiceList:
                 Sarray_Population =np.mean(Sarray[:,otherunit_range], axis=1)
                 ds_input_sub2=Sarray_Population[substates.Start[index]:substates.End[index]]
                 corr_matrix = np.corrcoef(ds_input_sub, ds_input_sub2)
+
                 VigilanceState_GlobalResults.loc[counter, 'SpPopCoupling'] = np.round(corr_matrix[0, 1],5)
                 corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
                 VigilanceState_GlobalResults.loc[counter, 'Z_SpPopCoupling'] = np.arctanh(corCorrected)
+                
+                VigilanceState_GlobalResults.loc[counter, 'TotCaPopCoupling'] = TotCaPopCoupling
+                VigilanceState_GlobalResults.loc[counter, 'TotZ_CaPopCoupling'] = TotZ_CaPopCoupling
+                VigilanceState_GlobalResults.loc[counter, 'TotSpPopCoupling'] = TotSpPopCoupling
+                VigilanceState_GlobalResults.loc[counter, 'TotZ_SpPopCoupling'] = TotZ_SpPopCoupling
+
+                VigilanceState_GlobalResults.loc[counter, 'SigmaPFC_corr'] = CorrSigmaPFC
+                VigilanceState_GlobalResults.loc[counter, 'SigmaS1_corr'] = CorrSigmaS1
+                VigilanceState_GlobalResults.loc[counter, 'ThetaCA1_corr'] = CorrThetaCA1
+                VigilanceState_GlobalResults.loc[counter, 'DeltaS1_corr'] = CorrDeltaS1
+                VigilanceState_GlobalResults.loc[counter, 'BetaPFC_corr'] = CorrBetaPFC
+                VigilanceState_GlobalResults.loc[counter, 'BetaS1_corr'] = CorrBetaS1
+
+                VigilanceState_GlobalResults.loc[counter, 'Z_SigmaPFC_corr'] = Z_CorrSigmaPFC
+                VigilanceState_GlobalResults.loc[counter, 'Z_SigmaS1_corr'] = Z_CorrSigmaS1
+                VigilanceState_GlobalResults.loc[counter, 'Z_ThetaCA1_corr'] = Z_CorrThetaCA1
+                VigilanceState_GlobalResults.loc[counter, 'Z_DeltaS1_corr'] = Z_CorrDeltaS1
+                VigilanceState_GlobalResults.loc[counter, 'Z_BetaPFC_corr'] = Z_CorrBetaPFC
+                VigilanceState_GlobalResults.loc[counter, 'Z_BetaS1_corr'] = Z_CorrBetaS1
 
                 counter+=1
 
+        TotCaCorr.append(TotCaCorrMatrix)
+        TotSpCorr.append(TotSpCorrMatrix)
+
     dataCaCorr={}
     dataSpCorr={}
+    dataCaCorr2={}
+    dataSpCorr2={}
     for Drug in Drugs:
+        if len(TotCaCorr)>0: 
+            combined_df = pd.concat(TotCaCorr, ignore_index=False)
+            IterationNb=combined_df.groupby(combined_df.index).count()
+            combined_df = combined_df.groupby(combined_df.index).sum() #mean
+            combined_df.index= [mice + str(idx) for idx in combined_df.index]
+            combined_df = combined_df[~(combined_df.fillna(0) == 0).all(axis=1)]
+            combined_df = combined_df.loc[:, ~(combined_df.fillna(0) == 0).all(axis=0)]
+            IterationNb = IterationNb[~(IterationNb.fillna(0) == 0).all(axis=1)]
+            IterationNb = IterationNb.loc[:, ~(IterationNb.fillna(0) == 0).all(axis=0)]
+            IterationNb.index=combined_df.index
+            dataCaCorr2[f'{Drug}']=combined_df
+
+            combined_df = pd.concat(TotCaCorr, ignore_index=False)
+            combined_df = combined_df.applymap(lambda x: np.arctanh(x) if not pd.isna(x) else np.nan)
+            combined_df = combined_df.groupby(combined_df.index).sum() #mean
+            combined_df.index = [mice + str(idx) for idx in combined_df.index]
+            combined_df = combined_df[~(combined_df.fillna(0) == 0).all(axis=1)]
+            combined_df = combined_df.loc[:, ~(combined_df.fillna(0) == 0).all(axis=0)]
+            dataCaCorr2[f'Z_{Drug}']=combined_df
+            dataCaCorr2[f'{Drug}_IterationNb']=IterationNb
+
+            combined_df = pd.concat(TotSpCorr, ignore_index=False)
+            IterationNb=combined_df.groupby(combined_df.index).count()
+            combined_df = combined_df.groupby(combined_df.index).sum() #mean
+            combined_df.index= [mice + str(idx) for idx in combined_df.index]
+            combined_df = combined_df[~(combined_df.fillna(0) == 0).all(axis=1)]
+            combined_df = combined_df.loc[:, ~(combined_df.fillna(0) == 0).all(axis=0)]
+            IterationNb = IterationNb[~(IterationNb.fillna(0) == 0).all(axis=1)]
+            IterationNb = IterationNb.loc[:, ~(IterationNb.fillna(0) == 0).all(axis=0)]
+            IterationNb.index=combined_df.index
+            dataSpCorr2[f'{Drug}']=combined_df
+
+            combined_df = pd.concat(TotSpCorr, ignore_index=False)
+            combined_df = combined_df.applymap(lambda x: np.arctanh(x) if not pd.isna(x) else np.nan)
+            combined_df = combined_df.groupby(combined_df.index).sum() #mean
+            combined_df.index = [mice + str(idx) for idx in combined_df.index]
+            combined_df = combined_df[~(combined_df.fillna(0) == 0).all(axis=1)]
+            combined_df = combined_df.loc[:, ~(combined_df.fillna(0) == 0).all(axis=0)]
+            dataSpCorr2[f'Z_{Drug}']=combined_df
+            dataSpCorr2[f'{Drug}_IterationNb']=IterationNb
+
         for m in mapp:
             CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix{Drug}'
             CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
@@ -601,16 +763,16 @@ for mice in MiceList:
                     combined_df = combined_df.dropna(axis=0, how='all')
                     combined_df = combined_df.dropna(axis=1, how='all')
                     combined_df.to_excel(excel_writerRawSp, sheet_name=f'{Drug}_{mapp[m]}', index=False, header=True)   
-
+        
     if saveexcel: 
         excel_writerCa.close() 
         excel_writerSp.close() 
-        excel_writerRawCa.close()
-        excel_writerRawSp.close()
         filenameOut = folder_to_save / f'VigSt_Global_{mice}.xlsx'
         writer = pd.ExcelWriter(filenameOut)
         VigilanceState_GlobalResults.to_excel(writer)
         writer.close()
+        excel_writerRawCa.close()
+        excel_writerRawSp.close()
 
     filenameOut = folder_to_save / f'VigSt_CaCorr_{mice}.pkl'
     with open(filenameOut, 'wb') as pickle_file:
@@ -618,6 +780,14 @@ for mice in MiceList:
     filenameOut = folder_to_save / f'VigSt_SpCorr_{mice}.pkl'
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(dataSpCorr, pickle_file)
+        
+    filenameOut = folder_to_save / f'CaCorr_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(dataCaCorr2, pickle_file)
+    filenameOut = folder_to_save / f'SpCorr_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(dataSpCorr2, pickle_file)
+
     filenameOut = folder_to_save / f'VigSt_Global_{mice}.pkl'
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(VigilanceState_GlobalResults, pickle_file)
