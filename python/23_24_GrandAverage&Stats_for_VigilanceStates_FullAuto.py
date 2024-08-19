@@ -4,18 +4,15 @@
                             # Define Experiment type #
 #######################################################################################
 
-AnalysisID='_AB_Zscore' #to identify this analysis from another
+AnalysisID='_AB_moreCorr' #to identify this analysis from another
 DrugExperiment=0 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
 saveexcel=0
 Local=1
 
 #choosed_folder='VigSt_2024-07-22_18_21_32_AB_FINAL' if DrugExperiment else 'VigSt_2024-07-22_17_16_28_AB_FINAL'
-choosed_folder1='VigSt_2024-08-07_15_22_29_AB_ALL' # for Baseline Expe
-choosed_folder2='VigSt_2024-08-07_14_50_31_AB_ALL' # for CGP Expe
-
-choosed_folder1='VigSt_2024-08-12_10_59_49_AB_ALL_zscored' # for Baseline Expe
-choosed_folder2='VigSt_2024-08-12_11_20_59_AB_ALL_zscored' # for CGP Expe
+choosed_folder1='VigSt_2024-08-19_15_08_21_AB_moreCorr' # for Baseline Expe
+choosed_folder2='VigSt_2024-08-19_15_39_35_AB_moreCorr' # for CGP Expe
 
 desired_order = ['Wake','NREM', 'REM']   
 #desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
@@ -88,6 +85,20 @@ def divide_keys(data):
     keys_to_delete = list(data.keys())[2::3]
     for key in keys_to_delete:
         del data[key]
+    return data   
+
+def divide_keys2(data):
+    for it in range(1, len(data), 3):        
+        key1 = list(data.keys())[it-1]
+        key2 = list(data.keys())[it+1]
+        key3 = list(data.keys())[it]
+        d=data[key3]
+        data[key3]=d.replace(0, np.nan)
+        data[key1] = data[key1] / data[key3]
+        data[key2] = data[key2] / data[key3]
+    keys_to_delete = list(data.keys())[1::3]
+    for key in keys_to_delete:
+        del data[key]
     return data    
 
 ########################################################################
@@ -120,6 +131,8 @@ for NrSubtype in NrSubtypeList:
     dfs = []
     dfs2_per_sheet = {}
     dfs3_per_sheet = {}
+    dfs4_per_sheet = {}
+    dfs5_per_sheet = {}
 
     if NrSubtype=='L1':
         MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'RedLinesOK']
@@ -127,8 +140,10 @@ for NrSubtype in NrSubtypeList:
         MiceList=['Purple', 'ThreeColDotsOK', 'ThreeBlueCrossesOK']
     
     nametofind='Global'
-    nametofind2='CaCorr'
-    nametofind3='SpCorr'
+    nametofind2='VigSt_CaCorr'
+    nametofind3='VigSt_SpCorr'    
+    nametofind4='TotCaCorr'
+    nametofind5='TotSpCorr'
 
     # Recursively traverse the directory structure
     for directory in [directory1, directory2]:
@@ -168,6 +183,31 @@ for NrSubtype in NrSubtypeList:
                             else:
                                 dfs3_per_sheet[key]=value
                         print(filename)
+                if filename.endswith('.pkl') and nametofind4 in filename: 
+                    if any(name in filename for name in MiceList): 
+                        # Construct the full path to the file
+                        filepath = os.path.join(root, filename)
+                        with open(filepath, 'rb') as pickle_file:
+                            df = pickle.load(pickle_file)
+                        for key, value in df.items():
+                            if key in dfs4_per_sheet:
+                                dfs4_per_sheet[key]=pd.concat([dfs4_per_sheet[key],value],axis=0)
+                            else:
+                                dfs4_per_sheet[key]=value
+                        print(filename)
+                if filename.endswith('.pkl') and nametofind5 in filename: 
+                    if any(name in filename for name in MiceList): 
+                        # Construct the full path to the file
+                        filepath = os.path.join(root, filename)
+                        with open(filepath, 'rb') as pickle_file:
+                            df = pickle.load(pickle_file)
+                        for key, value in df.items():
+                            if key in dfs5_per_sheet:
+                                dfs5_per_sheet[key]=pd.concat([dfs5_per_sheet[key],value],axis=0)
+                            else:
+                                dfs5_per_sheet[key]=value
+                        print(filename)
+
 
     # Concatenate all dataframes into a single dataframe
     combined_df = pd.concat(dfs, ignore_index=True)
@@ -232,6 +272,45 @@ for NrSubtype in NrSubtypeList:
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(dfs3_per_sheet, pickle_file)
 
+    # Save the TOT Ca correlation matrix  
+
+    file_path = f'{folder_to_save}/{NrSubtype}_Tot_CaCorr.xlsx'
+    dfs4_per_sheet = {sheet_name: df.groupby(df.index).sum() for sheet_name, df in dfs4_per_sheet.items()} #cause was concatenated in the 0 axis
+    dfs4_per_sheet=divide_keys2(dfs4_per_sheet)
+    for sheet_name, df in dfs4_per_sheet.items():
+        df = df.sort_index(axis=1)
+        df = df.sort_index(axis=0)
+        dfs4_per_sheet[sheet_name]=df
+
+    #if saveexcel:
+    with pd.ExcelWriter(file_path) as writer:        
+        for sheet_name, df in dfs4_per_sheet.items():
+            df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+
+    filenameOut = f'{folder_to_save}/{NrSubtype}_Tot_CaCorr.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(dfs4_per_sheet, pickle_file)
+
+    # Save the TOT Sp correlation matrix  
+
+    file_path = f'{folder_to_save}/{NrSubtype}_Tot_SpCorr.xlsx'
+    dfs5_per_sheet = {sheet_name: df.groupby(df.index).sum() for sheet_name, df in dfs5_per_sheet.items()}
+    dfs5_per_sheet=divide_keys2(dfs5_per_sheet)
+    for sheet_name, df in dfs5_per_sheet.items():
+        df = df.sort_index(axis=1)
+        df = df.sort_index(axis=0)
+        dfs5_per_sheet[sheet_name]=df
+
+    #if saveexcel:    
+    with pd.ExcelWriter(file_path) as writer:        
+        for sheet_name, df in dfs5_per_sheet.items():
+            df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+
+    filenameOut = f'{folder_to_save}/{NrSubtype}_Tot_SpCorr.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(dfs5_per_sheet, pickle_file)
+
+
 
 ########################################################################
             # SCRIPT 24AB_Load&Stats_for_VigilanceStates
@@ -252,7 +331,15 @@ for NrSubtype in NrSubtypeList:
 
     analysisfileSp='VigSt_SpCorr'
     with open(f'{folder_to_save}/{NrSubtype}_{analysisfileSp}.pkl', 'rb') as pickle_file:
-        combined_dfSp = pickle.load(pickle_file)
+        combined_dfSp = pickle.load(pickle_file)   
+        
+    analysisfileCa='Tot_CaCorr'
+    with open(f'{folder_to_save}/{NrSubtype}_{analysisfileCa}.pkl', 'rb') as pickle_file:
+        combined_dfCaTot = pickle.load(pickle_file)
+
+    analysisfileSp='Tot_SpCorr'
+    with open(f'{folder_to_save}/{NrSubtype}_{analysisfileSp}.pkl', 'rb') as pickle_file:
+        combined_dfSpTot = pickle.load(pickle_file)
 
     ######################
     # CHOOSE OPTIONS
@@ -350,6 +437,112 @@ for NrSubtype in NrSubtypeList:
                 os.makedirs(new_folder)
 
             if Drug=='Baseline':
+
+                
+                #####################################################
+                ## Ca correlation with neuron from same population ##
+                #####################################################
+
+                # Keep only neurons from the list 
+                dfCaTot_filtered={}
+                for sheet_name, dfCa in combined_dfCaTot.items():
+                    dfCa=pd.DataFrame(dfCa)
+                    indices_to_keep_existing = [idx for idx in listI if idx in dfCa.index] #from first list
+                    columns_to_keep_existing = [col for col in listI if col in dfCa.columns] #from second list
+                    dfCaTot_filtered[sheet_name] = dfCa.loc[indices_to_keep_existing, columns_to_keep_existing]
+                
+                if DrugExperiment==1:
+                    # Keep only correlation pairs that occurs for the 2 Drugs
+                    for sheet_name, df in dfCaTot_filtered.items(): #remove inactive/non recorded neurons
+                        df = df[~(df.fillna(0) == 0).all(axis=1)]
+                        df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
+                        dfCaTot_filtered[sheet_name] = df    
+                    first_key = list(dfCaTot_filtered.keys())[0]
+                    common_columns = dfCaTot_filtered[first_key].columns
+                    common_indices = dfCaTot_filtered[first_key].index
+                    for df in dfCaTot_filtered.values():
+                        common_columns = common_columns.intersection(df.columns)
+                        common_indices = common_indices.intersection(df.index)
+                    dfCaTot_Doublefiltered = {name: df.loc[common_indices, common_columns] for name, df in dfCaTot_filtered.items()}
+                else:
+                    dfCaTot_Doublefiltered=dfCaTot_filtered
+
+                # Save Corr Pairs
+                file_path = f'{folder_to_save2}/{List_name}/{NrSubtype}_Tot_PairCorrCa_{List_name}.xlsx'
+                with pd.ExcelWriter(file_path) as writer:
+                    for sheet_name, dfCa in dfCaTot_Doublefiltered.items():
+                        if 'Z_' not in sheet_name:
+                            dfCa.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+
+                # Flat correlations
+                SummaryMatrixCa= pd.DataFrame()
+                for sheet_name, df in dfCaTot_Doublefiltered.items():    
+                    series_flattened = df.stack().reset_index()
+                    series_flattened['index'] = series_flattened['level_0'] + '_' + series_flattened['level_1']
+                    series_flattened = series_flattened.set_index('index')[0]
+                    series_flattened_cleaned = series_flattened[series_flattened.index.str.split('_').str[0] != series_flattened.index.str.split('_').str[1]] #remove Neuron1 vs Neuron1
+                    series_flattened_cleaned.name = sheet_name
+                    SummaryMatrixCa = pd.concat([SummaryMatrixCa,series_flattened_cleaned], axis=1)
+                
+                SummaryMatrixCa_cleaned = SummaryMatrixCa.round(5) # to better detect duplicate                   
+                SummaryMatrixCa_cleaned = SummaryMatrixCa.drop_duplicates(subset=SummaryMatrixCa.columns[1:]) 
+                #SummaryMatrixCa_cleaned = SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4], SummaryMatrixCa_cleaned.columns[6], SummaryMatrixCa_cleaned.columns[8], SummaryMatrixCa_cleaned.columns[10]]) if DrugExperiment else SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4]])
+
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_Tot_FlatPairCaCorr_{List_name}.xlsx'
+                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)  
+               
+               #####################################################
+                ## Ca correlation with neuron from different population ##
+                #####################################################
+
+                # Keep only neurons from the list 
+                dfCaTot_filtered={}
+                for sheet_name, dfCa in combined_dfCaTot.items():
+                    dfCa=pd.DataFrame(dfCa)
+                    indices_to_keep_existing = [idx for idx in listI if idx in dfCa.index] #from first list
+                    columns_to_keep_existing = [col for col in listII if col in dfCa.columns] #from second list
+                    dfCaTot_filtered[sheet_name] = dfCa.loc[indices_to_keep_existing, columns_to_keep_existing]
+                
+                if DrugExperiment==1:
+                    # Keep only correlation pairs that occurs for the 2 Drugs
+                    for sheet_name, df in dfCaTot_filtered.items(): #remove inactive/non recorded neurons
+                        df = df[~(df.fillna(0) == 0).all(axis=1)]
+                        df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
+                        dfCaTot_filtered[sheet_name] = df    
+                    first_key = list(dfCaTot_filtered.keys())[0]
+                    common_columns = dfCaTot_filtered[first_key].columns
+                    common_indices = dfCaTot_filtered[first_key].index
+                    for df in dfCaTot_filtered.values():
+                        common_columns = common_columns.intersection(df.columns)
+                        common_indices = common_indices.intersection(df.index)
+                    dfCaTot_Doublefiltered = {name: df.loc[common_indices, common_columns] for name, df in dfCaTot_filtered.items()}
+                else:
+                    dfCaTot_Doublefiltered=dfCaTot_filtered
+
+                # Save Corr Pairs
+                file_path = f'{folder_to_save2}/{List_name}/{NrSubtype}_Tot_PairCorrCa_{SecondaryList_name}.xlsx'
+                with pd.ExcelWriter(file_path) as writer:
+                    for sheet_name, dfCa in dfCaTot_Doublefiltered.items():
+                        if 'Z_' not in sheet_name:
+                            dfCa.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+
+                # Flat correlations
+                SummaryMatrixCa= pd.DataFrame()
+                for sheet_name, df in dfCaTot_Doublefiltered.items():    
+                    series_flattened = df.stack().reset_index()
+                    series_flattened['index'] = series_flattened['level_0'] + '_' + series_flattened['level_1']
+                    series_flattened = series_flattened.set_index('index')[0]
+                    series_flattened_cleaned = series_flattened[series_flattened.index.str.split('_').str[0] != series_flattened.index.str.split('_').str[1]] #remove Neuron1 vs Neuron1
+                    series_flattened_cleaned.name = sheet_name
+                    SummaryMatrixCa = pd.concat([SummaryMatrixCa,series_flattened_cleaned], axis=1)
+                
+                SummaryMatrixCa_cleaned = SummaryMatrixCa.round(5) # to better detect duplicate                   
+                SummaryMatrixCa_cleaned = SummaryMatrixCa.drop_duplicates(subset=SummaryMatrixCa.columns[1:]) 
+                #SummaryMatrixCa_cleaned = SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4], SummaryMatrixCa_cleaned.columns[6], SummaryMatrixCa_cleaned.columns[8], SummaryMatrixCa_cleaned.columns[10]]) if DrugExperiment else SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4]])
+
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_Tot_FlatPairCaCorr_{SecondaryList_name}.xlsx'
+                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)  
+               
 
                 #####################################################
                 ## Ca correlation with neuron from same population ##
@@ -662,6 +855,27 @@ for NrSubtype in NrSubtypeList:
                 filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_VigSt_Global.xlsx'
                 filtered_df.to_excel(filenameOut)
 
+                ##############################
+                # Correlation with LFP freq #
+                ##############################
+                CorrLFPMatix=pd.DataFrame()
+                CorrLFP = filtered_df.pivot_table(index='Unit_ID', columns='Session', values='Z_SigmaS1_corr', aggfunc='mean')   
+                CorrLFPMatix['Z_SigmaS1']=CorrLFP.mean(axis=1)
+                CorrLFP = filtered_df.pivot_table(index='Unit_ID', columns='Session', values='Z_SigmaPFC_corr', aggfunc='mean')   
+                CorrLFPMatix['Z_SigmaPFC']=CorrLFP.mean(axis=1)
+                CorrLFP = filtered_df.pivot_table(index='Unit_ID', columns='Session', values='Z_ThetaCA1_corr', aggfunc='mean')   
+                CorrLFPMatix['Z_ThetaCA1']=CorrLFP.mean(axis=1)
+                CorrLFP = filtered_df.pivot_table(index='Unit_ID', columns='Session', values='Z_DeltaS1_corr', aggfunc='mean')   
+                CorrLFPMatix['Z_DeltaS1']=CorrLFP.mean(axis=1)
+                CorrLFP = filtered_df.pivot_table(index='Unit_ID', columns='Session', values='Z_BetaS1_corr', aggfunc='mean')   
+                CorrLFPMatix['Z_BetaS1']=CorrLFP.mean(axis=1)
+                CorrLFP = filtered_df.pivot_table(index='Unit_ID', columns='Session', values='Z_BetaPFC_corr', aggfunc='mean')   
+                CorrLFPMatix['Z_BetaPFC']=CorrLFP.mean(axis=1) 
+                CorrLFPMatix.index=CorrLFP.index
+
+                filenameOutAUC = f'{folder_to_save2}/{List_name}/{NrSubtype}_CorrLFPfreq.xlsx'
+                CorrLFPMatix.to_excel(filenameOutAUC)
+                
                 #####################
                 # AUC CALCIUM #
                 #####################
