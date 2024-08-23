@@ -9,7 +9,7 @@ DrugExperiment=1
 
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
-AnalysisID='_moreCorr' 
+AnalysisID='_CorrPerSubstates' 
 
 saveexcel=0
 
@@ -40,6 +40,9 @@ from scipy import stats
 from itertools import groupby
 from IPython.display import display
 from scipy.interpolate import griddata
+import numpy as np
+from scipy.signal import butter, filtfilt, hilbert
+import matplotlib.pyplot as plt
 
 import warnings
 warnings.filterwarnings("ignore")
@@ -87,7 +90,7 @@ def find_session_folders(root_path):
     return sessions, sessions_path
 
 def filterLFP(lfp, f_lowcut, f_hicut):
-    range=f_hicut-f_lowcut
+    range=int(f_hicut-f_lowcut)
     fs = 1000
     nyq = 0.5 * fs
     N = 3 # Filtre order
@@ -104,6 +107,29 @@ def filterLFP(lfp, f_lowcut, f_hicut):
     zabsCWT = stats.zscore(absCWT, axis=None)
     proj_CWT = np.max(zabsCWT, axis = 0)/range
     return proj_CWT
+
+def butter_bandpass(lowcut, highcut, fs, order=2):
+    nyq = 0.5 * fs  # Nyquist Frequency
+    low = lowcut / nyq
+    high = highcut / nyq
+    b, a = butter(order, [low, high], btype='band')
+    return b, a
+
+def bandpass_filter(data, lowcut, highcut, fs, order=2):
+    b, a = butter_bandpass(lowcut, highcut, fs, order=order)
+    y = filtfilt(b, a, data)
+    return y
+
+def moving_average(data, window_size):
+    return np.convolve(data, np.ones(window_size)/window_size, mode='valid')
+
+def get_filt_env(lfp_signal, lowcut, highcut, fs):
+    filtered_signal = bandpass_filter(lfp_signal, lowcut, highcut, fs)
+    analytic_signal = hilbert(filtered_signal)
+    envelope = np.abs(analytic_signal)
+    window_size = fs*5 #5 sec
+    smoothed_envelope = moving_average(envelope, window_size)
+    return smoothed_envelope
 
 #######################################################################################
                 # Load sleep score and Ca2+ time series numpy arrays #
@@ -226,16 +252,31 @@ for mice in MiceList:
                                                               'Drug', 'Substate','SubstateNumber','DurationSubstate', 'CalciumActivity', 
                                                               'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'DeconvSpikeMeanActivity', 
                                                               'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz', 'TotCaPopCoupling', 
-                                                              'TotZ_CaPopCoupling', 'TotSpPopCoupling', 'TotZ_SpPopCoupling',
-                                                               'SigmaPFC_corr', 'SigmaS1_corr', 'ThetaCA1_corr', 'DeltaS1_corr', 
-                                                               'BetaPFC_corr', 'BetaS1_corr', 'Z_SigmaPFC_corr', 'Z_SigmaS1_corr', 
-                                                               'Z_ThetaCA1_corr', 'Z_DeltaS1_corr','Z_BetaPFC_corr', 'Z_BetaS1_corr' ])
+                                                              'TotZ_CaPopCoupling', 'TotSpPopCoupling', 'TotZ_SpPopCoupling', 'SigmaPFC_corr',
+                                                               'SigmaS1_corr', 'ThetaCA1_corr', 'DeltaS1_corr', 'DeltaPFC_corr','SOS1_corr', 
+                                                               'SOPFC_corr','BetaPFC_corr', 'BetaS1_corr', 'Z_SigmaPFC_corr', 'Z_SigmaS1_corr', 
+                                                               'Z_ThetaCA1_corr', 'Z_DeltaS1_corr','Z_DeltaPFC_corr','Z_SOS1_corr','Z_SOPFC_corr',
+                                                               'Z_BetaPFC_corr', 'Z_BetaS1_corr'])
     
     previousEndTime=0
     InitialStartTime=0
 
     TotCaCorr=[]
     TotSpCorr=[]
+
+    StatesCaCorrWakeMatrixBaseline= pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+    StatesCaCorrNREMMatrixBaseline=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+    StatesCaCorrREMMatrixBaseline=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+    StatesCaCorrWakeMatrixCGP=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+    StatesCaCorrNREMMatrixCGP=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+    StatesCaCorrREMMatrixCGP=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+
+    ITStatesCaCorrWakeMatrixBaseline=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+    ITStatesCaCorrNREMMatrixBaseline=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+    ITStatesCaCorrREMMatrixBaseline=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+    ITStatesCaCorrWakeMatrixCGP=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+    ITStatesCaCorrNREMMatrixCGP=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
+    ITStatesCaCorrREMMatrixCGP=pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
 
     CaCorrWakeMatrixBaseline=[]
     CaCorrNREMMatrixBaseline=[]
@@ -256,6 +297,11 @@ for mice in MiceList:
     RawSpTracesNREM_Baseline=[]
     RawSpTracesN2_Baseline=[]
     RawSpTracesREM_Baseline=[]
+
+    TotCaCorrBaseline=[]
+    TotCaCorrCGP=[]
+    TotSpCorrBaseline=[]
+    TotSpCorrCGP=[]
 
     CaCorrWakeMatrixCGP=[]
     CaCorrNREMMatrixCGP=[]
@@ -388,7 +434,7 @@ for mice in MiceList:
         # Remove N2 stage
         SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
         mapp = {1.5: 'Wake', 0: 'NREM',  1: 'REM'}
-        # mapp = {1.5: 'Wake', 0.5: 'N2', 0: 'NREM',  1: 'REM'}
+        #mapp = {1.5: 'Wake', 0.5: 'N2', 0: 'NREM',  1: 'REM'}
 
         # Determine each substate identity and duration
         array=SleepScoredTS_upscaled_ministart
@@ -416,20 +462,26 @@ for mice in MiceList:
         S1  =  Allcut[:, S1ch1]-Allcut[:, S1ch2] 
         EMG  =  Allcut[:, EMGch1]
 
-        SigmaPFC=filterLFP(PFC, 10, 18)
-        SigmaS1=filterLFP(S1, 10, 18)
-        ThetaCA1=filterLFP(CA1, 5, 9)
-        DeltaS1=filterLFP(S1, 1, 4)       
-        BetaPFC=filterLFP(PFC, 16, 35)
-        BetaS1=filterLFP(S1, 16, 35)
+        SigmaPFC=get_filt_env(PFC, 10, 18, 1000)
+        SigmaS1=get_filt_env(S1, 10, 18, 1000)
+        ThetaCA1=get_filt_env(CA1, 5, 9, 1000)
+        DeltaS1=get_filt_env(S1, 1, 4, 1000)       
+        DeltaPFC=get_filt_env(PFC, 1, 4, 1000)          
+        SOS1=get_filt_env(S1, .1, 1, 1000)       
+        SOPFC=get_filt_env(PFC, .1, 1, 1000)       
+        BetaPFC=get_filt_env(PFC, 16, 35, 1000)
+        BetaS1=get_filt_env(S1, 16, 35, 1000)
 
         # Downscale to Calcium traces
         SigmaPFCds = griddata(np.linspace(0, 1, len(SigmaPFC)), SigmaPFC, np.linspace(0, 1, len(Carray)), method='linear')
         SigmaS1ds = griddata(np.linspace(0, 1, len(SigmaS1)), SigmaS1, np.linspace(0, 1, len(Carray)), method='linear')
         ThetaCA1ds = griddata(np.linspace(0, 1, len(ThetaCA1)), ThetaCA1, np.linspace(0, 1, len(Carray)), method='linear')
         DeltaS1ds = griddata(np.linspace(0, 1, len(DeltaS1)), DeltaS1, np.linspace(0, 1, len(Carray)), method='linear')
+        DeltaPFCds = griddata(np.linspace(0, 1, len(DeltaPFC)), DeltaPFC, np.linspace(0, 1, len(Carray)), method='linear')
         BetaPFCds = griddata(np.linspace(0, 1, len(BetaPFC)), BetaPFC, np.linspace(0, 1, len(Carray)), method='linear')
         BetaS1ds = griddata(np.linspace(0, 1, len(BetaS1)), BetaS1, np.linspace(0, 1, len(Carray)), method='linear')
+        SOS1ds = griddata(np.linspace(0, 1, len(SOS1)), SOS1, np.linspace(0, 1, len(Carray)), method='linear')
+        SOPFCds = griddata(np.linspace(0, 1, len(SOPFC)), SOPFC, np.linspace(0, 1, len(Carray)), method='linear')
 
         for m in mapp:
 
@@ -495,11 +547,16 @@ for mice in MiceList:
             CaCorrVigStateMatrix.append(CaCorrMatrix)
             SpCorrVigStateMatrix.append(SpCorrMatrix) 
 
+        TotCaCorrName=f'TotCaCorr{drug}'
+        TotCaCorr = locals()[TotCaCorrName]
+        TotSpCorrName=f'TotSpCorr{drug}'
+        TotSpCorr = locals()[TotSpCorrName]
+        
         TotCaCorrMatrix=[]
         TotCaCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
         TotSpCorrMatrix=[]
         TotSpCorrMatrix = pd.DataFrame(columns=[f'{mice}{str(i)}' for i in range(len(B))], index=[i for i in range(len(B))])
-                 
+
         for unit in range(nb_unit): 
 
             Carray_unit =Carray[:,unit]
@@ -525,7 +582,11 @@ for mice in MiceList:
             corr_matrix = np.corrcoef(Carray_unit, DeltaS1ds)
             CorrDeltaS1= np.round(corr_matrix[0, 1],5)
             corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
-            Z_CorrDeltaS1 = np.arctanh(corCorrected)
+            Z_CorrDeltaS1 = np.arctanh(corCorrected)            
+            corr_matrix = np.corrcoef(Carray_unit, DeltaPFCds)
+            CorrDeltaPFC= np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            Z_CorrDeltaPFC = np.arctanh(corCorrected)
             corr_matrix = np.corrcoef(Carray_unit, BetaPFCds)
             CorrBetaPFC= np.round(corr_matrix[0, 1],5)
             corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
@@ -534,6 +595,14 @@ for mice in MiceList:
             CorrBetaS1= np.round(corr_matrix[0, 1],5)
             corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
             Z_CorrBetaS1 = np.arctanh(corCorrected)
+            corr_matrix = np.corrcoef(Carray_unit, SOS1ds)
+            CorrSOS1= np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            Z_CorrSOS1 = np.arctanh(corCorrected)            
+            corr_matrix = np.corrcoef(Carray_unit, SOPFCds)
+            CorrSOPFC= np.round(corr_matrix[0, 1],5)
+            corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
+            Z_CorrSOPFC = np.arctanh(corCorrected)
             
             # Population Coupling independent of vigilance states 
 
@@ -548,11 +617,6 @@ for mice in MiceList:
             TotSpPopCoupling = np.round(corr_matrix[0, 1],5)
             corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
             TotZ_SpPopCoupling= np.arctanh(corCorrected)
-
-            TotCaCorrCoeff=[]
-            TotSpCorrCoeff=[]
-            TotZ_CaCorrCoeff=[]
-            TotZ_SpCorrCoeff=[]
 
             # Correlation between each neurons independent of vigilance states 
 
@@ -628,21 +692,51 @@ for mice in MiceList:
                 VigilanceState_GlobalResults.loc[counter, 'TotZ_CaPopCoupling'] = TotZ_CaPopCoupling
                 VigilanceState_GlobalResults.loc[counter, 'TotSpPopCoupling'] = TotSpPopCoupling
                 VigilanceState_GlobalResults.loc[counter, 'TotZ_SpPopCoupling'] = TotZ_SpPopCoupling
-
-                VigilanceState_GlobalResults.loc[counter, 'SigmaPFC_corr'] = CorrSigmaPFC
-                VigilanceState_GlobalResults.loc[counter, 'SigmaS1_corr'] = CorrSigmaS1
-                VigilanceState_GlobalResults.loc[counter, 'ThetaCA1_corr'] = CorrThetaCA1
+                
+                VigilanceState_GlobalResults.loc[counter, 'SOS1_corr'] = CorrSOS1
+                VigilanceState_GlobalResults.loc[counter, 'SOPFC_corr'] = CorrSOPFC
                 VigilanceState_GlobalResults.loc[counter, 'DeltaS1_corr'] = CorrDeltaS1
-                VigilanceState_GlobalResults.loc[counter, 'BetaPFC_corr'] = CorrBetaPFC
+                VigilanceState_GlobalResults.loc[counter, 'DeltaPFC_corr'] = CorrDeltaPFC
+                VigilanceState_GlobalResults.loc[counter, 'ThetaCA1_corr'] = CorrThetaCA1
+                VigilanceState_GlobalResults.loc[counter, 'SigmaS1_corr'] = CorrSigmaS1
+                VigilanceState_GlobalResults.loc[counter, 'SigmaPFC_corr'] = CorrSigmaPFC
                 VigilanceState_GlobalResults.loc[counter, 'BetaS1_corr'] = CorrBetaS1
+                VigilanceState_GlobalResults.loc[counter, 'BetaPFC_corr'] = CorrBetaPFC
 
-                VigilanceState_GlobalResults.loc[counter, 'Z_SigmaPFC_corr'] = Z_CorrSigmaPFC
-                VigilanceState_GlobalResults.loc[counter, 'Z_SigmaS1_corr'] = Z_CorrSigmaS1
-                VigilanceState_GlobalResults.loc[counter, 'Z_ThetaCA1_corr'] = Z_CorrThetaCA1
+                VigilanceState_GlobalResults.loc[counter, 'Z_SOS1_corr'] = Z_CorrSOS1
+                VigilanceState_GlobalResults.loc[counter, 'Z_SOPFC_corr'] = Z_CorrSOPFC
                 VigilanceState_GlobalResults.loc[counter, 'Z_DeltaS1_corr'] = Z_CorrDeltaS1
-                VigilanceState_GlobalResults.loc[counter, 'Z_BetaPFC_corr'] = Z_CorrBetaPFC
+                VigilanceState_GlobalResults.loc[counter, 'Z_DeltaPFC_corr'] = Z_CorrDeltaPFC
+                VigilanceState_GlobalResults.loc[counter, 'Z_ThetaCA1_corr'] = Z_CorrThetaCA1
+                VigilanceState_GlobalResults.loc[counter, 'Z_SigmaS1_corr'] = Z_CorrSigmaS1
+                VigilanceState_GlobalResults.loc[counter, 'Z_SigmaPFC_corr'] = Z_CorrSigmaPFC
                 VigilanceState_GlobalResults.loc[counter, 'Z_BetaS1_corr'] = Z_CorrBetaS1
+                VigilanceState_GlobalResults.loc[counter, 'Z_BetaPFC_corr'] = Z_CorrBetaPFC
 
+                StatesCaCorrName=f'StatesCaCorr{substates.Identity[index]}Matrix{drug}'
+                StatesCaCorrMatrix = locals()[StatesCaCorrName]
+                IterationMatrixName=f'ITStatesCaCorr{substates.Identity[index]}Matrix{drug}'
+                IterationMatrix = locals()[IterationMatrixName]
+                
+                # Correlation between each neurons independent of vigilance states 
+                if (substates.Duration[index]/minian_freq)>=20:
+                    otherunit_range = [x for x in range(nb_unit) if x != unit]
+                    for unit2 in otherunit_range:
+                        Carray_unit2 =Carray[:,unit2]
+                        ca2_input_sub=Carray_unit2[substates.Start[index]:substates.End[index]]
+                    
+                        indexMapp = str(np.where(B[session] == C_upd_unit_id[unit])[0]).replace('[','').replace(']','')
+                        indexMapp2 = np.where(B[session] == C_upd_unit_id[unit2])[0]
+
+                        if any(indexMapp) and len(indexMapp2)>0:    
+
+                            corr_matrix = np.corrcoef(ca_input_sub, ca2_input_sub)
+                            StatesCaCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]=StatesCaCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]+  np.arctanh({1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))) if not math.isnan(StatesCaCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]) else  np.arctanh({1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5)))
+                            if not math.isnan(StatesCaCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]):
+                                if not math.isnan(IterationMatrix[f'{mice}{indexMapp}'][indexMapp2]):
+                                    IterationMatrix[f'{mice}{indexMapp}'][indexMapp2]= IterationMatrix[f'{mice}{indexMapp}'][indexMapp2]+1 
+                                else:
+                                    IterationMatrix[f'{mice}{indexMapp}'][indexMapp2]= 1 
                 counter+=1
 
         TotCaCorr.append(TotCaCorrMatrix)
@@ -652,7 +746,13 @@ for mice in MiceList:
     dataSpCorr={}
     dataCaCorr2={}
     dataSpCorr2={}
+    dataStatesCaCorr={}
+
     for Drug in Drugs:
+        TotCaCorrName=f'TotCaCorr{Drug}'
+        TotCaCorr = locals()[TotCaCorrName]
+        TotSpCorrName=f'TotSpCorr{Drug}'
+        TotSpCorr = locals()[TotSpCorrName]
         if len(TotCaCorr)>0: 
             combined_df = pd.concat(TotCaCorr, ignore_index=False)
             IterationNb=combined_df.groupby(combined_df.index).count()
@@ -695,6 +795,16 @@ for mice in MiceList:
             dataSpCorr2[f'{Drug}_IterationNb']=IterationNb
 
         for m in mapp:
+            IterationMatrixName=f'ITStatesCaCorr{mapp[m]}Matrix{Drug}'
+            IterationMatrix = locals()[IterationMatrixName]
+            StatesCaCorrMatrixName=f'StatesCaCorr{mapp[m]}Matrix{Drug}'
+            StatesCaCorrMatrix = locals()[StatesCaCorrMatrixName]
+            if len(StatesCaCorrMatrix)>0: # cause sometimes no Baseline conditions in CGP experiments
+                StatesCaCorrMatrix.index = [mice + str(idx) for idx in StatesCaCorrMatrix.index]
+                IterationMatrix.index = StatesCaCorrMatrix.index
+                dataStatesCaCorr[f'{Drug}_{mapp[m]}']=StatesCaCorrMatrix
+                dataStatesCaCorr[f'Iteration_{Drug}_{mapp[m]}']=IterationMatrix
+
             CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix{Drug}'
             CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
             if len(CaCorrVigStateMatrix)>0: # cause sometimes no Baseline conditions in CGP experiments
@@ -781,12 +891,16 @@ for mice in MiceList:
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(dataSpCorr, pickle_file)
         
-    filenameOut = folder_to_save / f'CaCorr_{mice}.pkl'
+    filenameOut = folder_to_save / f'TotCaCorr_{mice}.pkl'
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(dataCaCorr2, pickle_file)
-    filenameOut = folder_to_save / f'SpCorr_{mice}.pkl'
+    filenameOut = folder_to_save / f'TotSpCorr_{mice}.pkl'
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(dataSpCorr2, pickle_file)
+
+    filenameOut = folder_to_save / f'SatesCaCorr_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(dataStatesCaCorr, pickle_file)
 
     filenameOut = folder_to_save / f'VigSt_Global_{mice}.pkl'
     with open(filenameOut, 'wb') as pickle_file:
