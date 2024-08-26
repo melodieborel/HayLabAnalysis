@@ -7,7 +7,7 @@ ipykernel
 #pour ephysviewer:
 ephyviewer
 PySide6
-pyqtgraph
+pyqtgraph=0.13.3 #0.13.7 fails to work with TimeFreqViewer of ephyviewer
 numpy
 scipy
 matplotlib
