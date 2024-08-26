@@ -289,9 +289,12 @@ class experiment():
       self.channelLabels = []
       self.data = dict()
 
-      fc1 = FileChooser(self.expePath,select_default=True, show_only_dirs = True, title = "<b>OpenEphys Folder</b>")
-      display(fc1)
-      fc1.register_callback(self.update_my_expe_choice)
+      try:
+         fc1 = FileChooser(self.expePath,select_default=True, show_only_dirs = True, title = "<b>OpenEphys Folder</b>")
+         display(fc1)
+         fc1.register_callback(self.update_my_expe_choice)
+      except Exception as error:
+         print(f"something went wrong, make sure the experiment path ({self.expePath}) is a folder")
 
    # Function to find files containing a specific string
    def find_files_with_string(self, folder_path, search_string):
@@ -363,6 +366,12 @@ class experiment():
          print('found some NPX files')
          matching_files = self.find_files_with_string(folderpath, "NP_spikes_*.raw")
          self.data['NPX'] = NPX(self, matching_files)
+
+      if self.find_files_with_string(folderpath,  "continuous.dat"): #OpenEphys
+         print('found some continuous.dat files')
+         matching_files = self.find_files_with_string(folderpath, "continuous.dat")
+         print('carrefull, to match my case, numChannels is set to 64')
+         self.data['OE_LFP'] = IntanLFP(self, matching_files, recSyst = 'OpenEphys', numChannels=64)
 
    def loadLFP(self):
       folderpath = Path(self.expePath)

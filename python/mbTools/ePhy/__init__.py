@@ -23,8 +23,10 @@ class ePhy():
          file_data = np.fromfile(file, dtype=self.dtype)
          signal=np.append(signal, file_data, axis=0)
       if self.offset != 0:
+         print('applying offset')
          signal = signal - self.offset
       if signal.dtype is not np.dtype(np.int16):
+         print('converting to int16')
          signal = signal.astype(np.int16)
       signal = signal.reshape(-1,self.numChannels)
 

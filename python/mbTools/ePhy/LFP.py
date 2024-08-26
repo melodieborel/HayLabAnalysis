@@ -8,10 +8,17 @@ class IntanLFP(ePhy):
       super().__init__(parent, numChannels = numChannels)
       self.files_list = files_list
       self.recSyst = recSyst
-      self.fileType = 'IntanLFP'
       self.signal = None
-      self.dtype=np.uint16
-      self.offset = int(np.iinfo(self.dtype).max/2)
+      if recSyst=='Bonsai':
+         print('data recorded with Bonsai')
+         self.fileType = 'IntanLFP'
+         self.dtype=np.uint16
+         self.offset = int(np.iinfo(self.dtype).max/2)
+      else:
+         print('data not recorded with Bonsai')
+         self.fileType = 'OE32channels.bin'
+         self.dtype=np.int16
+         self.offset = 0
       self.signal = self.loadData()
 
 
