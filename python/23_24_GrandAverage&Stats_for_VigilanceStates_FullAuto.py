@@ -4,18 +4,18 @@
                             # Define Experiment type #
 #######################################################################################
 
-AnalysisID='_AB_noN2_forCGPunpaired' #to identify this analysis from another
+AnalysisID='_AB_N2forCGP' #to identify this analysis from another
 DrugExperiment=1 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
 saveexcel=0
 Local=1
 
 #choosed_folder='VigSt_2024-07-22_18_21_32_AB_FINAL' if DrugExperiment else 'VigSt_2024-07-22_17_16_28_AB_FINAL'
-choosed_folder1='VigSt_2024-08-21_16_46_42_AB_noN2' # for Baseline Expe
-choosed_folder2='VigSt_2024-08-21_18_16_10_AB_noN2' # for CGP Expe
+choosed_folder1='VigSt_2024-08-30_07_47_44_AB_N2' # for Baseline Expe
+choosed_folder2='VigSt_2024-08-30_09_52_23_AB_N2' # for CGP Expe
 
-desired_order = ['Wake','NREM', 'REM']   
-#desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
+#desired_order = ['Wake','NREM', 'REM']   
+desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
 
 #######################################################################################
                                 # Load packages #
@@ -73,16 +73,17 @@ def normalize_row(row):
     max_val = row[max_col]  # Get the maximum value
     return row / max_val   # Normalize the row by dividing by the maximum value
 
-def divide_keys(data):
-    for it in range(2, len(data), 3):        
-        key1 = list(data.keys())[it-2]
+def divide_keys(data, startkey, everykey):
+    for it in range(startkey, len(data), everykey):        
         key2 = list(data.keys())[it-1]
         key3 = list(data.keys())[it]
         d=data[key3]
         data[key3]=d.replace(0, np.nan)
-        data[key1] = data[key1] / data[key3]
+        if startkey>1:
+            key1 = list(data.keys())[it-2]
+            data[key1] = data[key1] / data[key3]
         data[key2] = data[key2] / data[key3]
-    keys_to_delete = list(data.keys())[2::3]
+    keys_to_delete = list(data.keys())[startkey::everykey]
     for key in keys_to_delete:
         del data[key]
     return data   
@@ -119,6 +120,7 @@ for NrSubtype in NrSubtypeList:
     dfs3_per_sheet = {}
     dfs4_per_sheet = {}
     dfs5_per_sheet = {}
+    dfs6_per_sheet = {}
 
     if NrSubtype=='L1':
         MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'RedLinesOK']
@@ -127,7 +129,8 @@ for NrSubtype in NrSubtypeList:
     
     nametofind='Global'
     nametofind2='VigSt_CaCorr'
-    nametofind3='VigSt_SpCorr'    
+    nametofind3='VigSt_SpCorr'      
+    nametofind6='SatesCaCorr'
     nametofind4='TotCaCorr'
     nametofind5='TotSpCorr'
 
@@ -156,6 +159,19 @@ for NrSubtype in NrSubtypeList:
                                 dfs2_per_sheet[key]=pd.concat([dfs2_per_sheet[key],value],axis=0)
                             else:
                                 dfs2_per_sheet[key]=value
+                        print(filename)
+                if filename.endswith('.pkl') and nametofind6 in filename: 
+                    if any(name in filename for name in MiceList): 
+                        # Construct the full path to the file
+                        filepath = os.path.join(root, filename)
+                        with open(filepath, 'rb') as pickle_file:
+                            try : df = pickle.load(pickle_file)
+                            except: pass
+                        for key, value in df.items():
+                            if key in dfs6_per_sheet:
+                                dfs6_per_sheet[key]=pd.concat([dfs6_per_sheet[key],value],axis=0)
+                            else:
+                                dfs6_per_sheet[key]=value
                         print(filename)
                 if filename.endswith('.pkl') and nametofind3 in filename: 
                     if any(name in filename for name in MiceList): 
@@ -213,89 +229,107 @@ for NrSubtype in NrSubtypeList:
     combined_df['Substate_ID'] = combined_df['Mice'] + combined_df['Session'] + combined_df['Substate'] + combined_df['SubstateNumber'].astype(str)
     combined_df['Session_ID'] = combined_df['Mice'] + combined_df['Session'].astype(str)
 
-    # Save big dataset for stats
+    ######### Save big dataset for stats ########
 
     filenameOut = f'{folder_to_save}/{NrSubtype}_VigSt_Global.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     combined_df.to_excel(writer)
     writer.close()
 
-    # Save the Ca correlation matrix  
+    ######### Save the SubStates Ca correlation matrix   ########
 
-    file_path = f'{folder_to_save}/{NrSubtype}_VigSt_CaCorr.xlsx'
+    dfs6_per_sheet = {sheet_name: df.groupby(df.index).sum() for sheet_name, df in dfs6_per_sheet.items()} #cause was concatenated in the 0 axis
+    dfs6_per_sheet=divide_keys(dfs6_per_sheet, 1, 2)
+    for sheet_name, df in dfs6_per_sheet.items():
+        df = df.sort_index(axis=1)
+        df = df.sort_index(axis=0)
+        dfs6_per_sheet[sheet_name]=df
+
+    if saveexcel:
+        file_path = f'{folder_to_save}/{NrSubtype}_SubSt_CaCorr.xlsx'
+        with pd.ExcelWriter(file_path) as writer:        
+            for sheet_name, df in dfs6_per_sheet.items():
+                df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+
+    filenameOut = f'{folder_to_save}/{NrSubtype}_SubSt_CaCorr.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(dfs6_per_sheet, pickle_file)
+
+    ######### Save the Ca correlation matrix   ########
+
     dfs2_per_sheet = {sheet_name: df.groupby(df.index).sum() for sheet_name, df in dfs2_per_sheet.items()} #cause was concatenated in the 0 axis
-    dfs2_per_sheet=divide_keys(dfs2_per_sheet)
+    dfs2_per_sheet=divide_keys(dfs2_per_sheet, 1, 2)
     for sheet_name, df in dfs2_per_sheet.items():
         df = df.sort_index(axis=1)
         df = df.sort_index(axis=0)
         dfs2_per_sheet[sheet_name]=df
 
-    #if saveexcel:
-    with pd.ExcelWriter(file_path) as writer:        
-        for sheet_name, df in dfs2_per_sheet.items():
-            df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+    if saveexcel:
+        file_path = f'{folder_to_save}/{NrSubtype}_VigSt_CaCorr.xlsx'
+        with pd.ExcelWriter(file_path) as writer:        
+            for sheet_name, df in dfs2_per_sheet.items():
+                df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
 
     filenameOut = f'{folder_to_save}/{NrSubtype}_VigSt_CaCorr.pkl'
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(dfs2_per_sheet, pickle_file)
 
-    # Save the Sp correlation matrix  
+    ######### Save the Sp correlation matrix  ########
 
-    file_path = f'{folder_to_save}/{NrSubtype}_VigSt_SpCorr.xlsx'
     dfs3_per_sheet = {sheet_name: df.groupby(df.index).sum() for sheet_name, df in dfs3_per_sheet.items()}
-    dfs3_per_sheet=divide_keys(dfs3_per_sheet)
+    dfs3_per_sheet=divide_keys(dfs3_per_sheet, 2, 3)
     for sheet_name, df in dfs3_per_sheet.items():
         df = df.sort_index(axis=1)
         df = df.sort_index(axis=0)
         dfs3_per_sheet[sheet_name]=df
 
-    #if saveexcel:    
-    with pd.ExcelWriter(file_path) as writer:        
-        for sheet_name, df in dfs3_per_sheet.items():
-            df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+    if saveexcel:    
+        file_path = f'{folder_to_save}/{NrSubtype}_VigSt_SpCorr.xlsx'
+        with pd.ExcelWriter(file_path) as writer:        
+            for sheet_name, df in dfs3_per_sheet.items():
+                df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
 
     filenameOut = f'{folder_to_save}/{NrSubtype}_VigSt_SpCorr.pkl'
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(dfs3_per_sheet, pickle_file)
 
-    # Save the TOT Ca correlation matrix  
+    ####### Save the TOT Ca correlation matrix  ########
 
-    file_path = f'{folder_to_save}/{NrSubtype}_Tot_CaCorr.xlsx'
     dfs4_per_sheet = {sheet_name: df.groupby(df.index).sum() for sheet_name, df in dfs4_per_sheet.items()} #cause was concatenated in the 0 axis
-    dfs4_per_sheet=divide_keys(dfs4_per_sheet)
+    dfs4_per_sheet=divide_keys(dfs4_per_sheet, 2, 3)
     for sheet_name, df in dfs4_per_sheet.items():
         df = df.sort_index(axis=1)
         df = df.sort_index(axis=0)
         dfs4_per_sheet[sheet_name]=df
 
-    #if saveexcel:
-    with pd.ExcelWriter(file_path) as writer:        
-        for sheet_name, df in dfs4_per_sheet.items():
-            df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+    if saveexcel:
+        with pd.ExcelWriter(file_path) as writer:  
+            file_path = f'{folder_to_save}/{NrSubtype}_Tot_CaCorr.xlsx'      
+            for sheet_name, df in dfs4_per_sheet.items():
+                df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
 
     filenameOut = f'{folder_to_save}/{NrSubtype}_Tot_CaCorr.pkl'
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(dfs4_per_sheet, pickle_file)
 
-    # Save the TOT Sp correlation matrix  
+    ######### Save the TOT Sp correlation matrix   ########
 
-    file_path = f'{folder_to_save}/{NrSubtype}_Tot_SpCorr.xlsx'
     dfs5_per_sheet = {sheet_name: df.groupby(df.index).sum() for sheet_name, df in dfs5_per_sheet.items()}
-    dfs5_per_sheet=divide_keys(dfs5_per_sheet)
+    dfs5_per_sheet=divide_keys(dfs5_per_sheet, 2, 3)
     for sheet_name, df in dfs5_per_sheet.items():
         df = df.sort_index(axis=1)
         df = df.sort_index(axis=0)
         dfs5_per_sheet[sheet_name]=df
 
-    #if saveexcel:    
-    with pd.ExcelWriter(file_path) as writer:        
-        for sheet_name, df in dfs5_per_sheet.items():
-            df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
+    if saveexcel:   
+        file_path = f'{folder_to_save}/{NrSubtype}_Tot_SpCorr.xlsx' 
+        with pd.ExcelWriter(file_path) as writer:        
+            for sheet_name, df in dfs5_per_sheet.items():
+                df.to_excel(writer, sheet_name=sheet_name, index=True, header=True)
 
     filenameOut = f'{folder_to_save}/{NrSubtype}_Tot_SpCorr.pkl'
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(dfs5_per_sheet, pickle_file)
-
 
 
 ########################################################################
@@ -326,6 +360,11 @@ for NrSubtype in NrSubtypeList:
     analysisfileSp='Tot_SpCorr'
     with open(f'{folder_to_save}/{NrSubtype}_{analysisfileSp}.pkl', 'rb') as pickle_file:
         combined_dfSpTot = pickle.load(pickle_file)
+    
+    analysisfileCa='SubSt_CaCorr'
+    with open(f'{folder_to_save}/{NrSubtype}_{analysisfileCa}.pkl', 'rb') as pickle_file:
+        combined_dfCaSub = pickle.load(pickle_file)
+
 
     ######################
     # CHOOSE OPTIONS
@@ -409,7 +448,7 @@ for NrSubtype in NrSubtypeList:
     writer.close()
 
     for Drug in Drugs:
-
+        """
         # /!/ The ones from the drug!!!! 
         combined_df_Drug=combined_df.copy()
         combined_df_Drug = combined_df_Drug[combined_df_Drug['Drug'] == Drug]
@@ -426,7 +465,7 @@ for NrSubtype in NrSubtypeList:
         REMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] <= lower_threshold].index
         NREMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] >= upper_threshold].index
         NotSpeunits = AresultActivity_perUnit[(AresultActivity_perUnit['RatioNREM_REM'] > lower_threshold) & (AresultActivity_perUnit['RatioNREM_REM'] < upper_threshold)].index
-
+"""
         combined_df_DrugO=combined_dfO.copy() # no min vig states durations == for vig states stats
         combined_df_DrugO = combined_df_DrugO[combined_df_DrugO['Drug'] == Drug] 
 
@@ -437,7 +476,7 @@ for NrSubtype in NrSubtypeList:
         folder_to_save2= f'{folder_to_save}/{Drug}/'
         if NrSubtype=='L1' and Drug=='CGP':
             os.makedirs(folder_to_save2)
-
+        
         List_SignFiringPreference=[NREMspeunits, REMspeunits, NotSpeunits, AllBaselineUnits, AllUnits] if DrugExperiment else [NREMspeunits, REMspeunits, NotSpeunits, AllUnits] #NREMprefUnits, REMprefUnits, WakeprefUnits] 
         SecondaryList=[REMspeunits, NotSpeunits, NREMspeunits, AllBaselineUnits, AllUnits] if DrugExperiment else [REMspeunits, NotSpeunits, NREMspeunits, AllUnits] #NREMprefUnits, REMprefUnits, WakeprefUnits] 
         List_Names=['NREMspe','REMspe','NotSpe', 'AllBaselineUnits', 'All'] if DrugExperiment else ['NREMspe','REMspe','NotSpe', 'All'] #'NREMpref', 'REMpref', 'Wakepref' ] 
@@ -582,7 +621,7 @@ for NrSubtype in NrSubtypeList:
 
                 # Keep only neurons from the list 
                 dfCa_filtered={}
-                for sheet_name, dfCa in combined_dfCa.items():
+                for sheet_name, dfCa in combined_dfSp.items():
                     dfCa=pd.DataFrame(dfCa)
                     indices_to_keep_existing = [idx for idx in listI if idx in dfCa.index] #from first list
                     columns_to_keep_existing = [col for col in listI if col in dfCa.columns] #from second list
@@ -716,8 +755,8 @@ for NrSubtype in NrSubtypeList:
                 
                 SummaryMatrixCa_cleaned = SummaryMatrixCa.round(5) # to better detect duplicate                   
                 SummaryMatrixCa_cleaned = SummaryMatrixCa.drop_duplicates(subset=SummaryMatrixCa.columns[1:]) 
-                SummaryMatrixCa_cleaned = SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4], SummaryMatrixCa_cleaned.columns[6], SummaryMatrixCa_cleaned.columns[8], SummaryMatrixCa_cleaned.columns[10]]) if DrugExperiment else SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4]])
-
+                #SummaryMatrixCa_cleaned = SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4], SummaryMatrixCa_cleaned.columns[6], SummaryMatrixCa_cleaned.columns[8], SummaryMatrixCa_cleaned.columns[10]]) if DrugExperiment else SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4]])
+                """
                 df_reset = SummaryMatrixCa_cleaned.reset_index()       
                 if len(df_reset)>0:
                     melted_df = pd.melt(df_reset, id_vars=['index'], var_name='VigilanceSt', value_name='CorrCoeff')
@@ -727,21 +766,21 @@ for NrSubtype in NrSubtypeList:
                     extracted_micename = [extract_micename(idx) for idx in melted_df['index']]
                     melted_df['Mice']=extracted_micename            
                 else: 
-                    melted_df = pd.DataFrame()
-
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlatPairCaCorr_{List_name}.xlsx'
-                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)  
+                    melted_df = pd.DataFrame() 
 
                 filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairCaCorr_{List_name}.xlsx'
                 melted_df.to_excel(filenameOut, index=True, header=True)
-               
+                """
+                
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlatPairCaCorr_{List_name}.xlsx'
+                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True) 
                 ###########################################################
                 ## Vig St Ca correlation with neurons from different population ##
                 ###########################################################
 
                 # Keep only neurons from the list 
                 dfCa_filtered={}
-                for sheet_name, dfCa in combined_dfCa.items():
+                for sheet_name, dfCa in combined_dfSp.items():
                     dfCa=pd.DataFrame(dfCa)
                     indices_to_keep_existing = [idx for idx in listI if idx in dfCa.index] #from first list
                     columns_to_keep_existing = [col for col in listII if col in dfCa.columns] #from second list
@@ -875,8 +914,9 @@ for NrSubtype in NrSubtypeList:
                 
                 SummaryMatrixCa_cleaned = SummaryMatrixCa.round(5) # to better detect duplicate                   
                 SummaryMatrixCa_cleaned = SummaryMatrixCa.drop_duplicates(subset=SummaryMatrixCa.columns[1:]) 
-                SummaryMatrixCa_cleaned = SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4], SummaryMatrixCa_cleaned.columns[6], SummaryMatrixCa_cleaned.columns[8], SummaryMatrixCa_cleaned.columns[10]]) if DrugExperiment else SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4]])
+                #SummaryMatrixCa_cleaned = SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4], SummaryMatrixCa_cleaned.columns[6], SummaryMatrixCa_cleaned.columns[8], SummaryMatrixCa_cleaned.columns[10]]) if DrugExperiment else SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4]])
 
+                """
                 df_reset = SummaryMatrixCa_cleaned.reset_index()       
                 if len(df_reset)>0:
                     melted_df = pd.melt(df_reset, id_vars=['index'], var_name='VigilanceSt', value_name='CorrCoeff')
@@ -888,11 +928,11 @@ for NrSubtype in NrSubtypeList:
                 else: 
                     melted_df = pd.DataFrame()
 
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlatPairCaCorr_{SecondaryList_name}.xlsx'
-                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)  
-
                 filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairCaCorr_{SecondaryList_name}.xlsx'
-                melted_df.to_excel(filenameOut, index=True, header=True)   
+                melted_df.to_excel(filenameOut, index=True, header=True)  
+                """
+                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlatPairCaCorr_{SecondaryList_name}.xlsx'
+                SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)   
                 
             if len(filtered_df)>0:
 
