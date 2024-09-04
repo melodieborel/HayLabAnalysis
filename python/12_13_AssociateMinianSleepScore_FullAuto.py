@@ -10,7 +10,7 @@ DrugExperimentList=[0,1]
 
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
-AnalysisID='_wRealTimeStamps' 
+AnalysisID='_wRealTS_N2' 
 
 saveexcel=0
 
@@ -376,21 +376,15 @@ for DrugExperiment in DrugExperimentList:
             # Remove bad units from recordings
 
             C=dict_Calcium[session]
-            rec_dur = C.shape[1]
             S=dict_Spike[session] 
 
             CalciumSub = pd.DataFrame(C, index=C['unit_id'])
-            recdur = CalciumSub.dropna(axis=1, how='all').shape[1] # probably useless cause not multiple openminian 
-            CalciumSub = CalciumSub.dropna(axis=1, how='all') #cause Nans were added to match the different number of units detected per subsessions 
-            CalciumSub = CalciumSub.dropna(axis=0, how='all') #cause Nans were added to match the different number of units detected per subsessions 
             SpikeSub = pd.DataFrame(S, index=S['unit_id'])
-            SpikeSub = SpikeSub.dropna(axis=0, how='all') #cause Nans were added to match the different number of units detected per subsessions 
-            SpikeSub = SpikeSub.dropna(axis=1, how='all') #cause Nans were added to match the different subsessions video sizes
 
             unit_to_drop=dict_TodropFile[session]    
             for u in unit_to_drop: 
-                CalciumSub=CalciumSub.drop(index=u)
-                SpikeSub=SpikeSub.drop(index=u)
+                CalciumSub=CalciumSub.drop(index=u) if u in CalciumSub.index else CalciumSub #need to know why
+                SpikeSub=SpikeSub.drop(index=u) if u in SpikeSub.index else SpikeSub
 
             indexMappList=B[session]
             kept_uniq_unit_List=[]
@@ -399,12 +393,6 @@ for DrugExperiment in DrugExperimentList:
                 kept_uniq_unit_List.append(str(indexMapp))
 
                 
-            nb_unit=len(CalciumSub)
-            if nb_unit==0:
-                continue  # next iteration
-
-
-
             # Realigned to the traces to the recorded timestamps 
 
             timestamps =  np.array(tsmini[firstframe:firstframe+len(CalciumSub.T)])/freqLFP
@@ -417,7 +405,6 @@ for DrugExperiment in DrugExperimentList:
                 Calcium.loc[feature] = interpolator(new_timestamps)
 
             x_values = SpikeSub  # Each row is a feature, each column corresponds to a timestamp
-            sample_rate = minian_freq  # Hz
             new_timestamps= np.arange(timestamps[0], timestamps[-1], 1/sample_rate)
             Spike = pd.DataFrame(index=x_values.index, columns=new_timestamps)
             for feature in x_values.index:
@@ -427,8 +414,11 @@ for DrugExperiment in DrugExperimentList:
             Carray=Calcium.values.T.astype(float)
             Sarray=Spike.values.T.astype(float)
 
-            firstframe=firstframe+len(CalciumSub.T)
+            firstframe+=len(CalciumSub.T)
+            rec_dur=len(CalciumSub.T)
+            rec_dur_sec= timestamps[-1]- timestamps[0]
 
+            print(len(CalciumSub.T), len(Calcium.T), rec_dur_sec)
 
             # Normalize traces
             
@@ -440,34 +430,28 @@ for DrugExperiment in DrugExperimentList:
             #Sarray=Sarray-min
             
             
-            # Deal with dropped frames (failure to acquire miniscope images)
+            # Deal with dropped frames (failure to acquire miniscope images) IGNORE CAUSE TIMESTAMPS TAKEN INTO ACCOUNT
 
             list_droppedframes = literal_eval(dict_Stamps[session][0][3])    
 
             numbdropfr= 0   
-            upd_rec_dur=rec_dur
             droppedframes_inrec=[]
             for item in list_droppedframes: 
-                if item < (round(StartTimeMiniscope*minian_freq) + upd_rec_dur) and item > round(StartTimeMiniscope*minian_freq):
-                    droppedframes_inrec.append(item-round(StartTimeMiniscope*minian_freq))
-                    upd_rec_dur+=1 #add the dropped frame to the recording length
+                if item < (round(StartTimeMiniscope*minian_freq) + rec_dur_sec) and item > round(StartTimeMiniscope*minian_freq):
                     numbdropfr+=1                        
 
-            EndTime = StartTime + (upd_rec_dur/minian_freq) # in seconds
+            EndTime = StartTime + rec_dur_sec # (upd_rec_dur/minian_freq) # in seconds
             previousEndTime=EndTime 
 
-            print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(upd_rec_dur/minian_freq,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, 'Hz, drug = ', drug, ')...') 
+            #print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(upd_rec_dur/minian_freq,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, 'Hz, drug = ', drug, ')...') 
+            print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(rec_dur_sec,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, 'Hz, drug = ', drug, ')...') 
             sentence1= f"... kept values = {kept_uniq_unit_List}"
             print(sentence1)
 
 
-            # Replace dropped frame in calcium and spike traces with the previous value
-
-            for droppedframe in droppedframes_inrec: 
-                row_to_repeat = Carray[droppedframe]  
-                Carray = np.vstack((Carray[:droppedframe], row_to_repeat, Carray[droppedframe:]))
-                row_to_repeat = Sarray[droppedframe]  
-                Sarray = np.vstack((Sarray[:droppedframe], row_to_repeat, Sarray[droppedframe:]))
+            nb_unit=len(CalciumSub)
+            if nb_unit==0:
+                continue  # next iteration
 
 
             # Upscale scoring to miniscope frequency
@@ -476,14 +460,14 @@ for DrugExperiment in DrugExperimentList:
             SleepScoredTS=dict_Scoring[session]
             SleepScoredTS_upscaled = np.repeat(SleepScoredTS, scale_factor, axis=0)
             StartTime_frame=round(StartTime*minian_freq)
-            SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled[StartTime_frame:StartTime_frame+upd_rec_dur]
+            SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled[StartTime_frame:StartTime_frame+rec_dur]
 
 
             # Remove N2 stage
 
-            SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
-            mapp = {1.5: 'Wake', 0: 'NREM',  1: 'REM'}
-            #mapp = {1.5: 'Wake', 0.5: 'N2', 0: 'NREM',  1: 'REM'}
+            #SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
+            #mapp = {1.5: 'Wake', 0: 'NREM',  1: 'REM'}
+            mapp = {1.5: 'Wake', 0.5: 'N2', 0: 'NREM',  1: 'REM'}
 
             # Determine each substate identity and duration
             array=SleepScoredTS_upscaled_ministart
