@@ -10,7 +10,7 @@ DrugExperimentList=[0,1]
 saveexcel=0
 
 Method=0 # 1=AB 0=AH
-AnalysisID='_wRealTS' 
+AnalysisID='_DS' 
 
 suffix='_AB' if Method else '_AH'
 
@@ -22,6 +22,7 @@ before = 500 # Max distance in ms between a SWR and a spindle to be considered a
 after = 1000 # Max distance in ms between a spindle and a SWR to be considered as Postcoupled
 durationSpdl = 5 # number of sec before and after the Spdl onset taken into acount
 durationSWR = 3 # number of sec before and after the SWR onset taken into acount
+durationDS = 3 # number of sec before and after the DS onset taken into acount
 
 #######################################################################################
                                 # Load packages #
@@ -159,6 +160,7 @@ for DrugExperiment in DrugExperimentList:
         dict_Calcium = {}
         dict_Spike = {}
         dict_SWRprop = {}
+        dict_DSprop={}
         dict_Spindleprop = {}
         dict_Stamps = {}
         dict_StampsMiniscope = {}
@@ -174,6 +176,20 @@ for DrugExperiment in DrugExperimentList:
             nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
             SWRproperties = session_path / f'OpenEphys/SWRproperties_8sd_AB.xlsx' if Method else session_path / f'OpenEphys/SWRproperties.csv'
             Spindleproperties = session_path / f'OpenEphys/Spindlesproperties_S1&PFC_7sd_AB.xlsx' if Method else session_path / f'OpenEphys/Spindleproperties_S1&PFC.csv'
+                        
+            DownStatesproperties_S1 = session_path / f'OpenEphys/DownStatesproperties_S1_2Pro3Height_AB.xlsx' 
+            DownStatesproperties_PFC = session_path / f'OpenEphys/DownStatesproperties_PFC_2Pro3Height_AB.xlsx' 
+            
+            DataDSS1=pd.read_excel(DownStatesproperties_S1, index_col=[0]) 
+            DataDSPFC=pd.read_excel(DownStatesproperties_PFC, index_col=[0]) 
+            DataDSS1['CTX']='S1'
+            DataDSPFC['CTX']='PFC'
+            DataDS=pd.concat([DataDSS1, DataDSPFC], axis=0)
+            DataDS = DataDS.sort_values(by='start time')
+            DataDS = DataDS.reset_index(drop=True)
+            filenameDS=session_path / f'OpenEphys/DownStatesproperties_S1&PFC.csv' 
+            DataDS.to_csv(filenameDS)
+                        
             StampsFile = session_path / f'SynchroFile.xlsx'
             StampsMiniscopeFile = folder_mini / f'timeStamps.csv'
             if nb_subsessions!=0:
@@ -186,6 +202,7 @@ for DrugExperiment in DrugExperimentList:
                     dict_SWRprop[subsession]  =SWRlist[SWRlist['toKeep'].isin(['VRAI', 'True'])]
                     Spdllist = pd.read_excel(Spindleproperties) if Method else pd.read_csv(Spindleproperties)
                     Spdllist['toKeep'] = Spdllist['toKeep'].astype(str)
+                    dict_DSprop[subsession]  = DataDS
                     dict_Spindleprop[subsession]  = Spdllist[Spdllist['toKeep'].isin(['VRAI', 'True'])]
                     dict_Path[subsession] = session_path
                     dict_Calcium[subsession] = minian_ds['C'] # calcium traces 
@@ -213,6 +230,7 @@ for DrugExperiment in DrugExperimentList:
                 Spdllist = pd.read_excel(Spindleproperties) if Method else pd.read_csv(Spindleproperties)
                 Spdllist['toKeep'] = Spdllist['toKeep'].astype(str) 
                 dict_Spindleprop[session]  = Spdllist[Spdllist['toKeep'].isin(['VRAI', 'True'])]
+                dict_DSprop[session]  = DataDS    
                 dict_Stamps[session]  = pd.read_excel(StampsFile)
                 dict_StampsMiniscope[session]  = pd.read_csv(StampsMiniscopeFile)
                 try:
@@ -234,6 +252,15 @@ for DrugExperiment in DrugExperimentList:
         if mice == 'Purple' and DrugExperiment==0:
             index = B.columns
             B.columns = index.str.replace('part', 'session2')
+        
+        #######################################################################################
+                                # Merge  #
+        #######################################################################################
+
+        B = mapping['session']
+        if mice == 'Purple' and DrugExperiment==0:
+            index = B.columns
+            B.columns = index.str.replace('part', 'session2')
 
         #######################################################################################
         # Distribute Ca2+ intensity & spikes to oscillations for each sessions/subsessions #
@@ -245,14 +272,24 @@ for DrugExperiment in DrugExperimentList:
 
         norm_freq=20 # final miniscope frequency used for all recordings
 
-        Spindles_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug', 'SpdlStatut','SpdlStartLocation', 'GlobalSpindle', 'SpdlNumber','SpdlDuration','SWR_inside_Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
-        SWR_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug','SWRStatut','SWRNumber','SWRDuration','SWR_inside_Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
-            
+        Spindles_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug', 'SpdlStatut','SpdlStartLocation',
+                                                             'GlobalSpindle', 'SpdlNumber','SpdlDuration','SWR_inside_Spdl','CalciumActivityPreference', 'CalciumActivityBefore',
+                                                             'CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter',
+                                                             'SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
+        SWR_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug','SWRStatut','SWRNumber','SWRDuration',
+                                                       'SWR_inside_Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter',
+                                                       'AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
+        DS_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug',
+                                                      'DSStatut','DSLocation','DSNumber','DSDuration','Spdl_in_DS','CalciumActivityPreference','CalciumActivityBefore',
+                                                      'CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter',
+                                                      'SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
         for drug in Drugs: 
             for coup in Coupling:
                 for ctx in CTX:            
                     locals()[f'dict_All_ActivityCa_{coup}SPDL{ctx}_{drug}']={}
                     locals()[f'dict_All_ActivitySp_{coup}SPDL{ctx}_{drug}']={}
+                    locals()[f'dict_All_ActivityCa_{coup}DS{ctx}_{drug}']={}
+                    locals()[f'dict_All_ActivitySp_{coup}DS{ctx}_{drug}']={}
                 locals()[f'dict_All_ActivityCa_{coup}SWR_{drug}']={}
                 locals()[f'dict_All_ActivitySp_{coup}SWR_{drug}']={}
 
@@ -267,7 +304,12 @@ for DrugExperiment in DrugExperimentList:
             cLocalPFC=0
 
             cCoupledSWR=0
-            cUnCoupledSWR=0      
+            cUnCoupledSWR=0    
+            
+            cCoupledDS=0
+            cUnCoupledDS=0 
+            cDSS1=0
+            cDSPFC=0
             
             drug=os.path.basename(os.path.dirname(dict_Path[session])) if DrugExperiment else 'Baseline'
 
@@ -370,20 +412,23 @@ for DrugExperiment in DrugExperimentList:
                 SpipropM=SpipropO.copy()
                 SWRpropO=dict_SWRprop[session]
                 SWRpropM=SWRpropO.copy()
+                DSpropO=dict_DSprop[session]
+                DSpropM=DSpropO.copy()
 
                 SpipropM=SpipropM[SpipropM['start time']> StartFrame_msec]
                 SpipropTrunc=SpipropM[SpipropM['end time']< LastFrame_msec]
                 SWRpropM=SWRpropM[SWRpropM['start time']> StartFrame_msec]
                 SWRpropTrunc=SWRpropM[SWRpropM['end time']< LastFrame_msec]
+                DSpropM=DSpropM[DSpropM['start time']> StartFrame_msec]
+                DSpropTrunc=DSpropM[DSpropM['end time']< LastFrame_msec]
                 
-                timeSpdl = range(round(durationSpdl*2*minian_freq))
                 HalfSpdl = round(durationSpdl*minian_freq)
-                
-                timeSWR = range(round(durationSWR*2*minian_freq))
                 HalfSWR = round(durationSWR*minian_freq)
+                HalfDS = round(durationDS*minian_freq)
 
                 nb_spindle = SpipropTrunc.shape[0]
                 nb_swr = SWRpropTrunc.shape[0]
+                nb_ds = DSpropTrunc.shape[0]
 
                 for unit in range(nb_unit): # for each kept units (cause Cseries/Sseries only have kept units)
 
@@ -485,6 +530,7 @@ for DrugExperiment in DrugExperimentList:
                             # Activity before/ during/after oscillation
 
                             durOsc=round((endSpi- startSpi)/1000*minian_freq)
+                            durOsc=round(1*minian_freq) # 1 seconds
                             TooEarlySpdl=startSpi/1000<durOsc/minian_freq # too close to the begining of the recording
                             TooLateSpdl=startSpi/1000+(durOsc/minian_freq*2)>LastFrame_msec/1000 # too close to the end of the recording
                             if TooEarlySpdl or TooLateSpdl:
@@ -647,6 +693,7 @@ for DrugExperiment in DrugExperimentList:
                             # Activity before/ during/after oscillation
 
                             durOsc=round((endSwr- startSwr)/1000*minian_freq)
+                            durOsc=round(.5*minian_freq) # 1 seconds
                             TooEarlySWR=startSwr/1000<durOsc/minian_freq # too close to the begining of the recording
                             TooLateSWR=startSwr/1000+(durOsc/minian_freq*2)>LastFrame_msec/1000 # too close to the end of the recording
                             #TooEarlySWR=startSwr-durOsc*1000<StartFrame_msec # too close to the begining of the recording
@@ -729,15 +776,189 @@ for DrugExperiment in DrugExperimentList:
                                     resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
                                     key=mice + str(indexMapp).replace('[','').replace(']','')
                                     dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
+                    
+                    
+                    #######################################################################################
+                                                        # for DSs #
+                    #######################################################################################
+                    for coup in Coupling:
+                        for ctx in CTX:            
+                            locals()[f'ActivityCa_{coup}DS{ctx}']=[] #For each unit 
+                            locals()[f'ActivitySp_{coup}DS{ctx}']=[] #For each unit  
 
-                sentence2=f"... {nb_spindle} spindles ({cCoupled} Coupled & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global, {cLocalS1} LocalS1 & {cLocalPFC} LocalPFC) and {nb_swr} SWR detected ({cCoupledSWR} Coupled & {cUnCoupledSWR} Uncoupled SWR)"
+                    for Pds in DSpropTrunc.index: 
+                        
+                        # Get the calcium and spike trace associated with the spdl
+        
+                        startDS=DSpropTrunc.loc[Pds, "start time"]                
+                        endDS=DSpropTrunc.loc[Pds, "end time"]    
+                        ctxDS=DSpropTrunc.loc[Pds, "CTX"]                
+                                    
+                        TooEarlyDS=startDS-durationDS*1000<StartFrame_msec # too close to the begining of the recording
+                        TooLateDS=startDS+durationDS*1000>LastFrame_msec # too close to the end of the recording
+                        
+                        if TooEarlyDS or TooLateDS:
+                            print("/!\ DS too close to the begining/end of the recording,", session, ", DS n°", Pds, ", Start DS =", round(startDS/1000,1), "s") if unit==0 else None            
+                        else:
+
+                            if ctxDS=='S1':
+                                cDSS1+=1 if unit==0 else 0
+                            elif ctxDS=='PFC': 
+                                cDSPFC+=1 if unit==0 else 0   
+
+                            # Find the index of the closest value in the column
+                            Frame_DS_start_all = (TS_miniscope_sub - startDS).abs().idxmin()
+                            Frame_DS_start=Frame_DS_start_all-nb_of_previousframe
+
+                            CaTrace = list(Carray_unit[Frame_DS_start-HalfDS:Frame_DS_start+HalfDS])
+                            SpTrace = list(Sarray_unit[Frame_DS_start-HalfDS:Frame_DS_start+HalfDS]) 
+
+                            ActivityCa_DS=locals()[f'ActivityCa_DS{ctxDS}']
+                            ActivitySp_DS=locals()[f'ActivitySp_DS{ctxDS}']
+                            ActivityCa_DS.append(CaTrace)
+                            ActivitySp_DS.append(SpTrace)               
+
+                            # Define if that spindle is coupled with a SWR or not
+
+                            DS_statut=[]
+                            startSpiList = list(pd.Series(SpipropTrunc["start time"]))
+                            if len(startSpiList)>0:
+                                startClosest_Spdl_idx = (np.abs(startSpiList - startDS)).argmin()
+                                startClosest_Spdl = startSpiList[startClosest_Spdl_idx]
+                                distance = abs(startClosest_Spdl - startDS)
+                                IsTrue=is_between(startSpiList,startDS, endDS)
+                                if (distance < before) or IsTrue:
+                                    DS_statut = 'Coupled'
+                                    cCoupledDS+=1 if unit==0 else 0                              
+                                else:
+                                    DS_statut= 'UnCoupled'
+                                    cUnCoupledDS+=1 if unit==0 else 0
+                            else:
+                                DS_statut= 'UnCoupled'
+                                cUnCoupledDS+=1 if unit==0 else 0
+
+                            ActivityCa_DSCp=locals()[f'ActivityCa_{DS_statut}DS{ctxDS}']
+                            ActivitySp_DSCp=locals()[f'ActivitySp_{DS_statut}DS{ctxDS}']
+                            ActivityCa_DSCp.append(CaTrace)
+                            ActivitySp_DSCp.append(SpTrace)
+                            
+                            # Fill the big summary table DSs_GlobalResults
+
+                            DS_GlobalResults.loc[counter, 'Mice'] = mice
+                            DS_GlobalResults.loc[counter, 'Session'] = session
+                            DS_GlobalResults.loc[counter, 'Session_Time'] = None 
+
+                            indexMapp = np.where(B[session] == Calcium.index[unit])[0]
+                            DS_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
+                            DS_GlobalResults.loc[counter, 'UnitNumber'] = unit 
+                            DS_GlobalResults.loc[counter, 'UnitValue'] = Calcium.index[unit] 
+                            
+                            DS_GlobalResults.loc[counter, 'Drug'] =  os.path.basename(os.path.dirname(dict_Path[session])) if DrugExperiment else 'Baseline'
+
+                            DS_GlobalResults.loc[counter, 'DSStatut'] = DS_statut
+                            DS_GlobalResults.loc[counter, 'DSLocation'] = ctxDS
+                            DS_GlobalResults.loc[counter, 'DSNumber'] = Pds
+                            DS_GlobalResults.loc[counter, 'DSDuration'] = endDS- startDS                        
+                            DS_GlobalResults.loc[counter, 'Spdl_in_DS'] = IsTrue
+                            
+                            # Activity before/ during/after oscillation
+
+                            durOsc=round((endDS- startDS)/1000*minian_freq)
+                            durOsc=round(.5*minian_freq) # 1 seconds
+                            TooEarlyDS=startDS/1000<durOsc/minian_freq # too close to the begining of the recording
+                            TooLateDS=startDS/1000+(durOsc/minian_freq*2)>LastFrame_msec/1000 # too close to the end of the recording
+                            
+                            if TooEarlyDS or TooLateDS:
+                                print("/!\ DS too close to the begining/end of the recording,", session, ", DS n°", Pspin, ", Start DS =", round(startDS/1000,1), "s, DS duration=", round(durOsc/minian_freq, 1), 's') if unit==0 else None            
+                            else:                                
+                                CaTrace = list(Carray_unit[Frame_DS_start-durOsc:Frame_DS_start+durOsc*2])
+                                SpTrace = list(Sarray_unit[Frame_DS_start-durOsc:Frame_DS_start+durOsc*2]) 
+                            
+                                ActBefore=np.mean(CaTrace[:durOsc],0)
+                                ActDuring=np.mean(CaTrace[durOsc:durOsc*2],0)
+                                ActAfter=np.mean(CaTrace[durOsc*2:durOsc*3],0)
+                                        
+                                if ActBefore > ActDuring and ActBefore > ActAfter:
+                                    pref='Before'
+                                elif ActAfter > ActDuring and ActAfter > ActBefore:
+                                    pref='After' 
+                                elif ActDuring > ActAfter and ActDuring > ActBefore:
+                                    pref='During' 
+                                else:
+                                    pref='None'
+                                DS_GlobalResults.loc[counter, 'CalciumActivityPreference'] = pref
+                                DS_GlobalResults.loc[counter, 'CalciumActivityBefore'] = ActBefore
+                                DS_GlobalResults.loc[counter, 'CalciumActivityDuring'] = ActDuring
+                                DS_GlobalResults.loc[counter, 'CalciumActivityAfter'] = ActAfter
+                                DS_GlobalResults.loc[counter, 'AUC_calciumBefore'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))
+                                DS_GlobalResults.loc[counter, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
+                                DS_GlobalResults.loc[counter, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
+
+                                ActBefore=np.mean(SpTrace[:durOsc],0)
+                                ActDuring=np.mean(SpTrace[durOsc:durOsc*2],0)
+                                ActAfter=np.mean(SpTrace[durOsc*2:durOsc*3],0)
+
+                                if ActBefore > ActDuring and ActBefore > ActAfter:
+                                    pref='Before'
+                                elif ActAfter > ActDuring and ActAfter > ActBefore:
+                                    pref='After' 
+                                elif ActDuring > ActAfter and ActDuring > ActBefore:
+                                    pref='During' 
+                                else:
+                                    pref='None'
+                                DS_GlobalResults.loc[counter, 'SpikeActivityPreference'] = pref
+                                DS_GlobalResults.loc[counter, 'SpikeActivityBefore'] = np.mean(SpTrace[:durOsc],0)
+                                DS_GlobalResults.loc[counter, 'SpikeActivityDuring'] = np.mean(SpTrace[durOsc:durOsc*2],0)
+                                DS_GlobalResults.loc[counter, 'SpikeActivityAfter'] = np.mean(SpTrace[durOsc*2:durOsc*3],0)                         
+                            counter+=1     
+
+                    ## Peristimulus Time Histogram 
+                    for ctx in CTX[:-1]: 
+                        for coup in Coupling: 
+                            # All Ca traces for each spindles per Unique unit (according to cross-registration)
+                            ActivityCa = locals()[f'ActivityCa_{coup}DS{ctx}']
+                            dict_All_ActivityCa = locals()[f'dict_All_ActivityCa_{coup}DS{ctx}_{drug}']
+                            ActivitySp = locals()[f'ActivitySp_{coup}DS{ctx}']
+                            dict_All_ActivitySp = locals()[f'dict_All_ActivitySp_{coup}DS{ctx}_{drug}']
+                            if len(indexMapp) > 0: #not empty --> cause some units are not in the cross registration..! Need to know why    
+                                if len(ActivityCa)>0 :                                
+                                    if np.shape(np.array(ActivityCa))[1] == int(norm_freq*durationDS*2):  #normalize traces to the same frequency rate         
+                                        ActivityCa= np.reshape(np.array(ActivityCa), (-1, len(np.array(ActivityCa)))) if np.ndim(ActivityCa) == 1 else np.array(ActivityCa)    
+                                        ActivitySp= np.reshape(np.array(ActivitySp), (-1, len(np.array(ActivitySp)))) if np.ndim(ActivitySp) == 1 else np.array(ActivitySp)    
+                                        key=mice + str(indexMapp).replace('[','').replace(']','')
+                                        dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(ActivityCa), axis=0) if key in dict_All_ActivityCa else np.array(ActivityCa)
+                                        dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(ActivitySp), axis=0) if key in dict_All_ActivitySp else np.array(ActivitySp)
+                                    else:
+                                        dataO = np.array(ActivityCa)
+                                        data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
+                                        x_mesh, y_mesh = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
+                                        x_new_mesh, y_new_mesh = np.meshgrid(np.linspace(0, data.shape[1] - 1, int(norm_freq*durationDS*2)), np.linspace(0, data.shape[0] - 1, np.shape(data)[0]))
+                                        resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='linear')
+                                        resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
+                                        resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
+                                        key=mice + str(indexMapp).replace('[','').replace(']','')
+                                        dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(resampled_data), axis=0) if key in dict_All_ActivityCa else np.array(resampled_data)
+
+                                        dataO = np.array(ActivitySp)
+                                        data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
+                                        x_mesh, y_mesh = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
+                                        x_new_mesh, y_new_mesh = np.meshgrid(np.linspace(0, data.shape[1] - 1, int(norm_freq*durationDS*2)), np.linspace(0, data.shape[0] - 1, np.shape(data)[0]))
+                                        resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='nearest')
+                                        resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
+                                        resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
+                                        key=mice + str(indexMapp).replace('[','').replace(']','')
+                                        dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
+                            #else: 
+                                #print(f"/!\ Cell idx {unit} not in the cross registration")
+                                    
+                sentence2=f"... {nb_spindle} spindles ({cCoupled} Coupled & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global, {cLocalS1} LocalS1 & {cLocalPFC} LocalPFC) and {nb_swr} SWR detected ({cCoupledSWR} Coupled & {cUnCoupledSWR} Uncoupled SWR) and {nb_ds} DS ({cCoupledDS} Coupled & {cUnCoupledDS} Uncoupled DS //{cDSS1} LocalS1 & {cDSPFC} LocalPFC)"
                 print(sentence2) 
             else:
                 print(f'/!\ {session} not taken into account cause minian frequency = {minian_freq}')
                     
 
         #######################################################################################
-                                # Save Spindles & SWR analysis #
+                                # Save Spindles & SWR & DS analysis #
         #######################################################################################
         if saveexcel: 
             # Save the big summary table Spindles_GlobalResults
@@ -751,6 +972,12 @@ for DrugExperiment in DrugExperimentList:
             writer = pd.ExcelWriter(filenameOut)
             SWR_GlobalResults.to_excel(writer)
             writer.close()
+                        
+            # Save the big summary table SWR_GlobalResults
+            filenameOut = folder_to_save / f'DS_Global_{mice}.xlsx'
+            writer = pd.ExcelWriter(filenameOut)
+            DS_GlobalResults.to_excel(writer)
+            writer.close()
 
         filenameOut = folder_to_save / f'Spdl_Global_{mice}.pkl'
         with open(filenameOut, 'wb') as pickle_file:
@@ -759,6 +986,10 @@ for DrugExperiment in DrugExperimentList:
         filenameOut = folder_to_save / f'SWR_Global_{mice}.pkl'
         with open(filenameOut, 'wb') as pickle_file:
             pickle.dump(SWR_GlobalResults, pickle_file)
+
+        filenameOut = folder_to_save / f'DS_Global_{mice}.pkl'
+        with open(filenameOut, 'wb') as pickle_file:
+            pickle.dump(DS_GlobalResults, pickle_file)
 
         # Do average Calcium & Spike results for Spindles & SWR Peristimulus Time Histogram 
 
@@ -775,6 +1006,17 @@ for DrugExperiment in DrugExperimentList:
                 for coup in Coupling:
                     for drug in Drugs:      
                         dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SPDL{ctx}_{drug}']
+                        filenameOut = folder_to_save / f'Spdl_{data}PSTH_{coup}{ctx}{drug}_{mice}.pkl' #keep each responses of each cells for all rec Spdl
+                        with open(filenameOut, 'wb') as pickle_file:
+                            pickle.dump(dict_All_Activity, pickle_file)
+
+                        if ctx!='S1PFC' : #cause no global DS yet
+                            dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}DS{ctx}_{drug}']
+                            filenameOut = folder_to_save / f'DS_{data}PSTH_{coup}{ctx}{drug}_{mice}.pkl' #keep each responses of each cells for all rec Spdl
+                            with open(filenameOut, 'wb') as pickle_file:
+                                pickle.dump(dict_All_Activity, pickle_file)
+
+                        """
                         IterationNb = {key: np.shape(matrix)[0] for key, matrix in dict_All_Activity.items()}
                         AVG_dict_All_Activity = {key: np.sum(matrix,0) for key, matrix in dict_All_Activity.items()}
                         Array=pd.DataFrame(AVG_dict_All_Activity).T
@@ -787,13 +1029,18 @@ for DrugExperiment in DrugExperimentList:
             filenameOut = folder_to_save / f'Spdl_{data}PSTH_{mice}.pkl'
             with open(filenameOut, 'wb') as pickle_file:
                 pickle.dump(DataSpdl, pickle_file)
-
+            """
             if saveexcel: 
                 filenameOut = folder_to_save / f'SWR_{data}PSTH_{mice}.xlsx'
                 excel_writer = pd.ExcelWriter(filenameOut)
             for coup in Coupling:
                 for drug in Drugs:      
                     dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR_{drug}']
+                    filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
+                    with open(filenameOut, 'wb') as pickle_file:
+                        pickle.dump(dict_All_Activity, pickle_file)
+
+                    """      
                     IterationNb = {key: np.shape(matrix)[0] for key, matrix in dict_All_Activity.items()}
                     AVG_dict_All_Activity = {key: np.sum(matrix,0) for key, matrix in dict_All_Activity.items()}
                     Array=pd.DataFrame(AVG_dict_All_Activity).T
@@ -806,6 +1053,7 @@ for DrugExperiment in DrugExperimentList:
             filenameOut = folder_to_save / f'SWR_{data}PSTH_{mice}.pkl'
             with open(filenameOut, 'wb') as pickle_file:
                 pickle.dump(DataSWR, pickle_file)
+            """  
 
     sentence3=f"Nb of unique units for {mice} = {len(dict_All_Activity)}"
     print(sentence3)    
