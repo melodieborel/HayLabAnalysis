@@ -10,7 +10,7 @@ DrugExperimentList=[0,1]
 saveexcel=0
 
 Method=0 # 1=AB 0=AH
-AnalysisID='_wRealTimeStamps' 
+AnalysisID='_wRealTS' 
 
 suffix='_AB' if Method else '_AH'
 
@@ -71,15 +71,6 @@ from minian.utilities import (
 #######################################################################################
                                 # Define functions #
 #######################################################################################
-
-def take_closest2(myList, myNumber):
-    value2 = 10000000
-    for ind in range(len(myList)):
-        value = abs(myList[ind]-myNumber)
-        if value < value2:
-            value2 = value
-            index = myList[ind]
-    return index
 
 def is_between(myList, starttime, endtime):
     IsTrue=False
@@ -282,9 +273,12 @@ for DrugExperiment in DrugExperimentList:
             # Start time & freq miniscope
 
             StartTime = list(dict_Stamps[session][0])[0] # in seconds
+            StartTimeO = StartTime
             minian_freq=list(dict_Stamps[session][0])[2] # in Hz
-            tsmini=dict_StampsMiniscope[session]['Time Stamp (ms)']
-            minian_freq=round(1/np.mean(np.diff(np.array(tsmini)/1000)))
+            TimeStamps_miniscope=dict_StampsMiniscope[session]
+            TimeStamps_miniscope["Time Stamp (ms)"]=TimeStamps_miniscope["Time Stamp (ms)"] + (StartTimeO*1000)
+
+            minian_freq=round(1/np.mean(np.diff(np.array(TimeStamps_miniscope["Time Stamp (ms)"])/1000)))
 
             freqLFP=1000
 
@@ -309,94 +303,65 @@ for DrugExperiment in DrugExperimentList:
                 # Remove bad units from recordings
 
                 C=dict_Calcium[session]
-                rec_dur = C.shape[1]
                 S=dict_Spike[session] 
 
-                CalciumSub = pd.DataFrame(C, index=C['unit_id'])
-                recdur = CalciumSub.dropna(axis=1, how='all').shape[1] # probably useless cause not multiple openminian 
-                CalciumSub = CalciumSub.dropna(axis=1, how='all') #cause Nans were added to match the different number of units detected per subsessions 
-                CalciumSub = CalciumSub.dropna(axis=0, how='all') #cause Nans were added to match the different number of units detected per subsessions 
-                SpikeSub = pd.DataFrame(S, index=S['unit_id'])
-                SpikeSub = SpikeSub.dropna(axis=0, how='all') #cause Nans were added to match the different number of units detected per subsessions 
-                SpikeSub = SpikeSub.dropna(axis=1, how='all') #cause Nans were added to match the different subsessions video sizes
+                Calcium = pd.DataFrame(C, index=C['unit_id'])
+                Spike = pd.DataFrame(S, index=S['unit_id'])
 
                 unit_to_drop=dict_TodropFile[session]    
                 for u in unit_to_drop: 
-                    CalciumSub=CalciumSub.drop(index=u)
-                    SpikeSub=SpikeSub.drop(index=u)
+                    Calcium=Calcium.drop(index=u) if u in Calcium.index else Calcium #need to know why
+                    Spike=Spike.drop(index=u) if u in Spike.index else Spike
+
 
                 indexMappList=B[session]
                 kept_uniq_unit_List=[]
-                for unit in CalciumSub.index:
+                for unit in Calcium.index:
                     indexMapp = np.where(indexMappList == unit)[0]
                     kept_uniq_unit_List.append(str(indexMapp))
                     
-                nb_unit=len(CalciumSub)
+                nb_unit=len(Calcium)
                 
-                if nb_unit==0:
-                    continue  # next iteration
-
-                sentence1= f"... kept values = {kept_uniq_unit_List}"
-                print(sentence1)  
-
-                
-                # Realigned to the traces to the recorded timestamps 
-
-                timestamps =  np.array(tsmini[firstframe:firstframe+len(CalciumSub.T)])/freqLFP
-                x_values = CalciumSub  # Each row is a feature, each column corresponds to a timestamp
-                sample_rate = minian_freq  # Hz
-                new_timestamps= np.arange(timestamps[0], timestamps[-1], 1/sample_rate)
-                Calcium = pd.DataFrame(index=x_values.index, columns=new_timestamps)
-                for feature in x_values.index:
-                    interpolator = interpolate.interp1d(timestamps, x_values.loc[feature], kind='linear')
-                    Calcium.loc[feature] = interpolator(new_timestamps)
-
-                x_values = SpikeSub  # Each row is a feature, each column corresponds to a timestamp
-                sample_rate = minian_freq  # Hz
-                new_timestamps= np.arange(timestamps[0], timestamps[-1], 1/sample_rate)
-                Spike = pd.DataFrame(index=x_values.index, columns=new_timestamps)
-                for feature in x_values.index:
-                    interpolator = interpolate.interp1d(timestamps, x_values.loc[feature], kind='linear')
-                    Spike.loc[feature] = interpolator(new_timestamps)
-
+              
                 Carray=Calcium.values.T.astype(float)
                 Sarray=Spike.values.T.astype(float)
 
-                firstframe=firstframe+len(CalciumSub.T)
+                StartFrame_msec=TimeStamps_miniscope['Time Stamp (ms)'][TimeStamps_miniscope['Frame Number'][firstframe]]
+                LastFrame_msec=TimeStamps_miniscope['Time Stamp (ms)'][TimeStamps_miniscope['Frame Number'][firstframe+len(Calcium.T)-1]]
+                TS_miniscope_sub=TimeStamps_miniscope['Time Stamp (ms)'].iloc[firstframe:firstframe+len(Calcium.T)]
+                rec_dur=len(Calcium.T)
+
+                rec_dur_sec= (LastFrame_msec - StartFrame_msec)/1000
                 
-                
+                nb_of_previousframe=firstframe
+
+                firstframe+=rec_dur
+
                 # Deal with dropped frames (failure to acquire miniscope images)
 
                 list_droppedframes = literal_eval(dict_Stamps[session][0][3])    
 
                 numbdropfr= 0   
-                upd_rec_dur=rec_dur
                 droppedframes_inrec=[]
                 for item in list_droppedframes: 
-                    if item < (int(StartTimeMiniscope*minian_freq) + upd_rec_dur) and item > int(StartTimeMiniscope*minian_freq):
-                        droppedframes_inrec.append(item-int(StartTimeMiniscope*minian_freq))
-                        upd_rec_dur+=1 #add the dropped frame to the recording length
+                    if item < (int(StartTimeMiniscope*minian_freq) + rec_dur) and item > int(StartTimeMiniscope*minian_freq):
                         numbdropfr+=1                        
 
-                EndTime = StartTime + (upd_rec_dur/minian_freq) # in seconds
-                previousEndTime=EndTime     
+                EndTime = StartTime + rec_dur_sec # (upd_rec_dur/minian_freq) # in seconds
+                previousEndTime=EndTime 
 
-                print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(upd_rec_dur/minian_freq,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, 'Hz, drug = ', drug, ')...') 
+                print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(rec_dur_sec,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, 'Hz, drug = ', drug, ')...') 
 
-                
+                sentence1= f"... kept values = {kept_uniq_unit_List}"
+                print(sentence1) 
+
                 # Zscore traces
 
                 #Carray=zscore(Carray, axis=0)
                 #Sarray=zscore(Sarray, axis=0)
 
-
-                # Replace dropped frame in calcium and spike traces with the previous value
-
-                for droppedframe in droppedframes_inrec: 
-                    row_to_repeat = Carray[droppedframe]  
-                    Carray = np.vstack((Carray[:droppedframe], row_to_repeat, Carray[droppedframe:]))
-                    row_to_repeat = Sarray[droppedframe]  
-                    Sarray = np.vstack((Sarray[:droppedframe], row_to_repeat, Sarray[droppedframe:]))
+                if nb_unit==0:
+                    continue  # next iteration
 
                 # Align Oscillations to miniscope start 
 
@@ -404,21 +369,17 @@ for DrugExperiment in DrugExperimentList:
                 SpipropM=SpipropO.copy()
                 SWRpropO=dict_SWRprop[session]
                 SWRpropM=SWRpropO.copy()
-                SpipropM[["peak time", "start time", "end time"]] = SpipropM[["peak time", "start time", "end time"]]-(StartTime*1000)
-                SWRpropM[["peak time", "start time", "end time"]] = SWRpropM[["peak time", "start time", "end time"]]-(StartTime*1000)        
 
-                timeSpdl = range(int(durationSpdl*2*minian_freq))
-                HalfSpdl = int(durationSpdl*minian_freq)
+                SpipropM=SpipropM[SpipropM['start time']> StartFrame_msec]
+                SpipropTrunc=SpipropM[SpipropM['end time']< LastFrame_msec]
+                SWRpropM=SWRpropM[SWRpropM['start time']> StartFrame_msec]
+                SWRpropTrunc=SWRpropM[SWRpropM['end time']< LastFrame_msec]
                 
-                timeSWR = range(int(durationSWR*2*minian_freq))
-                HalfSWR = int(durationSWR*minian_freq)
-
-                TimeStamps_miniscope=list(dict_StampsMiniscope[session]["Time Stamp (ms)"]) # + (StartTime*1000))
-
-                SpipropTrunc = SpipropM[SpipropM["start time"]>0]
-                SpipropTrunc = SpipropTrunc[SpipropTrunc["start time"]< (EndTime-StartTime)*1000]
-                SWRpropTrunc = SWRpropM[SWRpropM["start time"]>0]
-                SWRpropTrunc = SWRpropTrunc[SWRpropTrunc["start time"] < (EndTime-StartTime)*1000]
+                timeSpdl = range(round(durationSpdl*2*minian_freq))
+                HalfSpdl = round(durationSpdl*minian_freq)
+                
+                timeSWR = range(round(durationSWR*2*minian_freq))
+                HalfSWR = round(durationSWR*minian_freq)
 
                 nb_spindle = SpipropTrunc.shape[0]
                 nb_swr = SWRpropTrunc.shape[0]
@@ -450,8 +411,8 @@ for DrugExperiment in DrugExperimentList:
                         StartLocSpi=SpipropTrunc.loc[Pspin, "StartingLoc"]   
                                     
 
-                        TooEarlySpdl=startSpi/1000<durationSpdl # too close to the begining of the recording
-                        TooLateSpdl=startSpi/1000+durationSpdl>round((upd_rec_dur)/minian_freq,1) # too close to the end of the recording
+                        TooEarlySpdl=startSpi-durationSpdl*1000<StartFrame_msec # too close to the begining of the recording
+                        TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
                         
                         if TooEarlySpdl or TooLateSpdl:
                             print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit==0 else None            
@@ -464,13 +425,15 @@ for DrugExperiment in DrugExperimentList:
                             elif ctxSpi=='S1PFC': 
                                 cGlobal+=1 if unit==0 else 0    
 
-                            Frame_Spindle_start = int(startSpi/1000*minian_freq)                            
+                            # Find the index of the closest value in the column
+                            Frame_Spindle_start_all = (TS_miniscope_sub - startSpi).abs().idxmin()
+                            Frame_Spindle_start=Frame_Spindle_start_all-nb_of_previousframe
+
                             CaTrace = list(Carray_unit[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl])
                             SpTrace = list(Sarray_unit[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl]) 
-                            
+
                             ActivityCa_Spin=locals()[f'ActivityCa_Spin{ctxSpi}']
                             ActivitySp_Spin=locals()[f'ActivitySp_Spin{ctxSpi}']
-
                             ActivityCa_Spin.append(CaTrace)
                             ActivitySp_Spin.append(SpTrace)               
 
@@ -479,7 +442,8 @@ for DrugExperiment in DrugExperimentList:
                             Spdl_statut=[]
                             startSWRList = list(pd.Series(SWRpropTrunc["start time"]))
                             if len(startSWRList)>0:
-                                startClosest_SWR = take_closest2(startSWRList, startSpi)
+                                startClosest_SWR_idx = (np.abs(startSWRList - startSpi)).argmin()
+                                startClosest_SWR = startSWRList[startClosest_SWR_idx]
                                 distance = abs(startClosest_SWR - startSpi)
                                 IsTrue=is_between(startSWRList,startSpi, endSpi)
                                 if (distance < before) or IsTrue:
@@ -496,7 +460,7 @@ for DrugExperiment in DrugExperimentList:
                             ActivitySp_SpinCp=locals()[f'ActivitySp_{Spdl_statut}Spin{ctxSpi}']
                             ActivityCa_SpinCp.append(CaTrace)
                             ActivitySp_SpinCp.append(SpTrace)
-
+                            
                             # Fill the big summary table Spindles_GlobalResults
 
                             Spindles_GlobalResults.loc[counter, 'Mice'] = mice
@@ -519,11 +483,11 @@ for DrugExperiment in DrugExperimentList:
                             
                             # Activity before/ during/after oscillation
 
-                            durOsc=int((endSpi- startSpi)/1000*minian_freq)
+                            durOsc=round((endSpi- startSpi)/1000*minian_freq)
                             TooEarlySpdl=startSpi/1000<durOsc/minian_freq # too close to the begining of the recording
-                            TooLateSpdl=startSpi/1000+(durOsc/minian_freq*2)>round((upd_rec_dur)/minian_freq,1) # too close to the end of the recording
+                            TooLateSpdl=startSpi/1000+(durOsc/minian_freq*2)>LastFrame_msec/1000 # too close to the end of the recording
                             if TooEarlySpdl or TooLateSpdl:
-                                print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s, recdur=", round((upd_rec_dur)/minian_freq,1)) if unit==0 else None            
+                                print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s, Spdl duration=", round(durOsc/minian_freq, 1), 's') if unit==0 else None            
                             else:                                
                                 CaTrace = list(Carray_unit[Frame_Spindle_start-durOsc:Frame_Spindle_start+durOsc*2])
                                 SpTrace = list(Sarray_unit[Frame_Spindle_start-durOsc:Frame_Spindle_start+durOsc*2]) 
@@ -618,13 +582,15 @@ for DrugExperiment in DrugExperimentList:
                         startSwr=SWRpropTrunc.loc[Pswr, "start time"]
                         endSwr=SWRpropTrunc.loc[Pswr, "end time"]
                         
-                        TooEarlySWR=startSwr/1000<durationSWR # too close to the begining of the recording
-                        TooLateSWR=startSwr/1000+durationSWR>round((upd_rec_dur)/minian_freq,1) # too close to the end of the recording
+                        TooEarlySWR=startSwr-durationSWR*1000<StartFrame_msec # too close to the begining of the recording
+                        TooLateSWR=startSwr+durationSWR*1000>LastFrame_msec # too close to the end of the recording
                         if TooEarlySWR or TooLateSWR:
                             print("/!\ SWR too close to the begining/end of the recording,", session, ", SWR n°", Pswr, ", Start SWR =",  round(startSwr/1000,1), "s") if unit==0 else None 
                         else:
 
-                            Frame_SWR_start = int(startSwr/1000*minian_freq)
+                            Frame_SWR_start_all = (TS_miniscope_sub - startSwr).abs().idxmin()
+                            Frame_SWR_start=Frame_SWR_start_all-nb_of_previousframe
+
                             CaTrace = list(Carray_unit[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR])
                             SpTrace = list(Sarray_unit[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR]) 
 
@@ -640,9 +606,9 @@ for DrugExperiment in DrugExperimentList:
                             startSpiList = list(pd.Series(SpipropTrunc["start time"]))
                             endSpiList = list(pd.Series(SpipropTrunc["end time"]))
                             if len(startSpiList)>0:
-                                startClosest_Spi = take_closest2(startSpiList, startSwr)# + StartTimeIndexSpi])
-                                indexSpi = startSpiList.index(startClosest_Spi)
-                                endClosest_Spi=endSpiList[indexSpi]
+                                startClosest_Spdl_idx = (np.abs(startSpiList - startSwr)).argmin()
+                                startClosest_Spi = startSpiList[startClosest_Spdl_idx]
+                                endClosest_Spi=endSpiList[startClosest_Spdl_idx]
                                 distance = abs(startClosest_Spi - startSwr) #  + StartTimeIndexSpi]  
                                 IsTrue = startSwr>startClosest_Spi and startSwr<endClosest_Spi #SWR inside the Spindle
                                 if distance<before or IsTrue:
@@ -679,11 +645,13 @@ for DrugExperiment in DrugExperimentList:
 
                             # Activity before/ during/after oscillation
 
-                            durOsc=int((endSwr- startSwr)/1000*minian_freq)
+                            durOsc=round((endSwr- startSwr)/1000*minian_freq)
                             TooEarlySWR=startSwr/1000<durOsc/minian_freq # too close to the begining of the recording
-                            TooLateSWR=startSwr/1000+(durOsc/minian_freq*2)>round((upd_rec_dur)/minian_freq,1) # too close to the end of the recording
+                            TooLateSWR=startSwr/1000+(durOsc/minian_freq*2)>LastFrame_msec/1000 # too close to the end of the recording
+                            #TooEarlySWR=startSwr-durOsc*1000<StartFrame_msec # too close to the begining of the recording
+                            #TooLateSWR=startSwr+durOsc*1000>LastFrame_msec # too close to the end of the recording
                             if TooEarlySWR or TooLateSWR:
-                                print("/!\ SWR too close to the begining/end of the recording,", session, ", SWR n°", Pswr, ", Start SWR =", round(startSwr/1000,1), "s, recdur=", round((upd_rec_dur)/minian_freq,1)) if unit==0 else None            
+                                print("/!\ SWR too close to the begining/end of the recording,", session, ", SWR n°", Pswr, ", Start SWR =", round(startSwr/1000,1), "s, SWR duration=", round(durOsc/minian_freq, 1), 's') if unit==0 else None            
                             else:                                
                                 CaTrace = list(Carray_unit[Frame_SWR_start-durOsc:Frame_SWR_start+durOsc*2])
                                 SpTrace = list(Sarray_unit[Frame_SWR_start-durOsc:Frame_SWR_start+durOsc*2]) 

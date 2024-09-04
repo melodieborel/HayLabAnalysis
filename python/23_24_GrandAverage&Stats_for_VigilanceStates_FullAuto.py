@@ -4,15 +4,15 @@
                             # Define Experiment type #
 #######################################################################################
 
-AnalysisID='_AB_N2forCGP' #to identify this analysis from another
+AnalysisID='_AB_wRealTS_N2_forCGP' #to identify this analysis from another
 DrugExperiment=1 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
 saveexcel=0
 Local=1
 
 #choosed_folder='VigSt_2024-07-22_18_21_32_AB_FINAL' if DrugExperiment else 'VigSt_2024-07-22_17_16_28_AB_FINAL'
-choosed_folder1='VigSt_2024-08-30_07_47_44_AB_N2' # for Baseline Expe
-choosed_folder2='VigSt_2024-08-30_09_52_23_AB_N2' # for CGP Expe
+choosed_folder1='VigSt_2024-09-03_11_17_53_AB_wRealTS_N2' # for Baseline Expe
+choosed_folder2='VigSt_2024-09-03_12_08_50_AB_wRealTS_N2' # for CGP Expe
 
 #desired_order = ['Wake','NREM', 'REM']   
 desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
@@ -130,9 +130,9 @@ for NrSubtype in NrSubtypeList:
     nametofind='Global'
     nametofind2='VigSt_CaCorr'
     nametofind3='VigSt_SpCorr'      
-    nametofind6='SatesCaCorr'
     nametofind4='TotCaCorr'
     nametofind5='TotSpCorr'
+    nametofind6='SatesCaCorr'
 
     # Recursively traverse the directory structure
     for directory in [directory1, directory2]:
@@ -159,19 +159,6 @@ for NrSubtype in NrSubtypeList:
                                 dfs2_per_sheet[key]=pd.concat([dfs2_per_sheet[key],value],axis=0)
                             else:
                                 dfs2_per_sheet[key]=value
-                        print(filename)
-                if filename.endswith('.pkl') and nametofind6 in filename: 
-                    if any(name in filename for name in MiceList): 
-                        # Construct the full path to the file
-                        filepath = os.path.join(root, filename)
-                        with open(filepath, 'rb') as pickle_file:
-                            try : df = pickle.load(pickle_file)
-                            except: pass
-                        for key, value in df.items():
-                            if key in dfs6_per_sheet:
-                                dfs6_per_sheet[key]=pd.concat([dfs6_per_sheet[key],value],axis=0)
-                            else:
-                                dfs6_per_sheet[key]=value
                         print(filename)
                 if filename.endswith('.pkl') and nametofind3 in filename: 
                     if any(name in filename for name in MiceList): 
@@ -209,7 +196,19 @@ for NrSubtype in NrSubtypeList:
                             else:
                                 dfs5_per_sheet[key]=value
                         print(filename)
-
+                if filename.endswith('.pkl') and nametofind6 in filename: 
+                    if any(name in filename for name in MiceList): 
+                        # Construct the full path to the file
+                        filepath = os.path.join(root, filename)
+                        with open(filepath, 'rb') as pickle_file:
+                            try : df = pickle.load(pickle_file)
+                            except: pass
+                        for key, value in df.items():
+                            if key in dfs6_per_sheet:
+                                dfs6_per_sheet[key]=pd.concat([dfs6_per_sheet[key],value],axis=0)
+                            else:
+                                dfs6_per_sheet[key]=value
+                        print(filename)
 
     # Concatenate all dataframes into a single dataframe
     combined_df = pd.concat(dfs, ignore_index=True)
@@ -258,7 +257,7 @@ for NrSubtype in NrSubtypeList:
     ######### Save the Ca correlation matrix   ########
 
     dfs2_per_sheet = {sheet_name: df.groupby(df.index).sum() for sheet_name, df in dfs2_per_sheet.items()} #cause was concatenated in the 0 axis
-    dfs2_per_sheet=divide_keys(dfs2_per_sheet, 1, 2)
+    dfs2_per_sheet=divide_keys(dfs2_per_sheet, 2, 3)
     for sheet_name, df in dfs2_per_sheet.items():
         df = df.sort_index(axis=1)
         df = df.sort_index(axis=0)
@@ -621,7 +620,7 @@ for NrSubtype in NrSubtypeList:
 
                 # Keep only neurons from the list 
                 dfCa_filtered={}
-                for sheet_name, dfCa in combined_dfSp.items():
+                for sheet_name, dfCa in combined_dfCa.items():
                     dfCa=pd.DataFrame(dfCa)
                     indices_to_keep_existing = [idx for idx in listI if idx in dfCa.index] #from first list
                     columns_to_keep_existing = [col for col in listI if col in dfCa.columns] #from second list
@@ -780,7 +779,7 @@ for NrSubtype in NrSubtypeList:
 
                 # Keep only neurons from the list 
                 dfCa_filtered={}
-                for sheet_name, dfCa in combined_dfSp.items():
+                for sheet_name, dfCa in combined_dfCa.items():
                     dfCa=pd.DataFrame(dfCa)
                     indices_to_keep_existing = [idx for idx in listI if idx in dfCa.index] #from first list
                     columns_to_keep_existing = [col for col in listII if col in dfCa.columns] #from second list
