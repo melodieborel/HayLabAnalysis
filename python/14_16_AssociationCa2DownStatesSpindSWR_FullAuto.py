@@ -18,6 +18,11 @@ CTX=['S1', 'PFC', 'S1PFC']
 
 Coupling=['', 'UnCoupled', 'Coupled']
 
+before = 500 # Max distance in ms between a SWR and a spindle to be considered as Precoupled
+after = 1000 # Max distance in ms between a spindle and a SWR to be considered as Postcoupled
+durationSpdl = 5 # number of sec before and after the Spdl onset taken into acount
+durationSWR = 3 # number of sec before and after the SWR onset taken into acount
+
 #######################################################################################
                                 # Load packages #
 #######################################################################################
@@ -235,10 +240,6 @@ for DrugExperiment in DrugExperimentList:
         #######################################################################################
 
         data = {}        
-        before = 500 # Max distance in ms between a SWR and a spindle to be considered as Precoupled
-        after = 1000 # Max distance in ms between a spindle and a SWR to be considered as Postcoupled
-        durationSpdl = 5 # number of sec before and after the Spdl onset taken into acount
-        durationSWR = 1 # number of sec before and after the SWR onset taken into acount
         counter=0
         counter2=0
 
