@@ -2,6 +2,7 @@
 */venv311
 .venv
 .venv-si
+.si-env
 ExampleRedLines
 recording8
 session5
