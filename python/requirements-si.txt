@@ -1,4 +1,6 @@
 ipykernel
+submitit
+memory_profiler
 
 #pour ephysviewer:
 numpy
