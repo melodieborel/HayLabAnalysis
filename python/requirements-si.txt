@@ -23,6 +23,8 @@ PyQt5
 pyqtgraph
 ipywidgets
 ipympl
+torch
+kilosort
 
 ephyviewer
 MEArec

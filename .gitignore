@@ -17,3 +17,6 @@ python/dask-worker-space
 Analysis
 python/localConfig.ini
 python/tuto_logs
+python/si_logs
+python/kilosort4_output
+python/sorting_analyzer_demo_K
