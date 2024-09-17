@@ -2,6 +2,9 @@ ipykernel
 submitit
 memory_profiler
 
+ipyfilechooser
+pickleshare
+
 #pour ephysviewer:
 numpy
 scipy
