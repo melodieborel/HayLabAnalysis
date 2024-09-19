@@ -21,3 +21,7 @@ python/si_logs
 python/kilosort4_output
 python/sorting_analyzer_demo_K
 python/report
+python/clusters
+python/si_dask_logs
+python/sorting_analyzer_training
+python/sorting_analyzer_full
