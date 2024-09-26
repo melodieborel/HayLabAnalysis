@@ -2,6 +2,10 @@ ipykernel
 submitit
 memory_profiler
 
+pysshpass
+paramiko
+scp
+
 ipyfilechooser
 pickleshare
 
