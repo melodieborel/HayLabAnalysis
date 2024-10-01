@@ -20,6 +20,7 @@ class IntanLFP(ePhy):
          self.dtype=np.int16
          self.offset = 0
       self.signal = self.loadData()
+      #TODO: set start and sampling_rate
 
 
    def loadData(self):
@@ -58,6 +59,8 @@ class NPX(ePhy):
       self.signal = None
       self.dtype=np.uint16
       self.signal = self.loadData()
+      #TODO: set start and sampling_rate
+
 
    def loadData(self):
       spikesPrefix = 'NP_spikes_'

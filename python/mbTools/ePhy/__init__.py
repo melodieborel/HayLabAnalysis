@@ -14,6 +14,8 @@ class ePhy():
       self.signal = None
       self.offset = 0
       self.expe = parent
+      self.start = 0
+      self.sampling_rate = 1000
 
 
    def loadData(self):
