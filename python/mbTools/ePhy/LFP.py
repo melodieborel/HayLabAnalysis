@@ -9,6 +9,7 @@ class IntanLFP(ePhy):
       self.files_list = files_list
       self.recSyst = recSyst
       self.signal = None
+      self.bufferCount=1024
       if recSyst=='Bonsai':
          print('data recorded with Bonsai')
          self.fileType = 'IntanLFP'
@@ -19,12 +20,23 @@ class IntanLFP(ePhy):
          self.fileType = 'OE32channels.bin'
          self.dtype=np.int16
          self.offset = 0
+      self.sampling_rate=20000
       self.signal = self.loadData()
-      #TODO: set start and sampling_rate
-
+      self.loadTimeStamps()
 
    def loadData(self):
       return super().loadData()
+   
+   def loadTimeStamps(self):
+      if len(self.files_list)>1:
+         raise Exception(f"Multiple files not implemented yet, please contact MB if you are interested by this option")
+      for f in self.files_list:
+         fTS=f.replace('OE_32ch_data','OE_32ch_timestamps').replace('.bin','.csv')
+         import pandas as pd
+         df = pd.read_csv(fTS, sep=',', header=None, names=['ts'])
+         df.ts = pd.to_datetime(df.ts, format='ISO8601')
+         self.sampling_rate = self.bufferCount/(df.ts.diff().mean().total_seconds())
+         print(f"the calculated sampling rate is {self.sampling_rate} Hz")
    
    def combineStructures(self,structures, start = 0, end = None):
       if end is None:
@@ -58,14 +70,15 @@ class NPX(ePhy):
       self.fileType = 'NPX'
       self.signal = None
       self.dtype=np.uint16
+      self.sampling_rate=30000
+      self.acquisitionClockHz=250000000
       self.signal = self.loadData()
-      #TODO: set start and sampling_rate
-
+      self.loadTimeStamps()
 
    def loadData(self):
       spikesPrefix = 'NP_spikes_'
       if len(self.files_list)>1:
-         raise Exception(f"Multiple files not yet in place, please contact MB if you are interested by this option")
+         raise Exception(f"Multiple files not implemented yet, please contact MB if you are interested by this option")
       for filename in self.files_list:
          # Neuropixels V1 Probe
          npix = {}
@@ -81,3 +94,9 @@ class NPX(ePhy):
       self.signal = npix
       self.channelLabels = [i for i in range(384)]
       return self.signal
+   
+   def loadTimeStamps(self):
+      if len(self.files_list)>1:
+         raise Exception(f"Multiple files not implemented yet, please contact MB if you are interested by this option")
+      self.sampling_rate = self.acquisitionClockHz/np.diff(self.signal['spike-clock']).mean()
+      print(f"the calculated sampling rate is {self.sampling_rate} Hz")
