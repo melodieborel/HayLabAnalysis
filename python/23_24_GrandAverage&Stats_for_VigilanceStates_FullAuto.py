@@ -4,18 +4,18 @@
                             # Define Experiment type #
 #######################################################################################
 
-AnalysisID='_AB_wRealTS_N2_forCGP' #to identify this analysis from another
+AnalysisID='_AB_newScor_CGP' #to identify this analysis from another
 DrugExperiment=1 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
 saveexcel=0
 Local=1
 
 #choosed_folder='VigSt_2024-07-22_18_21_32_AB_FINAL' if DrugExperiment else 'VigSt_2024-07-22_17_16_28_AB_FINAL'
-choosed_folder1='VigSt_2024-09-03_11_17_53_AB_wRealTS_N2' # for Baseline Expe
-choosed_folder2='VigSt_2024-09-03_12_08_50_AB_wRealTS_N2' # for CGP Expe
+choosed_folder1='VigSt_2024-10-03_14_28_11_AB_newScor' # for Baseline Expe
+choosed_folder2='VigSt_2024-10-03_15_10_42_AB_newScor' # for CGP Expe
 
-#desired_order = ['Wake','NREM', 'REM']   
-desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
+desired_order = ['Wake','NREM', 'REM']   
+#desired_order = ['Wake', 'N2', 'NREM', 'REM'] 
 
 #######################################################################################
                                 # Load packages #
@@ -1003,6 +1003,17 @@ for NrSubtype in NrSubtypeList:
                 resultNormalizedAUC_calcium_perMouse.to_excel(filenameOutAUCM)
 
                 #####################
+                # SI evolution #
+                #####################
+
+                combined_df_Drug['TrSession'] = combined_df_Drug['Session'].str[:8]
+                resultNormalizedAUC_calcium_perUnit = combined_df_Drug.pivot_table(index='Unit_ID', columns=[combined_df_Drug['Substate'],combined_df_Drug['TrSession']], values='NormalizedAUC_calcium', aggfunc='mean')   
+                A=(resultNormalizedAUC_calcium_perUnit['NREM']-resultNormalizedAUC_calcium_perUnit['REM'])/(resultNormalizedAUC_calcium_perUnit['NREM']+resultNormalizedAUC_calcium_perUnit['REM'])
+                A = A[A.notna().sum(axis=1)>1]
+                A['first_non_nan'] = A.bfill(axis=1).iloc[:, 0]
+                A['last_non_nan'] = A.ffill(axis=1).iloc[:, -2]
+
+                #####################
                 # DECONV ACTIVITY #
                 #####################
                 """
@@ -1069,12 +1080,12 @@ for NrSubtype in NrSubtypeList:
 
     combined_df2 = combined_dfO.drop_duplicates(subset='Substate_ID', keep='first')
 
-    DurationVigStates = combined_df2.pivot_table(index='Session_ID', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='mean', fill_value=None)
+    DurationVigStates = combined_df2.pivot_table(index='Mice', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='mean', fill_value=None)
     try: DurationVigStates = DurationVigStates[desired_order]
     except: pass        
     AllDurationVigStates=pd.concat([AllDurationVigStates, DurationVigStates], axis=0)
 
-    TotDurationVigStates = combined_df2.pivot_table(index='Session_ID', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='sum', fill_value=None)
+    TotDurationVigStates = combined_df2.pivot_table(index='Mice', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='sum', fill_value=None)
     try: TotDurationVigStates = TotDurationVigStates[desired_order]
     except: pass
     AllTotDurationVigStates=pd.concat([AllTotDurationVigStates, TotDurationVigStates], axis=0)
