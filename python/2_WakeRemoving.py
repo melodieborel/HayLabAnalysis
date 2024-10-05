@@ -7,7 +7,10 @@
 #Method=1 # for AB analysis
 Method=0 # for AH analysis
 
-DrugExperiment=1 #if CGP Experiment
+DrugExperimentList=[0,1]
+
+
+#DrugExperiment=1 #if CGP Experiment
 #DrugExperiment=0 #if Baseline Experiment
 
 #######################################################################################
@@ -53,116 +56,120 @@ def find_session_folders(root_path):
     return sessions, sessions_path
 
 
-# Perform analysis for each mouse
+for DrugExperiment in DrugExperimentList: 
 
-MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] if DrugExperiment else ['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
-dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/" if DrugExperiment else "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
+    # Perform analysis for each mouse
 
-# Process
+    MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] if DrugExperiment else ['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK', 'GreenLinesOK', 'Purple', 'RedLinesOK','ThreeColDotsOK', 'ThreeBlueCrossesOK']
 
-for m,mice in enumerate(MiceList):
-    
-    dpath=Path(dpath0 + mice)
-    # Load sleep score and Ca2+ time series numpy arrays
-    #nb_sessions = sum(1 for p in dpath.iterdir() if p.is_dir() and p.name.startswith("session"))    
-    #sessions = [folder.name for folder in dpath.iterdir() if folder.is_dir() and "session" in folder.name]
-    sessions, sessions_path = find_session_folders(dpath)
-    nb_sessions=len(sessions)
+    dpath0 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/" if DrugExperiment else "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/"
 
-    for sess,session in enumerate(sessions):  
+    # Process
 
-        session_path=Path(sessions_path[sess])
-        folder_base = session_path / f'OpenEphys/'
-        print(folder_base)
-                
-        filename2 = folder_base / f'RawDataChannelExtractedDS.npy'
-        All = np.load(filename2, mmap_mode= 'r')
-
-        Channels = '//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/LFPChannels_perMice.xlsx' 
-        allchannels = pd.read_excel(Channels)
-
-        EMGch=int(allchannels[mice][3])
-        EMG  =  All[:, EMGch]
-
-        # Filter parameter :
-        f_lowcut = 200.
-        f_hicut = 400.
-        N = 4
-        fs = 1000
-        nyq = 0.5 * fs
-        Wn = [f_lowcut/nyq,f_hicut/nyq]  # Nyquist frequency fraction
-
-        # Filter creation :
-        b, a = signal.butter(N, Wn, 'band')
-        filt_EMG = signal.filtfilt(b, a, EMG)
-
-        # Parameter and computation of CWT
-        w = 4.
-        freq = np.linspace(200, 400, 50)
-        widths = w*fs / (2*freq*np.pi)
-        EMGcwt = signal.cwt(EMG, signal.morlet2, widths, w=w)
-
-        # Projection calculation
-        absEMGcwt = np.absolute(EMGcwt)
-        proj_EMGcwt = np.sum(absEMGcwt, axis = 0)/50
-        mproj_EMGcwt = np.mean(proj_EMGcwt)
-        sdproj_EMGcwt = np.std(proj_EMGcwt)
-
-        if Method==0:
-            #MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] 
-            LowFactor= [3,1,2,1,2] if DrugExperiment else [3,1,2,1.5,1,1.2,2,5]
-            HighFactor= [6,2,4,2,3] if DrugExperiment else [6,2,4,2,3,2,3,2,8]
-            LowFactorSd=LowFactor[m]
-            HighFactorSd=HighFactor[m]
-        else:
-            LowFactorSd=1
-            HighFactorSd=3
-
-        # Assigning values wake (1, 2) and sleep (0)
-        numpnts = EMG.size
-        EMGstatusRaw = np.zeros(numpnts)
-        for ind in range(numpnts):
-            if proj_EMGcwt[ind]<(mproj_EMGcwt + LowFactorSd*sdproj_EMGcwt): 
-                EMGstatusRaw[ind] = 0
-            elif proj_EMGcwt[ind]>(mproj_EMGcwt + HighFactorSd*sdproj_EMGcwt):
-                EMGstatusRaw[ind] = 2
-            else:
-                EMGstatusRaw[ind] = 1
-
-        # Expanding borders for wake (1, 2) and sleep (0) to ±1 s around detected muscular activity
-        EMGstatusRaw2 = np.zeros(numpnts)
-        for ind in range(numpnts):
-            if EMGstatusRaw[ind]>1:
-                EMGstatusRaw2[ind-1000:ind+1000] = 2
-            elif EMGstatusRaw[ind]==1:
-                for ind2 in range(ind-1000, ind+1000):
-                    if ind2==numpnts:
-                        break
-                    elif EMGstatusRaw2[ind2]<2:
-                        EMGstatusRaw2[ind2] = 1
-
-
-        EMGStatusBoolLib = (EMGstatusRaw2>1)
-        EMGStatusBoolCons = (EMGstatusRaw2>0)
-
-        suffix='_AB' if Method else '_AH'
+    for m,mice in enumerate(MiceList):
         
-        # Save files
-        LFP = All[:,:]
-        LFPwake0 = LFP.copy()
-        LFPwake0[EMGStatusBoolLib] = 0
-        filename = folder_base/ f'LFPwake0{suffix}.npy'
-        np.save(filename, LFPwake0)
+        dpath=Path(dpath0 + mice)
+        # Load sleep score and Ca2+ time series numpy arrays
+        #nb_sessions = sum(1 for p in dpath.iterdir() if p.is_dir() and p.name.startswith("session"))    
+        #sessions = [folder.name for folder in dpath.iterdir() if folder.is_dir() and "session" in folder.name]
+        sessions, sessions_path = find_session_folders(dpath)
+        nb_sessions=len(sessions)
 
-        LFPwakeremoved = LFP.copy()
-        LFPwakeremoved = LFPwakeremoved[~EMGStatusBoolLib, :]
-        filename = folder_base/ f'LFPwakeremoved{suffix}.npy'
-        np.save(filename, LFPwakeremoved)
-        data = {
-            'EMGstatus': EMGstatusRaw2,
-            'BooleanLiberal' : EMGStatusBoolLib,
-            'BooleanConservative' : EMGStatusBoolCons
-        }
-        WakeFrame = pd.DataFrame(data, columns=['EMGstatus', 'BooleanLiberal', 'BooleanConservative'])
-        filename = folder_base/ f'EMGframeBoolean{suffix}.pkl'
-        WakeFrame.to_pickle(filename)
+        for sess,session in enumerate(sessions):  
+
+            session_path=Path(sessions_path[sess])
+            folder_base = session_path / f'OpenEphys/'
+            print(folder_base)
+                    
+            filename2 = folder_base / f'RawDataChannelExtractedDS.npy'
+            All = np.load(filename2, mmap_mode= 'r')
+
+            Channels = '//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/LFPChannels_perMice.xlsx' 
+            allchannels = pd.read_excel(Channels)
+
+            EMGch=int(allchannels[mice][3])
+            EMG  =  All[:, EMGch]
+
+            # Filter parameter :
+            f_lowcut = 200.
+            f_hicut = 400.
+            N = 4
+            fs = 1000
+            nyq = 0.5 * fs
+            Wn = [f_lowcut/nyq,f_hicut/nyq]  # Nyquist frequency fraction
+
+            # Filter creation :
+            b, a = signal.butter(N, Wn, 'band')
+            filt_EMG = signal.filtfilt(b, a, EMG)
+
+            # Parameter and computation of CWT
+            w = 4.
+            freq = np.linspace(200, 400, 50)
+            widths = w*fs / (2*freq*np.pi)
+            EMGcwt = signal.cwt(EMG, signal.morlet2, widths, w=w)
+
+            # Projection calculation
+            absEMGcwt = np.absolute(EMGcwt)
+            proj_EMGcwt = np.sum(absEMGcwt, axis = 0)/50
+            mproj_EMGcwt = np.mean(proj_EMGcwt)
+            sdproj_EMGcwt = np.std(proj_EMGcwt)
+
+            if Method==0:
+                #MiceList=['BlackLinesOK', 'BlueLinesOK', 'GreenDotsOK','Purple' ,'ThreeColDotsOK'] 
+                LowFactor= [3, 1, 2, 1, 2] if DrugExperiment else [3, 1, 2, 1.5, 1, 1.2, 2,5]
+                HighFactor= [6, 2, 4, 2, 3] if DrugExperiment else [6, 2, 4, 2, 3, 2, 3, 2, 8]
+                LowFactorSd=LowFactor[m]
+                HighFactorSd=HighFactor[m]
+            else:
+                LowFactorSd=1
+                HighFactorSd=3
+
+            # Assigning values wake (1, 2) and sleep (0)
+            numpnts = EMG.size
+            EMGstatusRaw = np.zeros(numpnts)
+            for ind in range(numpnts):
+                if proj_EMGcwt[ind]<(mproj_EMGcwt + LowFactorSd*sdproj_EMGcwt): 
+                    EMGstatusRaw[ind] = 0
+                elif proj_EMGcwt[ind]>(mproj_EMGcwt + HighFactorSd*sdproj_EMGcwt):
+                    EMGstatusRaw[ind] = 2
+                else:
+                    EMGstatusRaw[ind] = 1
+
+            # Expanding borders for wake (1, 2) and sleep (0) to ±1 s around detected muscular activity
+            EMGstatusRaw2 = np.zeros(numpnts)
+            for ind in range(numpnts):
+                if EMGstatusRaw[ind]>1:
+                    EMGstatusRaw2[ind-1000:ind+1000] = 2
+                elif EMGstatusRaw[ind]==1:
+                    for ind2 in range(ind-1000, ind+1000):
+                        if ind2==numpnts:
+                            break
+                        elif EMGstatusRaw2[ind2]<2:
+                            EMGstatusRaw2[ind2] = 1
+
+
+            EMGStatusBoolLib = (EMGstatusRaw2>1)
+            EMGStatusBoolCons = (EMGstatusRaw2>0)
+
+            suffix='_AB' if Method else '_AH'
+            
+            # Save files
+            LFP = All[:,:]
+            LFPwake0 = LFP.copy()
+            LFPwake0[EMGStatusBoolLib] = 0
+            filename = folder_base/ f'LFPwake0{suffix}.npy'
+            np.save(filename, LFPwake0)
+
+            LFPwakeremoved = LFP.copy()
+            LFPwakeremoved = LFPwakeremoved[~EMGStatusBoolLib, :]
+            filename = folder_base/ f'LFPwakeremoved{suffix}.npy'
+            np.save(filename, LFPwakeremoved)
+            data = {
+                'EMGstatus': EMGstatusRaw2,
+                'BooleanLiberal' : EMGStatusBoolLib,
+                'BooleanConservative' : EMGStatusBoolCons
+            }
+            WakeFrame = pd.DataFrame(data, columns=['EMGstatus', 'BooleanLiberal', 'BooleanConservative'])
+            print(f'EMGframeBoolean{suffix}.pkl being saved' )
+            filename = folder_base/ f'EMGframeBoolean{suffix}.pkl'
+            WakeFrame.to_pickle(filename)

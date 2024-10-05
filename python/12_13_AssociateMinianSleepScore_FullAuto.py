@@ -10,7 +10,7 @@ DrugExperimentList=[0,1]
 
 #Sleep scoring from '_AB' '_AH' or initial ''
 suffix='_AB' 
-AnalysisID='_wRealTS_N2' 
+AnalysisID='_newScor' 
 
 saveexcel=0
 
@@ -191,7 +191,7 @@ for DrugExperiment in DrugExperimentList:
             nb_subsessions = sum(1 for p in folder_mini.iterdir() if p.is_dir() and p.name.startswith("session"))
             ScoringFile = session_path/ f'OpenEphys/ScoredSleep{suffix}.npy'
             LFPFile = session_path/ f'OpenEphys/RawDataChannelExtractedDS.npy'
-            StampsFile = session_path/ f'SynchroFile.xlsx'
+            StampsFile = session_path/ f'SynchroFileCorrect.xlsx'
             StampsMiniscopeFile = folder_mini / f'timeStamps.csv'
 
             if nb_subsessions!=0:
@@ -465,9 +465,9 @@ for DrugExperiment in DrugExperimentList:
 
             # Remove N2 stage
 
-            #SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
-            #mapp = {1.5: 'Wake', 0: 'NREM',  1: 'REM'}
-            mapp = {1.5: 'Wake', 0.5: 'N2', 0: 'NREM',  1: 'REM'}
+            SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
+            mapp = {1.5: 'Wake', 0: 'NREM',  1: 'REM'}
+            #mapp = {1.5: 'Wake', 0.5: 'N2', 0: 'NREM',  1: 'REM'}
 
             # Determine each substate identity and duration
             array=SleepScoredTS_upscaled_ministart
