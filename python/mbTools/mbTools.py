@@ -27,6 +27,38 @@ class color:
    UNDERLINE = '\033[4m'
    END = '\033[0m'
 
+def superCleanPlot(obj1, obj2, time=0, pre=1, post=4):
+    import matplotlib.pyplot as plt
+    plt.close()
+
+    #offset=51.51#51.4576900#t_start['LFP']#52.6734#52.68
+    # perfect align manual offset=51.5146156977
+    #offset=51.52262754
+
+    idx=find_nearest(obj1.times, time)
+    print(obj1.times[idx])
+    print(idx)
+
+    x=obj1.times[idx-int(pre*obj1.sampling_rate):idx+int(post*obj1.sampling_rate)]
+    y=obj1.signal[idx-int(pre*obj1.sampling_rate):idx+int(post*obj1.sampling_rate),:]
+
+    print(obj2.times)
+    idx2=find_nearest(obj2.times, time)
+    print(idx2)
+    x2=obj2.times[idx2-int(pre*obj2.sampling_rate):idx2+int(post*obj2.sampling_rate)]
+    y2=obj2.signal['spike'].get_traces(start_frame=idx2-int(pre*obj2.sampling_rate), end_frame=idx2+int(post*obj2.sampling_rate), return_scaled=False)
+
+    plt.plot(x, y,'-')
+    plt.plot(x2, np.transpose(y2[:,0])*10,'-')
+    plt.show()
+
+def convertTheoricIndex2realTime(thIdx,realFreq=1, offset=0):
+    realTime=thIdx/realFreq + offset
+    return realTime
+
+def find_nearest(array, value):
+    idx = (np.abs(array - value)).argmin()
+    return idx
 
 class localConf(configparser.ConfigParser):
    def __init__(self, configFN = 'localConfig.ini') -> None:
