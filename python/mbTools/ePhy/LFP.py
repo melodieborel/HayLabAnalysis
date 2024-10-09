@@ -134,8 +134,12 @@ class NPX(ePhy):
          import spikeinterface.full as si
          import pickle
          npix['spike'] = si.read_binary(filename, dtype='uint16', num_channels=384, sampling_frequency=self.sampling_rate)
-         with open('//10.69.168.1/crnldata/waking/audrey_hay/NPX/NPXprobe.pkl', 'rb') as outp: 
-            probe = pickle.load(outp)
+         try:
+            with open('//10.69.168.1/crnldata/waking/audrey_hay/NPX/NPXprobe.pkl', 'rb') as outp: 
+               probe = pickle.load(outp)
+         except Exception:
+            with open('/Volumes/waking/audrey_hay/NPX/NPXprobe.pkl', 'rb') as outp: 
+               probe = pickle.load(outp)
          probe.set_device_channel_indices(np.arange(384))
 
          npix['spike'] = npix['spike'].set_probe(probe)
