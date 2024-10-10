@@ -3,6 +3,8 @@ from . import ePhy
 from datetime import datetime, timezone, timedelta
 import os
 import re
+import configparser
+import ast
 
 import numpy as np
 
@@ -44,7 +46,54 @@ class IntanLFP(ePhy):
       freq=20000
       self.times=np.linspace(0,self.signal.shape[0]/freq,self.signal.shape[0])
 
-      
+   def loadMetaData(self):
+      bn=os.path.split(self.files_list[0])[0]
+      expeConfigFN=os.path.sep.join([bn,'expeConfig.ini'])
+      self.parser = configparser.ConfigParser()
+      self.parser.read(expeConfigFN)
+
+      if os.path.isfile(expeConfigFN):
+         print('mapping exists so loading it')
+         self.channelsMap = ast.literal_eval(self.parser['OE_LFP']['channelsMap'])
+         self.start=ast.literal_eval(self.parser['OE_LFP']['start'])
+         self.sampling_rate=ast.literal_eval(self.parser['OE_LFP']['freq'])
+         NPX = ast.literal_eval(self.parser['OE_LFP']['NPX'])
+         timesreset = ast.literal_eval(self.parser['OE_LFP']['timesreset'])
+      else:
+         print("mapping doesn't exist so generating it")
+         self.channelsMap = dict( \
+                  M1 = [dict(canal = 17, status=1),
+                     dict(canal = 16, status=2)],
+            )
+
+         self.parser['OE_LFP'] = {'channelsMap': self.channelsMap}
+
+
+         artefacts=[]
+         self.parser['OE_LFP']['NPX']=str(artefacts)
+         self.parser['OE_LFP']['timesreset']=str(artefacts)
+
+
+         self.parser['OE_LFP']['start']=str(52)
+         self.parser['OE_LFP']['freq']=str(2000)
+
+         with open(expeConfigFN, 'w') as configfile:
+            self.parser.write(configfile)
+
+      print("the mapping:", self.channelsMap)
+      print("the offset: ", self.start)
+      print("the sampling rate: ", self.sampling_rate)
+
+      self.reAlignTimes()
+        
+   def updateParser(self,key,value):
+      bn=os.path.split(self.files_list[0])[0]
+      expeConfigFN=os.path.sep.join([bn,'expeConfig.ini'])
+      self.parser['OE_LFP'][key]=str(value)
+      with open(expeConfigFN, 'w') as configfile:
+            self.parser.write(configfile)
+
+
 
    def loadTimeStamps(self):
       if len(self.files_list)>1:
