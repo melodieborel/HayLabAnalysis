@@ -75,7 +75,7 @@ class IntanLFP(ePhy):
 
 
          self.parser['OE_LFP']['start']=str(52)
-         self.parser['OE_LFP']['freq']=str(2000)
+         self.parser['OE_LFP']['freq']=str(20000)
 
          with open(expeConfigFN, 'w') as configfile:
             self.parser.write(configfile)
