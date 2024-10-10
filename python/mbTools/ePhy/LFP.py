@@ -32,7 +32,7 @@ class IntanLFP(ePhy):
          self.offset = 0
       self.sampling_rate=20000
       self.signal = self.loadData()
-      #self.loadTimeStamps()
+      self.loadMetaData()
 
    def loadData(self):
       return super().loadData()
