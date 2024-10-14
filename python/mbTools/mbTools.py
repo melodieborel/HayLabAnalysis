@@ -61,13 +61,13 @@ def superCleanPlot(lfp, npx, canauxLFP=None, structureLFP=None, canauxNPX=[0,1],
 
 
    print(npx.times)
-   idx2=find_nearest(npx.times, time)
+   idx2=find_nearest(npx.times-npx.times[0], time)
    print(idx2)
-   x2=npx.times[idx2-int(pre*npx.sampling_rate):idx2+int(post*npx.sampling_rate)]
-   y2=npx.signal['spike'].get_traces(start_frame=idx2-int(pre*npx.sampling_rate), end_frame=idx2+int(post*npx.sampling_rate), return_scaled=False)
+   x2=npx.times[idx2-int(pre*npx.sampling_rate):idx2+int(post*npx.sampling_rate)]-npx.times[0]
+   y2=npx.signal['spike'].select_channels(canauxNPX).get_traces(start_frame=idx2-int(pre*npx.sampling_rate), end_frame=idx2+int(post*npx.sampling_rate), return_scaled=False)
 
    plt.plot(x, y*scaleLFP,'-')
-   plt.plot(x2, y2[:,canauxNPX]*scaleNPX+offset,'-')
+   plt.plot(x2, y2*scaleNPX+offset,'-')
    plt.show()
 
 def convertTheoricIndex2realTime(thIdx,realFreq=1, offset=0):
