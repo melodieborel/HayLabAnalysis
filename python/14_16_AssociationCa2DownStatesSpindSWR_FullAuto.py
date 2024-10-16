@@ -176,7 +176,7 @@ for DrugExperiment in DrugExperimentList:
             SWRproperties = session_path / f'OpenEphys/SWRproperties_8sd_AB.xlsx' if Method else session_path / f'OpenEphys/SWRproperties.csv'
             Spindleproperties = session_path / f'OpenEphys/Spindlesproperties_S1&PFC_7sd_AB.xlsx' if Method else session_path / f'OpenEphys/Spindleproperties_S1&PFC.csv'
             DownStatesproperties = session_path / f'OpenEphys/DownStatesproperties_S1&PFC.csv' 
-            StampsFile = session_path / f'SynchroFile.xlsx'
+            StampsFile = session_path / f'SynchroFileCorrect.xlsx'
             StampsMiniscopeFile = folder_mini / f'timeStamps.csv'
             if nb_subsessions!=0:
                 for x in range(1, nb_subsessions+1):            

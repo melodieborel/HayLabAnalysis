@@ -4,8 +4,8 @@
                             # Define Experiment type #
 #######################################################################################
 
-AnalysisID='_AB_newScor_CGP' #to identify this analysis from another
-DrugExperiment=1 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
+AnalysisID='_AB_newScor' #to identify this analysis from another
+DrugExperiment=0 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
 saveexcel=0
 Local=1
@@ -67,6 +67,20 @@ def discrimination_index(df):
     #REMadj=df['REM']#+min
     #disc_index=NREMadj/REMadj
     return disc_index
+
+# Define a function to replace values based on conditions
+def replace_values(arr, idx ):
+    result = []
+    for value in arr:
+        if value < -0.5:
+            result.append(f'REM{idx}')
+        elif -0.5 <= value <= 0.5:
+            result.append(f'NonSel{idx}')
+        elif 0.5 < value:
+            result.append(f'NREM{idx}')
+        else:
+            result.append(value)  # Keep value if it's outside the defined ranges
+    return result
 
 def normalize_row(row):
     max_col = row.idxmax()  # Find the column with the maximum value
@@ -1012,6 +1026,16 @@ for NrSubtype in NrSubtypeList:
                 A = A[A.notna().sum(axis=1)>1]
                 A['first_non_nan'] = A.bfill(axis=1).iloc[:, 0]
                 A['last_non_nan'] = A.ffill(axis=1).iloc[:, -2]
+
+                # Apply the function
+                A['first_non_nan_Names'] = replace_values(A['first_non_nan'], '_1st')
+                A['last_non_nan_Names'] = replace_values(A['last_non_nan'], '_last')
+
+                dftest=A['first_non_nan_Names'] + A['first_non_nan_Names']
+
+                
+                filenameOutSI = f'{folder_to_save2}/{List_name}/{NrSubtype}_SIevolution.xlsx'
+                A.to_excel(filenameOutSI)
 
                 #####################
                 # DECONV ACTIVITY #
