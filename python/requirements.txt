@@ -25,4 +25,6 @@ open-ephys-python-tools
 ipympl
 openpyxl
 
-#minian @ git+https://github.com:melodieborel/minian.git
+#-r ./../minian/requirements/requirements-base.txt
+minian @ git+https://github.com/melodieborel/minian.git@python311
+# --global-option=build_ext --global-option="-Wno-implicit-function-declaration" --global-option="-L/opt/homebrew/include" --global-option="-I/usr/local/include"
