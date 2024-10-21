@@ -7,7 +7,7 @@ ipykernel
 #pour ephysviewer:
 ephyviewer
 PySide6
-pyqtgraph=0.13.3 #0.13.7 fails to work with TimeFreqViewer of ephyviewer
+pyqtgraph == 0.13.3 #0.13.7 fails to work with TimeFreqViewer of ephyviewer
 numpy
 scipy
 matplotlib
@@ -24,3 +24,5 @@ open-ephys-python-tools
 
 ipympl
 openpyxl
+
+#minian @ git+https://github.com:melodieborel/minian.git
