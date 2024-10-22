@@ -38,7 +38,7 @@ class ePhy():
       self.signal = signal
       return self.signal
 
-   def combineStructures(self,structures, start = 0, end = None):
+   def combineStructures(self,structures=None, start = 0, end = None):
       if end is None:
          end = self.All.shape[0]
       combined = np.empty((end-start,0),np.int16)

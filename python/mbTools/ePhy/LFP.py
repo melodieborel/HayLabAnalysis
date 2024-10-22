@@ -65,6 +65,8 @@ class IntanLFP(ePhy):
                   M1 = [dict(canal = 17, status=1),
                      dict(canal = 16, status=2)],
             )
+         self.start=52
+         self.sampling_rate=20046
 
          self.parser['OE_LFP'] = {'channelsMap': self.channelsMap}
 
@@ -74,8 +76,8 @@ class IntanLFP(ePhy):
          self.parser['OE_LFP']['timesreset']=str(artefacts)
 
 
-         self.parser['OE_LFP']['start']=str(52)
-         self.parser['OE_LFP']['freq']=str(20000)
+         self.parser['OE_LFP']['start']=str(self.start)
+         self.parser['OE_LFP']['freq']=str(self.sampling_rate)
 
          with open(expeConfigFN, 'w') as configfile:
             self.parser.write(configfile)
@@ -133,7 +135,7 @@ class IntanLFP(ePhy):
       self.times
       return idx
    
-   def combineStructures(self,structures, start = 0, end = None):
+   def combineStructures(self, structures=None, start = 0, end = None):
       if end is None:
          end = self.signal.shape[0]
       combined = np.empty((end-start,0),np.int16)
