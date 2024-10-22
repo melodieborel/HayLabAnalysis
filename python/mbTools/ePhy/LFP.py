@@ -136,6 +136,16 @@ class IntanLFP(ePhy):
       return idx
    
    def combineStructures(self, structures=None, start = 0, end = None):
+      """Retrieve a combined array with either all cannals (if structures is None (default)), or the differential signals correspondin to the mapped structures
+
+      Args:
+          structures (None, "All", or array of structures, optional): indicates what data to combine. Defaults to None.
+          start (int, optional): if only part of the data to display. Defaults to 0.
+          end (optional): if only part of the data to display. Defaults to None.
+
+      Returns:
+          array: combined numpy array ready to visualize
+      """
       if end is None:
          end = self.signal.shape[0]
       combined = np.empty((end-start,0),np.int16)
@@ -145,16 +155,19 @@ class IntanLFP(ePhy):
          combined = self.signal
          self.channelLabels = [i for i in range(self.signal.shape[0])]
       else:
+         if structures=='All':
+            structures = self.channelsMap.keys()
+            print(structures)
          for region in structures:
             print(region, "->", self.channelsMap[region])
             if len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2])>0:
-               c2 = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2][0]
-               c1 = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0]
+               c2 = int([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2][0])
+               c1 = int([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0])
                print("Getting differential signal of channel {} - channel {} for {}".format(c2,c1,region))
                self.channelLabels.append(region)
                combined = np.append(combined, self.signal[start:end, c2, np.newaxis] - self.signal[:, c1, np.newaxis], axis=1)
             elif len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1])>0:
-               c = [canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0]
+               c = int([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0])
                print("Getting floating signal of channel {} for {}".format(c,region))
                combined = np.append(combined, self.signal[start:end,c, np.newaxis], axis=1)
                self.channelLabels.append(region)
