@@ -39,6 +39,16 @@ class ePhy():
       return self.signal
 
    def combineStructures(self,structures=None, start = 0, end = None):
+      """Retrieve a combined array with either all cannals (if structures is None (default)), or the differential signals correspondin to the mapped structures
+
+      Args:
+          structures (None, "All", or array of structures, optional): indicates what data to combine. Defaults to None.
+          start (int, optional): if only part of the data to display. Defaults to 0.
+          end (optional): if only part of the data to display. Defaults to None.
+
+      Returns:
+          array: combined numpy array ready to visualize
+      """
       if end is None:
          end = self.All.shape[0]
       combined = np.empty((end-start,0),np.int16)
@@ -48,6 +58,8 @@ class ePhy():
          combined = self.All
          self.channelLabels = [i for i in range(self.All.shape[0])]
       else:
+         if structures=='All':
+            structures = self.channelsMap.keys
          for region in structures:
             print(region, "->", self.channelsMap[region])
             if len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2])>0:
