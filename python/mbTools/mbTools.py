@@ -82,45 +82,23 @@ class localConf(configparser.ConfigParser):
    def __init__(self, configFN = 'localConfig.ini') -> None:
       super().__init__()
       self.configFN = configFN
+      self.read('defaultLocalConfig.ini') # check if there are modifs to load
 
       if os.path.isfile(self.configFN):
          self.read(self.configFN)
          print(f'Local config file loaded from {configFN}')
       else:
-         self.generateLocalConfigFile(self.configFN)
+         self.set('DATA', 'localPath', os.path.expanduser("~"))
+         self.set('ANALYSIS', 'interimPath', 'interimAnalysis')
          print(f'Local config file did not exist, it was successfully created at {configFN}')
-
-   def generateLocalConfigFile(self,configFN):
-      self['DATA'] = {
-         'localPath': os.path.expanduser("~"),
-         'remotePath': '//10.69.168.1/crnldata/waking/audrey_hay',
-         'isRemote': False
-         }
-      self['ANALYSIS'] = {
-         'path': os.path.join(os.path.expanduser("~"),'Analysis'),
-         'projecttype': 0,
-         'animalid': 0,
-         'projectid': 'AProject',
-         'subprojectid': 'OneOfItsSubProject',
-         'conditionid': 'control',
-         'recordingID': 0,
-         'suffix': ''
-         }
-      self['AProject.OneOfItsSubProject'] = {
-         'design': 0,
-         'nAnimal': 6,
-         'conditions': ["control"],
-         'nrecordings': 1
-         }
-      with open(configFN, 'w') as configfile:
+      
+      with open(self.configFN, 'w') as configfile:
          self.write(configfile)
-
+      print(f'Local config file updated')
 
    def completeConf(self):
       """maybe should add the possibility to ensure all parts of the config is there"""
       pass
-
-
 
    def updateConf(self):
       with open(self.configFN, 'w') as configfile:
@@ -136,7 +114,7 @@ class localConf(configparser.ConfigParser):
       return {p.split('.')[0]: widgets.Dropdown(
          options=[p.split('.')[1]],
          description='Sub-project (you can update the list in your localConfig.ini file):',
-         ) for p in self.sections() if p not in ['DATA','ANALYSIS']} 
+         ) for p in self.sections() if p not in ['DATA','ANALYSIS','GENERAL']} 
    
    def printAll(self):
       for section in self.sections():
@@ -144,10 +122,13 @@ class localConf(configparser.ConfigParser):
          pprint.pp(self.items(section))
 
 class expeConfigDict(dict):
-   def __init__(self, expePath = None) -> None:
+   def __init__(self, config: localConf = None) -> None:
       super().__init__()
-      self.config = localConf()
-      self.expePath = expePath
+      if config is None:
+         self.config = localConf()
+      else:
+         self.config = config
+      self.expePath = self.config.get('GENERAL','currentFile', fallback="")
       self.rawDataPath = ""
       self.projectType = None
       self.expeInfo = dict()
@@ -169,7 +150,7 @@ class expeConfigDict(dict):
       # Register callback function
       fc.register_callback(self.update_my_expe_choice)
 
-      self.analysisPath = self.config['ANALYSIS']['path']
+      self.analysisPath = self.config['ANALYSIS']['interimPath']
       self.projectType = int(self.config['ANALYSIS']['projectType'])
       self.ProjectID = self.config['ANALYSIS']['ProjectID']
       self.subProjectID = self.config['ANALYSIS']['subProjectID']
@@ -228,38 +209,35 @@ class expeConfigDict(dict):
       else:
          self.iWidget = self.iWidgetConstructor()
 
-   def generateExpeConfigDict(self, expePath, rawDataPath = None):
+   def generateExpeConfigParser(self, expePath, rawDataPath = None):
       self.expePath = expePath
       self.rawDataPath = rawDataPath
 
       self.projectType = int(self.config['ANALYSIS']['projectType'])
-      self.expeInfo = getPathComponent(self.expePath,self.projectType)
-
-      allParamsDict = dict(rawDataPath = self.rawDataPath, expeInfo = self.expeInfo)
-
-      with open(self.expePath, 'wb') as f:
-         pickle.dump(allParamsDict, f)
+      self.expeInfo = getPathComponent(self.rawDataPath,self.projectType)
+      self.parser.add_section('ALL')
+      self.parser.set('ALL','rawDataPath',self.rawDataPath)
+      self.parser.set('ALL','expeInfo',str(self.expeInfo))
+      
+      with open(self.expePath, 'w') as configfile:
+         self.parser.write(configfile)
 
    def loadExpeConfigDict(self, expePath = None):
       if expePath is None:
          expePath = self.expePath
       self.parser.read(expePath)
-      
-      with open(expePath, 'rb') as f:
-         loaded_dict = pickle.load(f, encoding='UTF8')
-         self.rawDataPath = loaded_dict['rawDataPath']
-         if 'expeInfo' in loaded_dict:
-            self.expeInfo = loaded_dict['expeInfo']
-         else:
-            self.expeInfo = getPathComponent(expePath,self.projectType)
-            self.updateExpeConfigDict(expePath,'expeInfo',self.expeInfo)
 
-   def updateExpeConfigDict(self, key, value):
-      with open(self.expePath, 'rb') as f:
-         loaded_dict = pickle.load(f)
-      with open(self.expePath, 'wb') as f:
-         loaded_dict[key] = value
-         pickle.dump(loaded_dict,f)
+      self.rawDataPath = self.parser.get('ALL','rawDataPath')
+      if 'expeInfo' in self.parser:
+         self.expeInfo = self.parser.get('ALL','expeInfo')
+      else:
+         self.expeInfo = getPathComponent(expePath,self.projectType)
+         self.parser.set('ALL','expeInfo',str(self.expeInfo))
+         self.updateExpeConfigDict(expePath)
+
+   def updateExpeConfigDict(self, configFN):
+      with open(configFN, 'w') as configfile:
+         self.parser.write(configfile)
 
    def printExpeInfo(self, **func_kwargs):
       pass#print(expeInfo)
@@ -292,10 +270,11 @@ class expeConfigDict(dict):
       else:
          path = os.path.join(self.config['ANALYSIS']['path'], self.ProjectID, self.subProjectID, str(self.AnimalID), self.conditionID, str(self.recordingID))
       os.makedirs(path, exist_ok=True)
-      currentFile = os.path.join(os.path.split(path)[0],'saved_dictionary.ini')
-      self.generateExpeConfigDict(currentFile, rawDataPath = currentFile)
+      currentFile = os.path.join(path,'saved_dictionary.ini')
+      self.generateExpeConfigParser(currentFile, rawDataPath = self.rawDataPath)
       self.loadExpeConfigDict(expePath = currentFile)
-      magicstore('currentFile', currentFile)
+      self.config.set('GENERAL','currentFile', currentFile)
+      self.config.updateConf()
 
    def updateSubProject(self, widget):
       if widget['type'] == 'change' and widget['name'] == 'value':
@@ -321,12 +300,10 @@ class expeConfigDict(dict):
          display(self.wValidateBtn, self.wOutput)
 
    def rawDataSelector(self):
-      #print(rawDataPath)
-      if self.rawDataPath is not None and os.path.isfile(self.rawDataPath):
-         rawDirname, rawFN = os.path.split(self.rawDataPath)
-         rfc = FileChooser(path=rawDirname, filename=rawFN,select_default=True, show_only_dirs = False, title = "<b>ePhys data</b>")
+      if self.rawDataPath is not None and os.path.isdir(self.rawDataPath):
+         rfc = FileChooser(path=self.rawDataPath,select_default=True, show_only_dirs = True, title = "<b>Expe data folder</b>")
       else:
-         rfc = FileChooser(show_only_dirs = False, title = "<b>ePhys data</b>")
+         rfc = FileChooser(show_only_dirs = True, title = "<b>Expe data folder</b>")
       display(rfc)
       # Register callback function
       rfc.register_callback(self.update_rawDataPath)
@@ -555,7 +532,8 @@ def magicstore(stored_var, value):
       pickle.dump(value,f)
 
 def getPathComponent(filename,projectType):
-   
+   if not os.path.isdir(filename):
+      filename = os.path.split(os.path.normpath(filename))[0]
    dirPathComponents = os.path.normpath(filename).split(os.sep)
    expeInfo = dict()
 
@@ -563,16 +541,16 @@ def getPathComponent(filename,projectType):
    expeInfo['ProjectID'] = dirPathComponents[-5]
    expeInfo['subProjectID'] = dirPathComponents[-4]
 
-   projectConfig = os.path.sep.join([*dirPathComponents[0:-3],'projectConfig.pkl'])
+   projectConfig = os.path.sep.join([*dirPathComponents[0:-3],'projectConfig.ini'])
+   projParser = configparser.ConfigParser()
    if os.path.isfile(projectConfig):
-      with open(projectConfig, 'rb') as f:
-         loaded_dict = pickle.load(f)
-         expeInfo['projectType'] = loaded_dict['projectType']
+      projParser.read(projectConfig)
+      expeInfo['projectType'] = projParser.get('ALL','projectType')
    else:
-      with open(projectConfig, 'wb') as f:
-         projDict = dict(projectType = projectType)
-         pickle.dump(projDict, f)
-         print('Project config dict created')
+      projParser.add_section('ALL')
+      projParser.set('ALL','projectType',str(projectType))
+      with open(projectConfig, 'w') as configfile:
+         projParser.write(configfile)
 
    if projectType == 0:
       expeInfo['conditionID'] = dirPathComponents[-3]
