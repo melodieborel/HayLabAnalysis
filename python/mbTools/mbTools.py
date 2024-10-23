@@ -91,7 +91,11 @@ class localConf(configparser.ConfigParser):
          print(f'Local config file did not exist, it was successfully created at {configFN}')
 
    def generateLocalConfigFile(self,configFN):
-      self['DATA'] = {'path': os.path.expanduser("~")}
+      self['DATA'] = {
+         'localPath': os.path.expanduser("~"),
+         'remotePath': '//10.69.168.1/crnldata/waking/audrey_hay',
+         'isRemote': False
+         }
       self['ANALYSIS'] = {
          'path': os.path.join(os.path.expanduser("~"),'Analysis'),
          'projecttype': 0,
@@ -110,6 +114,13 @@ class localConf(configparser.ConfigParser):
          }
       with open(configFN, 'w') as configfile:
          self.write(configfile)
+
+
+   def completeConf(self):
+      """maybe should add the possibility to ensure all parts of the config is there"""
+      pass
+
+
 
    def updateConf(self):
       with open(self.configFN, 'w') as configfile:
@@ -141,6 +152,7 @@ class expeConfigDict(dict):
       self.projectType = None
       self.expeInfo = dict()
       self.iWidget = None
+      self.parser = configparser.ConfigParser()
 
       if self.expePath is not None and os.path.isfile(self.expePath): # a file is currently being used
          print(f"the file is {self.expePath}")
@@ -231,6 +243,8 @@ class expeConfigDict(dict):
    def loadExpeConfigDict(self, expePath = None):
       if expePath is None:
          expePath = self.expePath
+      self.parser.read(expePath)
+      
       with open(expePath, 'rb') as f:
          loaded_dict = pickle.load(f, encoding='UTF8')
          self.rawDataPath = loaded_dict['rawDataPath']
@@ -278,7 +292,7 @@ class expeConfigDict(dict):
       else:
          path = os.path.join(self.config['ANALYSIS']['path'], self.ProjectID, self.subProjectID, str(self.AnimalID), self.conditionID, str(self.recordingID))
       os.makedirs(path, exist_ok=True)
-      currentFile = os.path.join(os.path.split(path)[0],'saved_dictionary.pkl')
+      currentFile = os.path.join(os.path.split(path)[0],'saved_dictionary.ini')
       self.generateExpeConfigDict(currentFile, rawDataPath = currentFile)
       self.loadExpeConfigDict(expePath = currentFile)
       magicstore('currentFile', currentFile)
