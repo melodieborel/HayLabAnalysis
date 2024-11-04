@@ -1,4 +1,4 @@
-import mbTools.mbTools
+from .. import experiment
 from . import ePhy
 from datetime import datetime, timezone, timedelta
 import os
@@ -13,7 +13,7 @@ def find_nearest(array, value):
     return idx
 
 class IntanLFP(ePhy):
-   def __init__(self, parent: mbTools.mbTools.experiment, files_list, numChannels = 32, recSyst = 'Bonsai') -> None:
+   def __init__(self, parent: experiment, files_list, numChannels = 32, recSyst = 'Bonsai') -> None:
       super().__init__(parent, numChannels = numChannels)
       self.files_list = files_list
       self.recSyst = recSyst
@@ -95,13 +95,14 @@ class IntanLFP(ePhy):
    
    def convertTime2Index(self,t):
       self.times
+      idx = 0
       return idx
    
    def combineStructures(self, structures=None, start=0, end=None):
       return super().combineStructures(structures, start, end)
    
 class NPX(ePhy):
-   def __init__(self, parent: mbTools.mbTools.experiment, files_list, numChannels = 384) -> None:
+   def __init__(self, parent: experiment, files_list, numChannels = 384) -> None:
       super().__init__(parent, numChannels = numChannels)
       self.files_list = files_list
       self.fileType = 'NPX'
@@ -167,7 +168,7 @@ class NPX(ePhy):
 
 
 class LFP_DS(ePhy):
-   def __init__(self, parent: mbTools.mbTools.experiment, files_list) -> None:
+   def __init__(self, parent: experiment, files_list) -> None:
       super().__init__(parent)
       self.files_list = files_list
       self.fileType = 'NPY'
