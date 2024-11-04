@@ -177,6 +177,7 @@ class LFP_DS(ePhy):
       self.sampling_rate=1000
       self.signal = self.loadData()
       self.loadMetaData()
+      self.reAlignData(realSR=self.sampling_rate)
 
    def loadData(self):
       if len(self.files_list) == 1:
@@ -190,13 +191,14 @@ class LFP_DS(ePhy):
    def combineStructures(self, structures=None, start=0, end=None):
       return super().combineStructures(structures, start, end)
    
-   def reAlignData(self,realSR=20000, t_start=0):
+   def reAlignData(self,realSR=20000):
       freqInitTheoric=20000
       freqDS=1000
       realignFactor=freqInitTheoric/realSR
+      print(self.sampling_rate)
       self.sampling_rate=freqDS*realignFactor
-      self.t_start=t_start
       print(realignFactor)
+      print(self.sampling_rate)
 
    def loadMetaData(self):
       return super().loadMetaData()
