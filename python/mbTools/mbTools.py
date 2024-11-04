@@ -6,6 +6,9 @@ import fnmatch
 from pathlib import Path
 
 import numpy as np
+import pandas as pd
+
+import re
 
 from ipyfilechooser import FileChooser
 import ipywidgets as widgets
@@ -130,6 +133,7 @@ class expeConfigDict(dict):
          self.config = config
       self.expePath = self.config.get('GENERAL','currentFile', fallback="")
       self.rawDataPath = ""
+      self.interimAnalysisPath = ""
       self.projectType = None
       self.expeInfo = dict()
       self.iWidget = None
@@ -144,7 +148,7 @@ class expeConfigDict(dict):
          self.pathName = self.rawDataPath
          self.fileName = ""
 
-      fc = FileChooser(path=self.pathName, filename=self.fileName, select_default=True, show_only_dirs = False, title = "<b>Select file</b>")
+      fc = FileChooser(path=self.pathName, filename='', select_default=True, show_only_dirs = False, title = "<b>Select file</b>")
       display(fc)
          
       # Register callback function
@@ -158,6 +162,10 @@ class expeConfigDict(dict):
       self.AnimalID = int(self.config['ANALYSIS']['AnimalID'])
       self.recordingID = int(self.config['ANALYSIS']['recordingID'])
 
+      self.constructWidgets()
+
+
+   def constructWidgets(self):
       self.wProject = widgets.Dropdown(
          options=self.config.getProjects(),
          value=self.ProjectID,
@@ -210,14 +218,18 @@ class expeConfigDict(dict):
          self.iWidget = self.iWidgetConstructor()
 
    def generateExpeConfigParser(self, expePath, rawDataPath = None):
+      print("generating")
+      print(self.expePath)
       self.expePath = expePath
       self.rawDataPath = rawDataPath
 
       self.projectType = int(self.config['ANALYSIS']['projectType'])
       self.expeInfo = getPathComponent(self.rawDataPath,self.projectType)
-      self.parser.add_section('ALL')
+      if 'ALL' not in self.parser.sections():
+         self.parser.add_section('ALL')
       self.parser.set('ALL','rawDataPath',self.rawDataPath)
       self.parser.set('ALL','expeInfo',str(self.expeInfo))
+      self.parser.set('ALL','interimAnalysisPath',os.split(self.expePath[0]))
       
       with open(self.expePath, 'w') as configfile:
          self.parser.write(configfile)
@@ -234,6 +246,13 @@ class expeConfigDict(dict):
          self.expeInfo = getPathComponent(expePath,self.projectType)
          self.parser.set('ALL','expeInfo',str(self.expeInfo))
          self.updateExpeConfigDict(expePath)
+      if 'interimAnalysisPath' in self.parser:
+         self.interimAnalysisPath = self.parser.get('ALL','interimAnalysisPath')
+      else:
+         self.interimAnalysisPath = os.path.split(expePath)[0]
+         self.parser.set('ALL','interimAnalysisPath',self.interimAnalysisPath)
+         self.updateExpeConfigDict(expePath)
+
 
    def updateExpeConfigDict(self, configFN):
       with open(configFN, 'w') as configfile:
@@ -276,6 +295,25 @@ class expeConfigDict(dict):
       self.config.set('GENERAL','currentFile', currentFile)
       self.config.updateConf()
 
+   def saveInterimAnalysisFolder(self):
+      self.projectType = self.expeInfo['projectType']
+      self.ProjectID = self.expeInfo['ProjectID']
+      self.subProjectID = self.expeInfo['subProjectID']
+      self.AnimalID = self.expeInfo['AnimalID']
+      self.recordingID = self.expeInfo['recordingID']
+      self.conditionID = self.expeInfo['conditionID']
+      print(self.expePath)
+      if self.projectType == 0:
+         self.interimAnalysisPath = os.path.join(self.expeInfo['analysisPath'], self.ProjectID, self.subProjectID, self.config['ANALYSIS']['interimpath'], self.conditionID, str(self.AnimalID), str(self.recordingID))
+      else:
+         self.interimAnalysisPath = os.path.join(self.expeInfo['analysisPath'], self.ProjectID, self.subProjectID, self.config['ANALYSIS']['interimpath'], str(self.AnimalID), self.conditionID, str(self.recordingID))
+      os.makedirs(self.interimAnalysisPath, exist_ok=True)
+      currentFile = os.path.join(self.interimAnalysisPath,'saved_dictionary.ini')
+      self.generateExpeConfigParser(currentFile, rawDataPath = self.rawDataPath)
+      #self.loadExpeConfigDict(expePath = currentFile)
+      self.config.set('GENERAL','currentFile', currentFile)
+      self.config.updateConf()
+
    def updateSubProject(self, widget):
       if widget['type'] == 'change' and widget['name'] == 'value':
          self.expeInfo['subProjectID'] = widget.new
@@ -289,15 +327,20 @@ class expeConfigDict(dict):
    def update_my_expe_choice(self,chooser):
       print("this is a config file so we are loading it")
       selection = chooser.selected
-      if selection.endswith("pkl") and os.path.isfile(selection):
+      if selection.endswith("ini") and os.path.isfile(selection):
          currentFile = str(selection)
+         self.interimAnalysisPath,_ = os.path.split(selection)
          self.loadExpeConfigDict(expePath = selection)
       else:
          print("this is not a config file and we should deal with that")
          self.rawDataPath = selection
-         print(self.rawDataPath)
-         display(self.iWidget)
-         display(self.wValidateBtn, self.wOutput)
+         if True:
+            self.expeInfo = getPathComponent(self.rawDataPath,self.projectType)
+            self.saveInterimAnalysisFolder()
+            print("get path automatically")
+         else:
+            display(self.iWidget)
+            display(self.wValidateBtn, self.wOutput)
 
    def rawDataSelector(self):
       if self.rawDataPath is not None and os.path.isdir(self.rawDataPath):
@@ -319,9 +362,11 @@ class experiment():
       if isinstance(expe,expeConfigDict):
          self.expe = expe
          self.expePath = self.expe.rawDataPath
+         self.interimAnalysisPath = self.expe.interimAnalysisPath
       else:
          self.expe = None
          self.expePath = expe
+         self.interimAnalysisPath = ''
       self.numChannels = numChannels
       self.recSyst = None
       self.fileType = None
@@ -392,28 +437,61 @@ class experiment():
                self.channelLabels.append(region)
       return combined
 
-   def analyseExpe_findData(self):
+   def analyseExpe_findData(self, fullSampling=False, spindleBN='Spindlesproperties',suffix=''):
       """findData: function that analyse the content of the raw data folder and detects component of the experiment to load all of them
       """
-      from .ePhy.LFP import IntanLFP, NPX
+      from .ePhy.LFP import IntanLFP, NPX, LFP_DS
       folderpath = Path(self.expePath)
       print(folderpath)
-      if self.find_files_with_string(folderpath,  ".bin"): #Bonsai or IgorPro
-         print('found some .bin files')
-         matching_files = self.find_files_with_string(folderpath, ".bin")
-         self.data['OE_LFP'] = IntanLFP(self, matching_files)
+      DSdata=False
+
+      if self.find_files_with_string(self.interimAnalysisPath,  "RawDataChannelExtractedDS.npy"): # pre-analysed data
+         print('found some RawDataChannelExtractedDS.npy files')
+         matching_files = self.find_files_with_string(self.interimAnalysisPath, "RawDataChannelExtractedDS.npy")
+         self.data['LFP_DS'] = LFP_DS(self, matching_files)
+         DSdata=True
+
+      if self.find_files_with_string(self.interimAnalysisPath,  f"{spindleBN}_*.csv"): #NPX's Data
+         print('found some Spindles files')
+         matching_files = self.find_files_with_string(self.interimAnalysisPath, f"{spindleBN}_*.csv")
+         All_Spindles = self.loadSpindles(matching_files,spindleBN,suffix)
+         self.data['Spindles'] = All_Spindles
+
+      if not DSdata and fullSampling:
+         if self.find_files_with_string(folderpath,  ".bin"): #Bonsai or IgorPro
+            print('found some .bin files')
+            matching_files = self.find_files_with_string(folderpath, ".bin")
+            self.data['OE_LFP'] = IntanLFP(self, matching_files)
       
+         if self.find_files_with_string(folderpath,  "continuous.dat"): #OpenEphys
+            print('found some continuous.dat files')
+            matching_files = self.find_files_with_string(folderpath, "continuous.dat")
+            print('carrefull, to match my case, numChannels is set to 64')
+            self.data['OE_LFP'] = IntanLFP(self, matching_files, recSyst = 'OpenEphys', numChannels=64)
+
+
       if self.find_files_with_string(folderpath,  "NP_spikes_*.raw"): #NPX's Data
          print('found some NPX files')
          matching_files = self.find_files_with_string(folderpath, "NP_spikes_*.raw")
          self.data['NPX'] = NPX(self, matching_files)
 
-      if self.find_files_with_string(folderpath,  "continuous.dat"): #OpenEphys
-         print('found some continuous.dat files')
-         matching_files = self.find_files_with_string(folderpath, "continuous.dat")
-         print('carrefull, to match my case, numChannels is set to 64')
-         self.data['OE_LFP'] = IntanLFP(self, matching_files, recSyst = 'OpenEphys', numChannels=64)
 
+   def loadSpindles(self,matching_files,spindleBN,suffix):
+      All_Spindle = dict()
+      for f in matching_files:
+         try:
+            print(f)
+            structure = re.findall(f'{spindleBN}_(.*).csv', f)[0]
+            print(structure)
+            spindles = pd.read_csv(f, sep=',', header=0, index_col=0)
+            if 'toKeep' not in spindles:
+               spindles['toKeep'] = True
+            print(f"file {f} was found so loading it")
+            All_Spindle[structure]=spindles
+         except Exception as error:
+            print(error)
+      return All_Spindle
+   
    def loadLFP(self):
       folderpath = Path(self.expePath)
       isNPY = False
@@ -537,7 +615,7 @@ def getPathComponent(filename,projectType):
    dirPathComponents = os.path.normpath(filename).split(os.sep)
    expeInfo = dict()
 
-   expeInfo['analysisPath'] = os.path.join('/',*dirPathComponents[0:-5])
+   expeInfo['analysisPath'] = os.path.sep.join([*dirPathComponents[0:-5]])
    expeInfo['ProjectID'] = dirPathComponents[-5]
    expeInfo['subProjectID'] = dirPathComponents[-4]
 
@@ -552,7 +630,7 @@ def getPathComponent(filename,projectType):
       with open(projectConfig, 'w') as configfile:
          projParser.write(configfile)
 
-   if projectType == 0:
+   if expeInfo['projectType'] == 0:
       expeInfo['conditionID'] = dirPathComponents[-3]
       expeInfo['AnimalID'] = dirPathComponents[-2]
    else:

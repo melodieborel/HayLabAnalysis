@@ -1,7 +1,8 @@
 
 import numpy as np
 import os
-import pandas as pd
+import configparser
+import ast
 
 class ePhy():
    def __init__(self, parent, numChannels = None) -> None:
@@ -13,7 +14,7 @@ class ePhy():
       self.channelsMap = dict()
       self.channelLabels = []
       self.files_list = []
-      self.signal = None
+      self.signal = np.zeros((0,0))
       self.offset = 0
       self.expe = parent
       self.start = 0
@@ -38,25 +39,80 @@ class ePhy():
       self.signal = signal
       return self.signal
 
+   def loadMetaData(self):
+      bn=os.path.split(self.files_list[0])[0]
+      expeConfigFN=os.path.sep.join([bn,'expeConfig.ini'])
+      self.parser = configparser.ConfigParser()
+      self.parser.read(expeConfigFN)
+
+      if os.path.isfile(expeConfigFN):
+         print('mapping exists so loading it')
+         self.channelsMap = ast.literal_eval(self.parser['OE_LFP']['channelsMap'])
+         self.start=ast.literal_eval(self.parser['OE_LFP']['start'])
+         self.sampling_rate=ast.literal_eval(self.parser['OE_LFP']['freq'])
+         NPX = ast.literal_eval(self.parser['OE_LFP']['NPX'])
+         timesreset = ast.literal_eval(self.parser['OE_LFP']['timesreset'])
+      else:
+         print("mapping doesn't exist so generating it")
+         self.channelsMap = dict( \
+                  M1 = [dict(canal = 17, status=1),
+                     dict(canal = 16, status=2)],
+            )
+         self.start=52
+         self.sampling_rate=20046
+
+         self.parser['OE_LFP'] = {'channelsMap': self.channelsMap}
+
+
+         artefacts=[]
+         self.parser['OE_LFP']['NPX']=str(artefacts)
+         self.parser['OE_LFP']['timesreset']=str(artefacts)
+
+
+         self.parser['OE_LFP']['start']=str(self.start)
+         self.parser['OE_LFP']['freq']=str(self.sampling_rate)
+
+         with open(expeConfigFN, 'w') as configfile:
+            self.parser.write(configfile)
+
+      print("the mapping:", self.channelsMap)
+      print("the offset: ", self.start)
+      print("the sampling rate: ", self.sampling_rate)
    
-   def loadSpindles(self, relativePath='', structure = "M1", suffix=''):
-      base = os.path.normpath(self.expe.expePath)
-      alltracesFN = os.path.sep.join([base,relativePath,'RawDataChannelExtractedDS.npy'])
-      filename2 = os.path.sep.join([base,relativePath,f'Spindlesproperties_{structure}{suffix}.pkl'])
-      filename3 = os.path.sep.join([base,relativePath,f'Spindlesproperties_{structure}{suffix}.csv'])
-      filenameData =os.path.sep.join([base,relativePath,f'Signal{structure}{suffix}.npy'])
-      if os.path.isfile(filename3):
-         All_Spindle = pd.read_csv(filename3, sep=',', header=0, index_col=0)
-         if 'toKeep' not in All_Spindle:
-            All_Spindle['toKeep'] = True
-         print(f"file {filename3} was found so loading it")
+   def combineStructures(self, structures=None, start = 0, end = None):
+      """Retrieve a combined array with either all cannals (if structures is None (default)), or the differential signals correspondin to the mapped structures
+
+      Args:
+          structures (None, "All", or array of structures, optional): indicates what data to combine. Defaults to None.
+          start (int, optional): if only part of the data to display. Defaults to 0.
+          end (optional): if only part of the data to display. Defaults to None.
+
+      Returns:
+          array: combined numpy array ready to visualize
+      """
+      if end is None:
+         end = self.signal.shape[0]
+      combined = np.empty((end-start,0),np.int16)
+      self.channelLabels = []
+      if structures is None:
+         #self.generateChannelsMap()
+         combined = self.signal
+         self.channelLabels = [i for i in range(self.signal.shape[0])]
       else:
-         print(f"file {filename3} doesn't exist yet which is probably because you haven't done the analysis or the relative path is wrong")
-         All_Spindle = None
-      if os.path.isfile(filenameData):
-         signal=np.load(filenameData, mmap_mode= 'r')[:,0]
-         print(f"file {filenameData} was found so loading it")
-      else:
-         print(f"no file {filenameData} was found, please make sure it exists")
-         Signal = None
-      return All_Spindle, signal
+         if structures=='All':
+            structures = self.channelsMap.keys()
+            print(structures)
+         for region in structures:
+            print(region, "->", self.channelsMap[region])
+            if len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2])>0:
+               c2 = int([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2][0])
+               c1 = int([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0])
+               print("Getting differential signal of channel {} - channel {} for {}".format(c2,c1,region))
+               self.channelLabels.append(region)
+               combined = np.append(combined, self.signal[start:end, c2, np.newaxis] - self.signal[:, c1, np.newaxis], axis=1)
+            elif len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1])>0:
+               c = int([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0])
+               print("Getting floating signal of channel {} for {}".format(c,region))
+               combined = np.append(combined, self.signal[start:end,c, np.newaxis], axis=1)
+               self.channelLabels.append(region)
+      return combined

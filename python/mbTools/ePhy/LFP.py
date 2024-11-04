@@ -47,45 +47,7 @@ class IntanLFP(ePhy):
       self.times=np.linspace(0,self.signal.shape[0]/freq,self.signal.shape[0])
 
    def loadMetaData(self):
-      bn=os.path.split(self.files_list[0])[0]
-      expeConfigFN=os.path.sep.join([bn,'expeConfig.ini'])
-      self.parser = configparser.ConfigParser()
-      self.parser.read(expeConfigFN)
-
-      if os.path.isfile(expeConfigFN):
-         print('mapping exists so loading it')
-         self.channelsMap = ast.literal_eval(self.parser['OE_LFP']['channelsMap'])
-         self.start=ast.literal_eval(self.parser['OE_LFP']['start'])
-         self.sampling_rate=ast.literal_eval(self.parser['OE_LFP']['freq'])
-         NPX = ast.literal_eval(self.parser['OE_LFP']['NPX'])
-         timesreset = ast.literal_eval(self.parser['OE_LFP']['timesreset'])
-      else:
-         print("mapping doesn't exist so generating it")
-         self.channelsMap = dict( \
-                  M1 = [dict(canal = 17, status=1),
-                     dict(canal = 16, status=2)],
-            )
-         self.start=52
-         self.sampling_rate=20046
-
-         self.parser['OE_LFP'] = {'channelsMap': self.channelsMap}
-
-
-         artefacts=[]
-         self.parser['OE_LFP']['NPX']=str(artefacts)
-         self.parser['OE_LFP']['timesreset']=str(artefacts)
-
-
-         self.parser['OE_LFP']['start']=str(self.start)
-         self.parser['OE_LFP']['freq']=str(self.sampling_rate)
-
-         with open(expeConfigFN, 'w') as configfile:
-            self.parser.write(configfile)
-
-      print("the mapping:", self.channelsMap)
-      print("the offset: ", self.start)
-      print("the sampling rate: ", self.sampling_rate)
-
+      super().loadMetaData()
       self.reAlignTimes()
         
    def updateParser(self,key,value):
@@ -135,43 +97,8 @@ class IntanLFP(ePhy):
       self.times
       return idx
    
-   def combineStructures(self, structures=None, start = 0, end = None):
-      """Retrieve a combined array with either all cannals (if structures is None (default)), or the differential signals correspondin to the mapped structures
-
-      Args:
-          structures (None, "All", or array of structures, optional): indicates what data to combine. Defaults to None.
-          start (int, optional): if only part of the data to display. Defaults to 0.
-          end (optional): if only part of the data to display. Defaults to None.
-
-      Returns:
-          array: combined numpy array ready to visualize
-      """
-      if end is None:
-         end = self.signal.shape[0]
-      combined = np.empty((end-start,0),np.int16)
-      self.channelLabels = []
-      if structures is None:
-         #self.generateChannelsMap()
-         combined = self.signal
-         self.channelLabels = [i for i in range(self.signal.shape[0])]
-      else:
-         if structures=='All':
-            structures = self.channelsMap.keys()
-            print(structures)
-         for region in structures:
-            print(region, "->", self.channelsMap[region])
-            if len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2])>0:
-               c2 = int([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==2][0])
-               c1 = int([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0])
-               print("Getting differential signal of channel {} - channel {} for {}".format(c2,c1,region))
-               self.channelLabels.append(region)
-               combined = np.append(combined, self.signal[start:end, c2, np.newaxis] - self.signal[:, c1, np.newaxis], axis=1)
-            elif len([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1])>0:
-               c = int([canal["canal"] for canal in self.channelsMap[region] if canal["status"]==1][0])
-               print("Getting floating signal of channel {} for {}".format(c,region))
-               combined = np.append(combined, self.signal[start:end,c, np.newaxis], axis=1)
-               self.channelLabels.append(region)
-      return combined
+   def combineStructures(self, structures=None, start=0, end=None):
+      return super().combineStructures(structures, start, end)
    
 class NPX(ePhy):
    def __init__(self, parent: mbTools.mbTools.experiment, files_list, numChannels = 384) -> None:
@@ -237,3 +164,39 @@ class NPX(ePhy):
       #print(f"the before last timestamp {self.signal['spike-clock'][222587890]} would be {launch_start + timedelta(seconds=self.signal['spike-clock'][-2]/self.acquisitionClockHz)}")
       #print(f"the last timestamp {self.signal['spike-clock'][222587891]} would be {launch_start + timedelta(seconds=self.signal['spike-clock'][-1]/self.acquisitionClockHz)}")
       print(f"there are {len(self.signal['spike-clock'])} timestamps")
+
+
+class LFP_DS(ePhy):
+   def __init__(self, parent: mbTools.mbTools.experiment, files_list) -> None:
+      super().__init__(parent)
+      self.files_list = files_list
+      self.fileType = 'NPY'
+      self.signal = {}
+      self.dtype=np.int16
+      self.offset = 0
+      self.sampling_rate=1000
+      self.signal = self.loadData()
+      self.loadMetaData()
+
+   def loadData(self):
+      if len(self.files_list) == 1:
+         file = self.files_list[0]
+         signal = np.transpose(np.load(file, mmap_mode= 'r', allow_pickle=True))
+         self.numChannels = signal.shape[1]
+      else:
+         raise Exception(f"Several npy files ({len(self.files_list)}) to merge but this is not in place yet")
+      return signal
+   
+   def combineStructures(self, structures=None, start=0, end=None):
+      return super().combineStructures(structures, start, end)
+   
+   def reAlignData(self,realSR=20000, t_start=0):
+      freqInitTheoric=20000
+      freqDS=1000
+      realignFactor=freqInitTheoric/realSR
+      self.sampling_rate=freqDS*realignFactor
+      self.t_start=t_start
+      print(realignFactor)
+
+   def loadMetaData(self):
+      return super().loadMetaData()
