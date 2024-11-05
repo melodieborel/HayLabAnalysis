@@ -6,6 +6,11 @@ import ipywidgets as widgets
 import pprint
 
 class localConf(configparser.ConfigParser):
+   """localConf defines all variables that are specific to a user. It loads a file localConfig.ini that is user-specific and not synchronised with git
+
+   Args:
+       configparser (_type_): _description_
+   """
    def __init__(self, configFN = 'localConfig.ini') -> None:
       super().__init__()
       self.configFN = configFN
@@ -28,13 +33,28 @@ class localConf(configparser.ConfigParser):
       pass
 
    def updateConf(self):
+      """saves the current key/value pairs to the local config file
+      """
       with open(self.configFN, 'w') as configfile:
          self.write(configfile)
    
-   def getProjects(self):
-         return [p.split('.')[0] for p in self.sections() if p not in ['DATA','ANALYSIS']]
+   def getProjects(self) -> list:
+      """gets the list of all projects defined in the localConfig file
+
+      Returns:
+          list: list of projects
+      """
+      return [p.split('.')[0] for p in self.sections() if p not in ['DATA','ANALYSIS']]
    
-   def getSubProjects(self, projectID):
+   def getSubProjects(self, projectID: str) -> list:
+      """get all subprojects from a project
+
+      Args:
+          projectID (str): name of a project
+
+      Returns:
+          list: its subprojects
+      """
       return [p.split('.')[1] for p in self.sections() if p.split('.')[0]==projectID]
    
    def getSubProjectsWidget(self):
