@@ -29,6 +29,7 @@ class experiment():
       self.parser.read('defaultExpeConfig.ini') # check if there are modifs to load
       self.data = dict()
       self.expeInfo = dict()
+      self.numLFPchannels = 32
 
       currentFolder = self.config.get('GENERAL','currentfolder')
       self.loadCurrentFolder(currentFolder)
@@ -40,10 +41,9 @@ class experiment():
       except Exception as error:
          print(f"something went wrong, make sure the experiment path ({self.expePath}) is a folder")
 
-
    def loadCurrentFolder(self,currentFolder):
       if currentFolder == "":
-         print("no current folder")
+         print("no folder currently selected")
          if self.config.getboolean('DATA','isremote'):
              path=self.config.get('DATA','remotepath')
          else:
@@ -58,6 +58,7 @@ class experiment():
          self.rawDataPath = self.parser.get('ALL','rawdatapath')
          self.interimAnalysisPath = self.parser.get('ALL','interimanalysispath')
          self.expeInfo = ast.literal_eval(self.parser.get('ALL','expeinfo'))
+         self.numLFPchannels = int(self.parser.get('ALL','numLFPchannels'))
          self.updateExpeConfigFile()
       else:
          print(f'current folder {currentFolder} does not contain a config file, it must be the raw data folder')
@@ -84,12 +85,15 @@ class experiment():
 
 
    def updateExpeConfigFile(self):
-
       configFN = os.path.join(self.interimAnalysisPath,self.parserFN)
       with open(configFN, 'w') as configfile:
          self.parser.write(configfile)
-         print(f"{configFN} saved")
+         #print(f"{configFN} saved")
 
+   def setNumLFPchannels(self,numLFPchannels):
+      self.numLFPchannels = numLFPchannels
+      self.parser.set('ALL','numLFPchannels',self.numLFPchannels)
+      self.updateExpeConfigFile()
 
    # Function to find files containing a specific string
    def find_files_with_string(self, folder_path, search_string):
@@ -125,17 +129,16 @@ class experiment():
          All_Spindles = self.loadSpindles(matching_files,spindleBN,suffix)
          self.data['Spindles'] = All_Spindles
 
-      if not DSdata and fullSampling:
+      if fullSampling or not DSdata:
          if self.find_files_with_string(self.rawDataPath,  ".bin"): #Bonsai or IgorPro
             print('********found some .bin files********')
             matching_files = self.find_files_with_string(self.rawDataPath, ".bin")
-            self.data['OE_LFP'] = IntanLFP(self, matching_files)
+            self.data['OE_LFP'] = IntanLFP(self, matching_files, numChannels=self.numLFPchannels)
       
          if self.find_files_with_string(self.rawDataPath,  "continuous.dat"): #OpenEphys
             print('********found some continuous.dat files********')
             matching_files = self.find_files_with_string(self.rawDataPath, "continuous.dat")
-            print('carrefull, to match my case, numChannels is set to 64')
-            self.data['OE_LFP'] = IntanLFP(self, matching_files, recSyst = 'OpenEphys', numChannels=64)
+            self.data['OE_LFP'] = IntanLFP(self, matching_files, recSyst = 'OpenEphys', numChannels=self.numLFPchannels)
 
 
       if self.find_files_with_string(self.rawDataPath,  "NP_spikes_*.raw"): #NPX's Data
@@ -144,6 +147,10 @@ class experiment():
          self.data['NPX'] = NPX(self, matching_files)
 
    def loadAnimalInfo(self):
+      """ loads channelMaps.ini located at the animal level of the interimAnalysis tree that contains animal metadata.
+      Notably, channelsMap is a dict of brain structures with the corresponding electrode numbers.
+      They are labeled with dinstinct status: 0 for unused, 1 for floating electrode, 1 and 2 for differential
+      """
       animalConfBN='channelMaps.ini'
       if int(self.expeInfo['projectType']) == 0:
          animalConf = os.path.join(self.expeInfo['analysisPath'], self.expeInfo['ProjectID'], self.expeInfo['subProjectID'], self.config['ANALYSIS']['interimpath'], self.expeInfo['conditionID'], self.expeInfo['AnimalID'], animalConfBN)

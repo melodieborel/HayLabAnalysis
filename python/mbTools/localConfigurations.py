@@ -26,7 +26,7 @@ class localConf(configparser.ConfigParser):
       
       with open(self.configFN, 'w') as configfile:
          self.write(configfile)
-      print(f'Local config file updated')
+      #print(f'Local config file updated')
 
    def completeConf(self):
       """maybe should add the possibility to ensure all parts of the config is there"""
