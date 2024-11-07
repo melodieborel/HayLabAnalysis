@@ -183,8 +183,10 @@ class LFP_DS(ePhy):
    def loadData(self):
       if len(self.files_list) == 1:
          file = self.files_list[0]
-         signal = np.transpose(np.load(file, mmap_mode= 'r', allow_pickle=True))
+         #signal = np.transpose(np.load(file, mmap_mode= 'r', allow_pickle=True))
+         signal = np.load(file, mmap_mode= 'r', allow_pickle=True)
          self.numChannels = signal.shape[1]
+         self.channelsMap = self.expe.channelsMap
       else:
          raise Exception(f"Several npy files ({len(self.files_list)}) to merge but this is not in place yet")
       return signal
