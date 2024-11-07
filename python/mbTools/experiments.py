@@ -60,6 +60,10 @@ class experiment():
          self.expeInfo = ast.literal_eval(self.parser.get('ALL','expeinfo'))
          self.numLFPchannels = int(self.parser.get('ALL','numLFPchannels'))
          self.updateExpeConfigFile()
+         
+         self.expePath = self.interimAnalysisPath
+         self.config.set('GENERAL','currentFolder', self.expePath)
+         self.config.updateConf()
       else:
          print(f'current folder {currentFolder} does not contain a config file, it must be the raw data folder')
          self.rawDataPath = currentFolder
@@ -157,6 +161,7 @@ class experiment():
       else:
          animalConf = os.path.join(self.expeInfo['analysisPath'], self.expeInfo['ProjectID'], self.expeInfo['subProjectID'], self.config['ANALYSIS']['interimpath'], self.expeInfo['AnimalID'], animalConfBN)
       animalParser = configparser.ConfigParser()
+      print(animalConf)
       animalParser.read(animalConf)
       self.channelsMap = ast.literal_eval(animalParser[self.expeInfo['AnimalID']]['channelsMap'])
       print("Mapping found and loaded")
