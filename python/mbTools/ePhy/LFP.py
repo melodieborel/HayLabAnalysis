@@ -111,7 +111,6 @@ class NPX(ePhy):
       self.sampling_rate=30000
       self.acquisitionClockHz=250000000
       self.signal = self.loadData()
-      self.loadTimeStamps()
 
    def loadData(self):
       spikesPrefix = 'NP_spikes_'
@@ -139,6 +138,7 @@ class NPX(ePhy):
          #npix['lfp'] = np.fromfile(filename.replace(spikesPrefix,'NP_LFPdata_'), dtype=np.uint16).reshape(-1, self.numChannels)
          # npix['lfp-clock'] = np.fromfile(filename.replace(spikesPrefix,'NP_FrameCounter_'), dtype=np.uint64)
       
+      npix['spike'].set_times(self.times[:npix['spike'].get_num_frames()]) #rq not working if set before probe
       self.signal = npix
       self.channelLabels = [i for i in range(384)]
       return self.signal
