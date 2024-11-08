@@ -183,8 +183,9 @@ class LFP_DS(ePhy):
    def loadData(self):
       if len(self.files_list) == 1:
          file = self.files_list[0]
-         #signal = np.transpose(np.load(file, mmap_mode= 'r', allow_pickle=True))
          signal = np.load(file, mmap_mode= 'r', allow_pickle=True)
+         if signal.shape[0]<=32*4:
+            signal = np.transpose(signal)
          self.numChannels = signal.shape[1]
          self.channelsMap = self.expe.channelsMap
       else:

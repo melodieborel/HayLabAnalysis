@@ -5,7 +5,7 @@ jupyter_bokeh
 ipykernel
 
 #pour ephysviewer:
-ephyviewer
+ephyviewer @ git+https://github.com/melodieborel/ephyviewer.git
 PySide6
 pyqtgraph == 0.13.3 #0.13.7 fails to work with TimeFreqViewer of ephyviewer
 numpy
