@@ -1,12 +1,13 @@
 from .. import experiment
 from . import ePhy
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 import os
 import re
-import configparser
-import ast
+from scipy import signal, ndimage
 
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 def find_nearest(array, value):
     idx = (np.abs(array - value)).argmin()
@@ -206,3 +207,97 @@ class LFP_DS(ePhy):
 
    def loadMetaData(self):
       return super().loadMetaData()
+   
+   def filterEMG(self, f_lowcut = 200., f_hicut = 400., N = 4):
+      if 'EMG' in self.channelsMap.keys():
+         EMG = self.combineStructures(['EMG'])[:,0]
+      
+         nyq = 0.5 * self.sampling_rate
+         Wn = [f_lowcut/nyq,f_hicut/nyq]  # Nyquist frequency fraction
+
+         # Filter creation :
+         b, a = signal.butter(N, Wn, 'band')
+         filt_EMG = signal.filtfilt(b, a, EMG)
+
+         # Plot
+         timesmin = np.linspace(0, EMG.size/self.sampling_rate/60, num=EMG.size)
+
+         plt.close()
+         fig, ax = plt.subplots()
+         ax.plot(timesmin, EMG)
+         ax.plot(timesmin, filt_EMG)
+         return filt_EMG
+      else:
+         print("Couldn't find an EMG signal")
+         return None
+
+   def sleep_scoring(self, display = False, low_cwt_factor=0.5, high_cwt_factor=3):
+      if 'EMG' in self.channelsMap.keys():
+         EMG = self.combineStructures(['EMG'])[:,0]
+
+         # Parameter and computation of CWT
+         w = 4.
+         freq = np.linspace(200, 400, 50)
+         widths = w*self.sampling_rate / (2*freq*np.pi)
+         EMGcwt = signal.cwt(EMG, signal.morlet2, widths, w=w)
+
+         # Projection calculation
+         absEMGcwt = np.absolute(EMGcwt)
+         proj_EMGcwt = np.sum(absEMGcwt, axis = 0)/50
+         sdproj_EMGcwt = np.std(proj_EMGcwt)
+         mproj_EMGcwt = np.mean(proj_EMGcwt)
+
+         sd_low_proj_EMGcwt = mproj_EMGcwt + sdproj_EMGcwt * low_cwt_factor
+         sd_high_proj_EMGcwt = mproj_EMGcwt + sdproj_EMGcwt * high_cwt_factor
+
+         if display:
+
+            # Defining subset
+            start = 00000
+            end = 400000
+
+            times = np.arange(0, EMG.size/self.sampling_rate, 1./self.sampling_rate)
+            tt = times[start:end]
+            EMGt = EMG[start:end]
+            EMGcwtt = EMGcwt[:, start:end]
+            proj_EMGcwtt = proj_EMGcwt[start:end]
+
+            plt.close()
+            plt.axhline(sdproj_EMGcwt, color='r') # horizontal
+            plt.axhline(sd_high_proj_EMGcwt, color='g') # horizontal
+            plt.axhline(sd_low_proj_EMGcwt, color='b') # horizontal
+            plt.plot(tt, EMGt)
+            plt.plot(tt, proj_EMGcwtt)
+            plt.show()
+
+         EMGstatusRaw2 = self.assignSleep(proj_EMGcwt, sd_low_proj_EMGcwt, sd_high_proj_EMGcwt)
+
+         return EMGstatusRaw2
+      else:
+         print("Couldn't find an EMG signal")
+         return None
+      
+
+   def assignSleep(self, proj_EMGcwt, sd_low_proj_EMGcwt, sd_high_proj_EMGcwt):
+      numpnts = self.signal.shape[0]
+      EMGstatusRaw = np.zeros(numpnts)
+
+      # Assigning values wake (1, 2) and sleep (0)
+      EMGstatusRaw[proj_EMGcwt>sd_low_proj_EMGcwt]=1
+      EMGstatusRaw[proj_EMGcwt>sd_high_proj_EMGcwt]=2
+
+      # Expanding borders for wake (1, 2) and sleep (0) to ±1 s around detected muscular activity
+      lim=1000
+      kernel = np.ones(2*lim)
+      EMGstatusRaw2=EMGstatusRaw.copy()
+      mask2 = ndimage.binary_dilation(EMGstatusRaw2==2, kernel)
+      EMGstatusRaw2[mask2]=2
+      mask1 = ndimage.binary_dilation(EMGstatusRaw2==1, kernel)
+      EMGstatusRaw2[mask1]=np.maximum(EMGstatusRaw2[mask1],np.ones(EMGstatusRaw2[mask1].shape[0]))
+
+      plt.close()
+      plt.plot(EMGstatusRaw)
+      plt.plot(EMGstatusRaw2)
+      plt.show()
+      
+      return EMGstatusRaw2
