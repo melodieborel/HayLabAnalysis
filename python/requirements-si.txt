@@ -32,7 +32,7 @@ kilosort
 ephyviewer
 MEArec
 spikeinterface[full,widgets] @ git+https://github.com/SpikeInterface/spikeinterface.git
-spikeinterface-gui @ git+https://github.com/SpikeInterface/spikeinterface.git
+spikeinterface-gui @ git+https://github.com/SpikeInterface/spikeinterface-gui.git
 tridesclous
 
 neo @ git+https://github.com/NeuralEnsemble/python-neo.git
