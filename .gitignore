@@ -6,6 +6,7 @@
 ExampleRedLines
 recording8
 session5
+npx
 minian
 
 ephyviewer
@@ -25,3 +26,4 @@ python/clusters
 python/si_dask_logs
 python/sorting_analyzer_training
 python/sorting_analyzer_full
+python/channelMaps

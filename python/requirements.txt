@@ -5,9 +5,9 @@ jupyter_bokeh
 ipykernel
 
 #pour ephysviewer:
-ephyviewer
+ephyviewer @ git+https://github.com/melodieborel/ephyviewer.git
 PySide6
-pyqtgraph=0.13.3 #0.13.7 fails to work with TimeFreqViewer of ephyviewer
+pyqtgraph == 0.13.3 #0.13.7 fails to work with TimeFreqViewer of ephyviewer
 numpy
 scipy
 matplotlib
@@ -24,3 +24,7 @@ open-ephys-python-tools
 
 ipympl
 openpyxl
+
+#-r ./../minian/requirements/requirements-base.txt
+minian @ git+https://github.com/melodieborel/minian.git@python311
+# --global-option=build_ext --global-option="-Wno-implicit-function-declaration" --global-option="-L/opt/homebrew/include" --global-option="-I/usr/local/include"
