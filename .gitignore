@@ -27,3 +27,5 @@ python/si_dask_logs
 python/sorting_analyzer_training
 python/sorting_analyzer_full
 python/channelMaps
+python/preprocessing
+python/kilosort4_output_MB
