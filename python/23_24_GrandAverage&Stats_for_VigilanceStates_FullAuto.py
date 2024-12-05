@@ -5,7 +5,7 @@
 #######################################################################################
 
 AnalysisID='_AB_newScor' #to identify this analysis from another
-DrugExperiment=0 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
+DrugExperiment=1 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
 saveexcel=0
 Local=1
@@ -401,7 +401,9 @@ for NrSubtype in NrSubtypeList:
     combined_df_Drug = combined_df_Drug[combined_df_Drug['Drug'] == 'Baseline']
     AllBaselineUnits = combined_df_Drug['Unit_ID'].unique()
     
+    """
     # Compute selectivity index 
+
     AresultActivity_perUnit = combined_df_Drug.pivot_table(index='Unit_ID', columns='Substate', values='NormalizedAUC_calcium', aggfunc='mean')   
     try : AresultActivity_perUnit = AresultActivity_perUnit[desired_order]
     except: pass
@@ -412,12 +414,10 @@ for NrSubtype in NrSubtypeList:
     REMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] <= lower_threshold].index
     NREMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] >= upper_threshold].index
     NotSpeunits = AresultActivity_perUnit[(AresultActivity_perUnit['RatioNREM_REM'] > lower_threshold) & (AresultActivity_perUnit['RatioNREM_REM'] < upper_threshold)].index
-    """
-    dfclusterpath= "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/AB_GlobalAnalysis/ClusterAnalysis_dfL1-2.csv" if NrSubtype=='L1' else "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/AB_GlobalAnalysis/ClusterAnalysis_dfL23-2.csv"
-    dfcluster=pd.read_csv(dfclusterpath, index_col=0)
-    Cluster0untis = dfcluster[dfcluster['Cluster'] ==0].index
-    Cluster1untis = dfcluster[dfcluster['Cluster'] ==1].index
-    """
+    #dfclusterpath= "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/AB_GlobalAnalysis/ClusterAnalysis_dfL1-2.csv" if NrSubtype=='L1' else "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/AB_GlobalAnalysis/ClusterAnalysis_dfL23-2.csv"
+    #dfcluster=pd.read_csv(dfclusterpath, index_col=0)
+    #Cluster0untis = dfcluster[dfcluster['Cluster'] ==0].index
+    #Cluster1untis = dfcluster[dfcluster['Cluster'] ==1].index
 
     # Only keep units that appears in CGP & Baseline
     
@@ -429,11 +429,9 @@ for NrSubtype in NrSubtypeList:
         REMspeunits=np.intersect1d(REMspeunits, AllBaselineUnits)
         NREMspeunits=np.intersect1d(NREMspeunits, AllBaselineUnits)
         NotSpeunits=np.intersect1d(NotSpeunits, AllBaselineUnits)
-        """
-        AllBaselineUnits= np.intersect1d(AllBaselineUnits,AllCGPUnits)
-        Cluster0untis= np.intersect1d(Cluster0untis,AllBaselineUnits)
-        Cluster1untis= np.intersect1d(Cluster1untis,AllBaselineUnits)
-        """
+        #AllBaselineUnits= np.intersect1d(AllBaselineUnits,AllCGPUnits)
+        #Cluster0untis= np.intersect1d(Cluster0untis,AllBaselineUnits)
+        #Cluster1untis= np.intersect1d(Cluster1untis,AllBaselineUnits)
 
     # Save the List of significant Unit more active in one vigilance state
     if NrSubtype=='L1':
@@ -449,36 +447,33 @@ for NrSubtype in NrSubtypeList:
     REMspeunitsDF.to_excel(writer, sheet_name='REMspe', index=True, header=False) 
     NREMspeunitsDF.to_excel(writer, sheet_name='NREMspe', index=True, header=False) 
     NotSpeunitsDF.to_excel(writer, sheet_name='NotSpe', index=True, header=False)
-    """ 
-    AllBaselineUnitsDF = pd.DataFrame(AllBaselineUnits)
-    Cluster0untisDF= pd.DataFrame(Cluster0untis)
-    Cluster1untisDF= pd.DataFrame(Cluster1untis)
-    AllBaselineUnitsDF.to_excel(writer, sheet_name='AllBaselineUnits', index=True, header=False) 
-    Cluster0untisDF.to_excel(writer, sheet_name='Cluster0untis', index=True, header=False) 
-    Cluster1untisDF.to_excel(writer, sheet_name='Cluster1untis', index=True, header=False) 
-    """
+    #AllBaselineUnitsDF = pd.DataFrame(AllBaselineUnits)
+    #Cluster0untisDF= pd.DataFrame(Cluster0untis)
+    #Cluster1untisDF= pd.DataFrame(Cluster1untis)
+    #AllBaselineUnitsDF.to_excel(writer, sheet_name='AllBaselineUnits', index=True, header=False) 
+    #Cluster0untisDF.to_excel(writer, sheet_name='Cluster0untis', index=True, header=False) 
+    #Cluster1untisDF.to_excel(writer, sheet_name='Cluster1untis', index=True, header=False) 
 
     writer.close()
 
     for Drug in Drugs:
-        """
         # /!/ The ones from the drug!!!! 
-        combined_df_Drug=combined_df.copy()
-        combined_df_Drug = combined_df_Drug[combined_df_Drug['Drug'] == Drug]
-        AllBaselineUnits = combined_df_Drug['Unit_ID'].unique()
+        #combined_df_Drug=combined_df.copy()
+        #combined_df_Drug = combined_df_Drug[combined_df_Drug['Drug'] == Drug]
+        #AllBaselineUnits = combined_df_Drug['Unit_ID'].unique()
         
         # Compute selectivity index 
-        AresultActivity_perUnit = combined_df_Drug.pivot_table(index='Unit_ID', columns='Substate', values='NormalizedAUC_calcium', aggfunc='mean')   
-        try : AresultActivity_perUnit = AresultActivity_perUnit[desired_order]
-        except: pass
-        AresultActivity_perUnit['Activated_by'] = AresultActivity_perUnit.apply(max_column_name, axis=1)
-        AresultActivity_perUnit['RatioNREM_REM'] =discrimination_index(AresultActivity_perUnit)
-        lower_threshold = -0.5 
-        upper_threshold = .5 
-        REMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] <= lower_threshold].index
-        NREMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] >= upper_threshold].index
-        NotSpeunits = AresultActivity_perUnit[(AresultActivity_perUnit['RatioNREM_REM'] > lower_threshold) & (AresultActivity_perUnit['RatioNREM_REM'] < upper_threshold)].index
-"""
+        #AresultActivity_perUnit = combined_df_Drug.pivot_table(index='Unit_ID', columns='Substate', values='NormalizedAUC_calcium', aggfunc='mean')   
+        #try : AresultActivity_perUnit = AresultActivity_perUnit[desired_order]
+        #except: pass
+        #AresultActivity_perUnit['Activated_by'] = AresultActivity_perUnit.apply(max_column_name, axis=1)
+        #AresultActivity_perUnit['RatioNREM_REM'] =discrimination_index(AresultActivity_perUnit)
+        #lower_threshold = -0.5 
+        #upper_threshold = .5 
+        #REMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] <= lower_threshold].index
+        #NREMspeunits = AresultActivity_perUnit[AresultActivity_perUnit['RatioNREM_REM'] >= upper_threshold].index
+        #NotSpeunits = AresultActivity_perUnit[(AresultActivity_perUnit['RatioNREM_REM'] > lower_threshold) & (AresultActivity_perUnit['RatioNREM_REM'] < upper_threshold)].index
+
         combined_df_DrugO=combined_dfO.copy() # no min vig states durations == for vig states stats
         combined_df_DrugO = combined_df_DrugO[combined_df_DrugO['Drug'] == Drug] 
 
@@ -494,12 +489,12 @@ for NrSubtype in NrSubtypeList:
         SecondaryList=[REMspeunits, NotSpeunits, NREMspeunits, AllBaselineUnits, AllUnits] if DrugExperiment else [REMspeunits, NotSpeunits, NREMspeunits, AllUnits] #NREMprefUnits, REMprefUnits, WakeprefUnits] 
         List_Names=['NREMspe','REMspe','NotSpe', 'AllBaselineUnits', 'All'] if DrugExperiment else ['NREMspe','REMspe','NotSpe', 'All'] #'NREMpref', 'REMpref', 'Wakepref' ] 
         SecondaryList_Names=['REMspe','NotSpe','NREMspe', 'AllBaselineUnits', 'All'] if DrugExperiment else ['REMspe','NotSpe','NREMspe', 'All'] #'NREMpref', 'REMpref', 'Wakepref' ] 
-        """
-        List_SignFiringPreference=[Cluster0untis, Cluster1untis, AllBaselineUnits, AllUnits] if DrugExperiment else [Cluster0untis, Cluster1untis, AllUnits]
-        SecondaryList=[Cluster1untis, Cluster0untis, AllBaselineUnits, AllUnits] if DrugExperiment else [Cluster1untis, Cluster0untis, AllUnits]
-        List_Names=['Cluster0untis', 'Cluster1untis', 'AllBaselineUnits', 'All']if DrugExperiment else ['Cluster0untis', 'Cluster1untis', 'All']
-        SecondaryList_Names=['Cluster1untis', 'Cluster0untis', 'AllBaselineUnits', 'All' ] if DrugExperiment else ['Cluster1untis', 'Cluster0untis', 'All']
-        """
+
+        #List_SignFiringPreference=[Cluster0untis, Cluster1untis, AllBaselineUnits, AllUnits] if DrugExperiment else [Cluster0untis, Cluster1untis, AllUnits]
+        #SecondaryList=[Cluster1untis, Cluster0untis, AllBaselineUnits, AllUnits] if DrugExperiment else [Cluster1untis, Cluster0untis, AllUnits]
+        #List_Names=['Cluster0untis', 'Cluster1untis', 'AllBaselineUnits', 'All']if DrugExperiment else ['Cluster0untis', 'Cluster1untis', 'All']
+        #SecondaryList_Names=['Cluster1untis', 'Cluster0untis', 'AllBaselineUnits', 'All' ] if DrugExperiment else ['Cluster1untis', 'Cluster0untis', 'All']
+        
         for listnb, listI  in enumerate(List_SignFiringPreference):
             
             filtered_df = combined_df_Drug[combined_df_Drug['Unit_ID'].isin(listI)]
@@ -769,21 +764,20 @@ for NrSubtype in NrSubtypeList:
                 SummaryMatrixCa_cleaned = SummaryMatrixCa.round(5) # to better detect duplicate                   
                 SummaryMatrixCa_cleaned = SummaryMatrixCa.drop_duplicates(subset=SummaryMatrixCa.columns[1:]) 
                 #SummaryMatrixCa_cleaned = SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4], SummaryMatrixCa_cleaned.columns[6], SummaryMatrixCa_cleaned.columns[8], SummaryMatrixCa_cleaned.columns[10]]) if DrugExperiment else SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4]])
-                """
-                df_reset = SummaryMatrixCa_cleaned.reset_index()       
-                if len(df_reset)>0:
-                    melted_df = pd.melt(df_reset, id_vars=['index'], var_name='VigilanceSt', value_name='CorrCoeff')
-                    split_columns = melted_df['VigilanceSt'].str.split('_', expand=True)
-                    split_columns.columns = ['Transformation','Drug','Substate']
-                    melted_df = pd.concat([melted_df, split_columns], axis=1)
-                    extracted_micename = [extract_micename(idx) for idx in melted_df['index']]
-                    melted_df['Mice']=extracted_micename            
-                else: 
-                    melted_df = pd.DataFrame() 
 
-                filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairCaCorr_{List_name}.xlsx'
-                melted_df.to_excel(filenameOut, index=True, header=True)
-                """
+                #df_reset = SummaryMatrixCa_cleaned.reset_index()       
+                #if len(df_reset)>0:
+                #    melted_df = pd.melt(df_reset, id_vars=['index'], var_name='VigilanceSt', value_name='CorrCoeff')
+                #    split_columns = melted_df['VigilanceSt'].str.split('_', expand=True)
+                #    split_columns.columns = ['Transformation','Drug','Substate']
+                #    melted_df = pd.concat([melted_df, split_columns], axis=1)
+                #    extracted_micename = [extract_micename(idx) for idx in melted_df['index']]
+                #    melted_df['Mice']=extracted_micename            
+                #else: 
+                #    melted_df = pd.DataFrame() 
+
+                #filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairCaCorr_{List_name}.xlsx'
+                #melted_df.to_excel(filenameOut, index=True, header=True)
                 
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlatPairCaCorr_{List_name}.xlsx'
                 SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True) 
@@ -929,21 +923,20 @@ for NrSubtype in NrSubtypeList:
                 SummaryMatrixCa_cleaned = SummaryMatrixCa.drop_duplicates(subset=SummaryMatrixCa.columns[1:]) 
                 #SummaryMatrixCa_cleaned = SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4], SummaryMatrixCa_cleaned.columns[6], SummaryMatrixCa_cleaned.columns[8], SummaryMatrixCa_cleaned.columns[10]]) if DrugExperiment else SummaryMatrixCa_cleaned.drop(columns=[SummaryMatrixCa_cleaned.columns[0], SummaryMatrixCa_cleaned.columns[2], SummaryMatrixCa_cleaned.columns[4]])
 
-                """
-                df_reset = SummaryMatrixCa_cleaned.reset_index()       
-                if len(df_reset)>0:
-                    melted_df = pd.melt(df_reset, id_vars=['index'], var_name='VigilanceSt', value_name='CorrCoeff')
-                    split_columns = melted_df['VigilanceSt'].str.split('_', expand=True)
-                    split_columns.columns = ['Transformation','Drug','Substate']
-                    melted_df = pd.concat([melted_df, split_columns], axis=1)
-                    extracted_micename = [extract_micename(idx) for idx in melted_df['index']]
-                    melted_df['Mice']=extracted_micename            
-                else: 
-                    melted_df = pd.DataFrame()
+                #df_reset = SummaryMatrixCa_cleaned.reset_index()       
+                #if len(df_reset)>0:
+                #    melted_df = pd.melt(df_reset, id_vars=['index'], var_name='VigilanceSt', value_name='CorrCoeff')
+                #    split_columns = melted_df['VigilanceSt'].str.split('_', expand=True)
+                #    split_columns.columns = ['Transformation','Drug','Substate']
+                #    melted_df = pd.concat([melted_df, split_columns], axis=1)
+                #    extracted_micename = [extract_micename(idx) for idx in melted_df['index']]
+                #    melted_df['Mice']=extracted_micename            
+                #else: 
+                #    melted_df = pd.DataFrame()
 
-                filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairCaCorr_{SecondaryList_name}.xlsx'
-                melted_df.to_excel(filenameOut, index=True, header=True)  
-                """
+                #filenameOut = f'{folder_to_save2}/{List_name}/GLM_{NrSubtype}_FlatPairCaCorr_{SecondaryList_name}.xlsx'
+                #melted_df.to_excel(filenameOut, index=True, header=True)  
+
                 filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_FlatPairCaCorr_{SecondaryList_name}.xlsx'
                 SummaryMatrixCa_cleaned.to_excel(filenameOut, index=True, header=True)   
                 
@@ -1028,45 +1021,46 @@ for NrSubtype in NrSubtypeList:
                 A['last_non_nan'] = A.ffill(axis=1).iloc[:, -2]
 
                 # Apply the function
-                A['first_non_nan_Names'] = replace_values(A['first_non_nan'], '_1st')
-                A['last_non_nan_Names'] = replace_values(A['last_non_nan'], '_last')
+                A['first_non_nan_Names'] = replace_values(A['first_non_nan'])
+                A['last_non_nan_Names'] = replace_values(A['last_non_nan'])
 
-                dftest=A['first_non_nan_Names'] + A['first_non_nan_Names']
-
+                # Count the number of occurrences of each combination of col1 and col2
+                combination_counts = A.groupby(['first_non_nan_Names', 'last_non_nan_Names']).size().reset_index(name='count')
                 
                 filenameOutSI = f'{folder_to_save2}/{List_name}/{NrSubtype}_SIevolution.xlsx'
-                A.to_excel(filenameOutSI)
+                writer = pd.ExcelWriter(filenameOutSI)
+                A.to_excel(writer, sheet_name=f'SIevolution')
+                combination_counts.to_excel(writer, sheet_name=f'combination_counts')
+                writer.close()
 
                 #####################
                 # DECONV ACTIVITY #
                 #####################
-                """
-                resultSpikeActivity_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='DeconvSpikeMeanActivity', aggfunc='mean')    
-                try: resultSpikeActivity_perUnit = resultSpikeActivity_perUnit[desired_order]
-                except: pass
-                resultSpikeActivity_perUnit['Activated_by'] = resultSpikeActivity_perUnit.apply(max_column_name, axis=1)
+                #resultSpikeActivity_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Substate', values='DeconvSpikeMeanActivity', aggfunc='mean')    
+                #try: resultSpikeActivity_perUnit = resultSpikeActivity_perUnit[desired_order]
+                #except: pass
+                #resultSpikeActivity_perUnit['Activated_by'] = resultSpikeActivity_perUnit.apply(max_column_name, axis=1)
 
                 # Save  df
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_DeconvSpike.xlsx'
-                writer = pd.ExcelWriter(filenameOut)
-                resultSpikeActivity_perUnit.to_excel(writer)
-                writer.close()
+                #filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_DeconvSpike.xlsx'
+                #writer = pd.ExcelWriter(filenameOut)
+                #resultSpikeActivity_perUnit.to_excel(writer)
+                #writer.close()
 
-                resultSpikeActivity_perMouse = filtered_df.pivot_table(index='Mice', columns='Substate', values='DeconvSpikeMeanActivity', aggfunc='mean')
-                try: resultSpikeActivity_perMouse = resultSpikeActivity_perMouse[desired_order]
-                except: pass
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_DeconvSpike_perMouse.xlsx'
-                writer = pd.ExcelWriter(filenameOut)
-                resultSpikeActivity_perMouse.to_excel(writer)
-                writer.close()
+                #resultSpikeActivity_perMouse = filtered_df.pivot_table(index='Mice', columns='Substate', values='DeconvSpikeMeanActivity', aggfunc='mean')
+                #try: resultSpikeActivity_perMouse = resultSpikeActivity_perMouse[desired_order]
+                #except: pass
+                #filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_DeconvSpike_perMouse.xlsx'
+                #writer = pd.ExcelWriter(filenameOut)
+                #resultSpikeActivity_perMouse.to_excel(writer)
+                #writer.close()
 
                 
-                proportions = resultSpikeActivity_perUnit['Activated_by'].value_counts(normalize=True)*100
-                filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_ActivityVigSt_DeconvSpike_proportions.xlsx'
-                writer = pd.ExcelWriter(filenameOut)
-                proportions.to_excel(writer)
-                writer.close()
-                """
+                #proportions = resultSpikeActivity_perUnit['Activated_by'].value_counts(normalize=True)*100
+                #filenameOut = f'{folder_to_save2}/{List_name}/{NrSubtype}_ActivityVigSt_DeconvSpike_proportions.xlsx'
+                #writer = pd.ExcelWriter(filenameOut)
+                #proportions.to_excel(writer)
+                #writer.close()
 
                 #####################    
                 # POPULATION COUPLING #
@@ -1094,7 +1088,7 @@ for NrSubtype in NrSubtypeList:
             mergeRes=pd.concat([BaselineResultNormalizedAUC,resultNormalizedAUC_calcium_perUnit], axis=1)
             filenameOut = f'{folder_to_save}/{NrSubtype}_SelectivityIndex.xlsx'
             mergeRes.to_excel(filenameOut)
-
+    """
     #######################
     # Propreties VigStates
     #######################
@@ -1104,12 +1098,12 @@ for NrSubtype in NrSubtypeList:
 
     combined_df2 = combined_dfO.drop_duplicates(subset='Substate_ID', keep='first')
 
-    DurationVigStates = combined_df2.pivot_table(index='Mice', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='mean', fill_value=None)
+    DurationVigStates = combined_df2.pivot_table(index='Session_ID', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='mean', fill_value=None)
     try: DurationVigStates = DurationVigStates[desired_order]
     except: pass        
     AllDurationVigStates=pd.concat([AllDurationVigStates, DurationVigStates], axis=0)
 
-    TotDurationVigStates = combined_df2.pivot_table(index='Mice', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='sum', fill_value=None)
+    TotDurationVigStates = combined_df2.pivot_table(index='Session_ID', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='sum', fill_value=None)
     try: TotDurationVigStates = TotDurationVigStates[desired_order]
     except: pass
     AllTotDurationVigStates=pd.concat([AllTotDurationVigStates, TotDurationVigStates], axis=0)
