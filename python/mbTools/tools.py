@@ -87,14 +87,17 @@ def getPathComponent(filename,projectType):
 
    projectConfig = os.path.sep.join([*dirPathComponents[0:-3],'projectConfig.ini'])
    projParser = configparser.ConfigParser()
-   if os.path.isfile(projectConfig):
-      projParser.read(projectConfig)
-      expeInfo['projectType'] = projParser.get('ALL','projectType')
-   else:
-      projParser.add_section('ALL')
-      projParser.set('ALL','projectType',str(projectType))
-      with open(projectConfig, 'w') as configfile:
-         projParser.write(configfile)
+   try:
+      if os.path.isfile(projectConfig):
+         projParser.read(projectConfig)
+         expeInfo['projectType'] = projParser.get('ALL','projectType')
+      else:
+         projParser.add_section('ALL')
+         projParser.set('ALL','projectType',str(projectType))
+         with open(projectConfig, 'w') as configfile:
+            projParser.write(configfile)
+   except Exception as e:
+      print(f"there was an error: {e}. Possibly, make sure this is not related to the configFile name that should be {projectConfig}. If another with a different name exists, try to duplicate it with the expected name.")
 
    if expeInfo['projectType'] == 0:
       expeInfo['conditionID'] = dirPathComponents[-3]
