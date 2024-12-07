@@ -33,7 +33,7 @@ ipympl
 torch
 kilosort
 
-ephyviewer
+ephyviewer @ git+https://github.com/melodieborel/ephyviewer.git
 MEArec
 spikeinterface[full,widgets] @ git+https://github.com/SpikeInterface/spikeinterface.git@0.101.2
 spikeinterface-gui @ git+https://github.com/SpikeInterface/spikeinterface-gui.git

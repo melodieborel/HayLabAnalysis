@@ -12,6 +12,8 @@ from IPython import get_ipython
 
 from .localConfigurations import localConf
 
+from pathlib import Path
+
 class color:
    PURPLE = '\033[95m'
    CYAN = '\033[96m'
@@ -68,41 +70,41 @@ def superCleanPlot(lfp, npx, canauxLFP=None, structureLFP=None, canauxNPX=[0,1],
    plt.show()
 
 def convertTheoricIndex2realTime(thIdx,realFreq=1, offset=0):
-    realTime=thIdx/realFreq + offset
-    return realTime
+   realTime=thIdx/realFreq + offset
+   return realTime
 
 def find_nearest(array, value):
-    idx = (np.abs(array - value)).argmin()
-    return idx
+   idx = (np.abs(array - value)).argmin()
+   return idx
 
 def getPathComponent(filename,projectType):
-   if not os.path.isdir(filename):
-      filename = os.path.split(os.path.normpath(filename))[0]
-   dirPathComponents = os.path.normpath(filename).split(os.sep)
+   if not filename.is_dir():
+      filename = filename.parent
+   dirPathComponents = filename.parts
    expeInfo = dict()
+   remote_prefix = Path(filename.anchor)
+   expeInfo['interim_analysis_path'] = remote_prefix.joinpath(*dirPathComponents[:-5]).relative_to(remote_prefix)
+   expeInfo['project_id'] = dirPathComponents[-5]
+   expeInfo['sub_project_id'] = dirPathComponents[-4]
 
-   expeInfo['analysisPath'] = os.path.sep.join([*dirPathComponents[0:-5]])
-   expeInfo['ProjectID'] = dirPathComponents[-5]
-   expeInfo['subProjectID'] = dirPathComponents[-4]
-
-   projectConfig = os.path.sep.join([*dirPathComponents[0:-3],'projectConfig.ini'])
+   projectConfig = remote_prefix.joinpath(*dirPathComponents[0:-3],'projectConfig.ini')
    projParser = configparser.ConfigParser()
-   if os.path.isfile(projectConfig):
+   if projectConfig.is_file():
       projParser.read(projectConfig)
-      expeInfo['projectType'] = projParser.get('ALL','projectType')
+      expeInfo['project_type'] = projParser.get('ALL','project_type')
    else:
       projParser.add_section('ALL')
-      projParser.set('ALL','projectType',str(projectType))
+      projParser.set('ALL','project_type',str(projectType))
       with open(projectConfig, 'w') as configfile:
          projParser.write(configfile)
 
-   if expeInfo['projectType'] == 0:
-      expeInfo['conditionID'] = dirPathComponents[-3]
-      expeInfo['AnimalID'] = dirPathComponents[-2]
+   if expeInfo['project_type'] == 0:
+      expeInfo['condition_id'] = dirPathComponents[-3]
+      expeInfo['animal_id'] = dirPathComponents[-2]
    else:
-      expeInfo['AnimalID'] = dirPathComponents[-3]
-      expeInfo['conditionID'] = dirPathComponents[-2]
+      expeInfo['animal_id'] = dirPathComponents[-3]
+      expeInfo['condition_id'] = dirPathComponents[-2]
       
-   expeInfo['recordingID'] = dirPathComponents[-1]
+   expeInfo['recording_id'] = dirPathComponents[-1]
 
    return expeInfo

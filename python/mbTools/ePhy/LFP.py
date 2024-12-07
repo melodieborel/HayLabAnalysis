@@ -9,8 +9,8 @@ import ast
 import numpy as np
 
 def find_nearest(array, value):
-    idx = (np.abs(array - value)).argmin()
-    return idx
+   idx = (np.abs(array - value)).argmin()
+   return idx
 
 class IntanLFP(ePhy):
    def __init__(self, parent: experiment, files_list, numChannels = 32, recSyst = 'Bonsai') -> None:
@@ -49,10 +49,9 @@ class IntanLFP(ePhy):
    def loadMetaData(self):
       super().loadMetaData()
       self.reAlignTimes()
-        
+      
    def updateParser(self,key,value):
-      bn=os.path.split(self.files_list[0])[0]
-      expeConfigFN=os.path.sep.join([bn,'expeConfig.ini'])
+      expeConfigFN=self.files_list[0].with_name('expeConfig.ini')
       self.parser['OE_LFP'][key]=str(value)
       with open(expeConfigFN, 'w') as configfile:
             self.parser.write(configfile)
@@ -64,9 +63,7 @@ class IntanLFP(ePhy):
          raise Exception(f"Multiple files not implemented yet, please contact MB if you are interested by this option")
       for f in self.files_list:
          fTS=f.replace('OE_32ch_data','OE_32ch_timestamps').replace('.bin','.csv')
-         
-         fn=os.path.split(f)[1]
-         seps=[m.start() for m in re.finditer('_',fn)]
+         seps=[m.start() for m in re.finditer('_',f.name)]
          datestr = fn[seps[2]+1:-4]
          launch_start = datetime.strptime(datestr, '%Y-%m-%dT%H_%M_%S').astimezone()
          
@@ -148,13 +145,12 @@ class NPX(ePhy):
       if len(self.files_list)>1:
          raise Exception(f"Multiple files not implemented yet, please contact MB if you are interested by this option")
       for filename in self.files_list:
-         fn=os.path.split(filename)[1]
-         seps=[m.start() for m in re.finditer('_',fn)]
+         seps=[m.start() for m in re.finditer('_',filename.name)]
          datestr = fn[seps[1]+1:-4]
          launch_start = datetime.strptime(datestr, '%Y-%m-%dT%H_%M_%S').astimezone()
          offset = 0.896598400
          launch_start+= timedelta(seconds=offset)
-         self.signal['spike-clock'] = np.fromfile(filename.replace(spikesPrefix,'NP_timestamps_'), dtype=np.uint64)
+         self.signal['spike-clock'] = np.fromfile(filename.with_name(filename.name.replace(spikesPrefix,'NP_timestamps_')), dtype=np.uint64)
       self.times = self.signal['spike-clock']/self.acquisitionClockHz
       self.sampling_rate = self.acquisitionClockHz/np.diff(self.signal['spike-clock']).mean()
       print(f"the calculated sampling rate is {self.sampling_rate} Hz")
