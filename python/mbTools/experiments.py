@@ -21,26 +21,26 @@ class experiment():
    """
    def __init__(self) -> None:
       self.config = localConf()
-      self.expePath = Path("")
-      self.rawDataPath = ""
-      self.interimAnalysisPath = ""
+      self.expe_path = Path("")
+      self.raw_data_path = ""
+      self.interim_analysis_path = ""
+      self.parser_fn = 'expeConfig1.ini'
       self.parser = configparser.ConfigParser()
-      self.parserFN = 'expeConfig1.ini'
       self.parser.read('defaultExpeConfig.ini') # check if there are modifs to load
       self.data = dict()
-      self.expeInfo = dict()
-      self.numLFPchannels = 32
+      self.expe_info = dict()
+      self.num_lfp_channels = 32
 
       self.remote_prefix = Path(self.config.get('GENERAL','remote_prefix'))
       currentFolder = self.remote_prefix / self.config.get('GENERAL','currentfolder')
       self.loadCurrentFolder(currentFolder)
       
       try:
-         fc1 = FileChooser(self.expePath, select_default=True, show_only_dirs = True, title = "<b>OpenEphys Folder</b>")
+         fc1 = FileChooser(self.expe_path, select_default=True, show_only_dirs = True, title = "<b>OpenEphys Folder</b>")
          display(fc1)
          fc1.register_callback(self.update_my_expe_choice)
       except Exception as error:
-         print(f"something went wrong, make sure the experiment path ({self.expePath}) is a folder")
+         print(f"something went wrong, make sure the experiment path ({self.expe_path}) is a folder")
 
    def loadCurrentFolder(self,currentFolder):
       parserName = currentFolder / self.parserFN
@@ -50,53 +50,57 @@ class experiment():
             path=self.config.get('DATA','remote_path')
          else:
             path=self.config.get('DATA','local_path')
-         self.expePath = Path(path)
+         self.expe_path = Path(path)
       elif parserName.is_file():
          print(f'current folder {currentFolder} contains a config file')
-         self.expePath = currentFolder
+         self.expe_path = currentFolder
          self.parser.read(parserName)
-         self.rawDataPath = self.parser.get('ALL','raw_data_path')
-         self.interimAnalysisPath = self.parser.get('ALL','interim_analysis_path')
-         self.expeInfo = ast.literal_eval(self.parser.get('ALL','expe_info'))
-         self.numLFPchannels = int(self.parser.get('ALL','num_lfp_channels'))
+         self.__dict__.update(dict(self.parser.items('ALL')))
+         #TODO: soon remove next line, ,it is for compatibility only
+         try:
+            self.__dict__.update(ast.literal_eval(self.parser.get('ALL',"expe_info")))
+         except:
+            pass
          self.updateExpeConfigFile()
          
-         self.expePath = self.remote_prefix / self.interimAnalysisPath
-         self.config.set('GENERAL','current_folder', self.interimAnalysisPath)
+         self.expe_path = self.remote_prefix / self.interim_analysis_path
+         self.config.set('GENERAL','current_folder', self.interim_analysis_path)
          self.config.updateConf()
       else:
          print(f'current folder {currentFolder} does not contain a config file, it must be the raw data folder')
-         self.rawDataPath = currentFolder
+         self.raw_data_path = currentFolder
 
-         self.projectType = int(self.config['ANALYSIS']['project_type'])
-         self.expeInfo = getPathComponent(self.rawDataPath,self.projectType)
+         self.project_type = self.config.get('ANALYSIS','project_type')
+         self.__dict__.update(getPathComponent(self.raw_data_path,self.project_type))
 
-         if self.projectType == 1:
-            self.interimAnalysisPath = self.remote_prefix / self.expeInfo['analysis_path'] / self.expeInfo['project_id'] / self.expeInfo['sub_project_id'] / self.config['ANALYSIS']['interim_analysis_path'] / self.expeInfo['condition_id'] / self.expeInfo['animal_id'] / self.expeInfo['recording_id']
+         if self.project_type == 1:
+            self.interim_analysis_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_analysis_path'] / self.condition_id / self.animal_id / self.recording_id
          else:
-            self.interimAnalysisPath = self.remote_prefix / self.expeInfo['analysis_path'] / self.expeInfo['project_id'] / self.expeInfo['sub_project_id'] / self.config['ANALYSIS']['interim_analysis_path'] / self.expeInfo['animal_id'] / self.expeInfo['condition_id'] / self.expeInfo['recording_id']
-         os.makedirs(self.interimAnalysisPath, exist_ok=True)
-
-         self.parser.set('ALL','raw_data_path', self.rawDataPath)
-         self.parser.set('ALL','interim_analysis_path', self.interimAnalysisPath)
-         self.parser.set('ALL','expe_info', str(self.expeInfo))
+            self.interim_analysis_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_analysis_path'] / self.animal_id / self.condition_id / self.recording_id
+         os.makedirs(self.interim_analysis_path, exist_ok=True)
 
          self.updateExpeConfigFile()
 
-         self.expePath = self.interimAnalysisPath
-         self.config.set('GENERAL','current_folder', str(self.expePath))
+         self.expe_path = self.interim_analysis_path
+         self.config.set('GENERAL','current_folder', self.expe_path)
          self.config.updateConf()
 
 
    def updateExpeConfigFile(self):
-      configFN = self.remote_prefix / self.interimAnalysisPath / self.parserFN
+      if self.interim_analysis_path == '': # for compatibility
+         self.interim_analysis_path = self.interimAnalysisPath
+      configFN = self.remote_prefix / self.interim_analysis_path / self.parser_fn
+      for item in self.__dict__.keys():
+         self.parser.set('ALL',item,str(self.__dict__[item]))
+      item_to_ignore = ["config","parser","data"]
+      for item in item_to_ignore:
+         self.parser.remove_option('ALL',item)
       with open(configFN, 'w') as configfile:
          self.parser.write(configfile)
          #print(f"{configFN} saved")
 
-   def setNumLFPchannels(self,numLFPchannels):
-      self.numLFPchannels = numLFPchannels
-      self.parser.set('ALL','num_lfp_channels',self.numLFPchannels)
+   def setnum_lfp_channels(self,num_lfp_channels):
+      self.num_lfp_channels = num_lfp_channels
       self.updateExpeConfigFile()
 
    # Function to find files containing a specific string
@@ -112,15 +116,15 @@ class experiment():
       self.loadCurrentFolder(selection)
 
 
-   def analyseExpe_findData(self, fullSampling=False, spindleBN='Spindlesproperties',suffix=''):
+   def analyseExpe_findData(self, fullSampling=False):
       """findData: function that analyse the content of the raw data folder and detects component of the experiment to load all of them
       """
       from .ePhy.LFP import IntanLFP, NPX, LFP_DS
       self.loadAnimalInfo()
       DSdata=False
       
-      interim_analysis_folder = self.remote_prefix / self.interimAnalysisPath
-      raw_data_folder = self.remote_prefix / self.rawDataPath
+      interim_analysis_folder = self.remote_prefix / self.interim_analysis_path
+      raw_data_folder = self.remote_prefix / self.raw_data_path
 
       if self.find_files_with_string(interim_analysis_folder,  "RawDataChannelExtractedDS.npy"): # pre-analysed data
          print('********found some RawDataChannelExtractedDS.npy files********')
@@ -128,22 +132,22 @@ class experiment():
          self.data['LFP_DS'] = LFP_DS(self, matching_files)
          DSdata=True
 
-      if self.find_files_with_string(interim_analysis_folder,  f"{spindleBN}_*.csv"): #NPX's Data
+      if self.find_files_with_string(interim_analysis_folder,  f"{self.spindle_bn}_*.csv"): #NPX's Data
          print('********found some Spindles files********')
-         matching_files = self.find_files_with_string(interim_analysis_folder, f"{spindleBN}_*.csv")
-         All_Spindles = self.loadSpindles(matching_files,spindleBN,suffix)
+         matching_files = self.find_files_with_string(interim_analysis_folder, f"{self.spindle_bn}_*.csv")
+         All_Spindles = self.loadSpindles(matching_files,self.spindle_bn,self.suffix)
          self.data['Spindles'] = All_Spindles
 
       if fullSampling or not DSdata:
          if self.find_files_with_string(raw_data_folder,  ".bin"): #Bonsai or IgorPro
             print('********found some .bin files********')
             matching_files = self.find_files_with_string(raw_data_folder, ".bin")
-            self.data['OE_LFP'] = IntanLFP(self, matching_files, numChannels=self.numLFPchannels)
+            self.data['OE_LFP'] = IntanLFP(self, matching_files, numChannels=self.num_lfp_channels)
       
          if self.find_files_with_string(raw_data_folder,  "continuous.dat"): #OpenEphys
             print('********found some continuous.dat files********')
             matching_files = self.find_files_with_string(raw_data_folder, "continuous.dat")
-            self.data['OE_LFP'] = IntanLFP(self, matching_files, recSyst = 'OpenEphys', numChannels=self.numLFPchannels)
+            self.data['OE_LFP'] = IntanLFP(self, matching_files, recSyst = 'OpenEphys', numChannels=self.num_lfp_channels)
 
 
       if self.find_files_with_string(raw_data_folder,  "NP_spikes_*.raw"): #NPX's Data
@@ -157,13 +161,13 @@ class experiment():
       They are labeled with dinstinct status: 0 for unused, 1 for floating electrode, 1 and 2 for differential
       """
       animalConfBN='channelMaps.ini'
-      if int(self.expeInfo['project_type']) == 0:
-         animalConf = self.remote_prefix / self.expeInfo['interim_analysis_path'] / self.expeInfo['project_id'] / self.expeInfo['sub_project_id'] / self.config['ANALYSIS']['interim_path'] / self.expeInfo['condition_id'] / self.expeInfo['animal_id'] / animalConfBN
+      if int(self.project_type) == 0:
+         animalConf = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_analysis_path'] / self.condition_id / self.animal_id / animalConfBN
       else:
-         animalConf = self.remote_prefix / self.expeInfo['interim_analysis_path'] / self.expeInfo['project_id'] / self.expeInfo['sub_project_id'] / self.config['ANALYSIS']['interim_path'] / self.expeInfo['animal_id'] / animalConfBN
+         animalConf = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_analysis_path'] / self.animal_id / animalConfBN
       animalParser = configparser.ConfigParser()
       animalParser.read(animalConf)
-      self.channelsMap = ast.literal_eval(animalParser[self.expeInfo['animal_id']]['channelsMap'])
+      self.channelsMap = ast.literal_eval(animalParser[self.animal_id]['channelsMap'])
       print("Mapping found and loaded")
       print(self.channelsMap)
 

@@ -77,13 +77,13 @@ def find_nearest(array, value):
    idx = (np.abs(array - value)).argmin()
    return idx
 
-def getPathComponent(filename,projectType):
+def getPathComponent(filename,project_type):
    if not filename.is_dir():
       filename = filename.parent
    dirPathComponents = filename.parts
    expeInfo = dict()
    remote_prefix = Path(filename.anchor)
-   expeInfo['interim_analysis_path'] = remote_prefix.joinpath(*dirPathComponents[:-5]).relative_to(remote_prefix)
+   expeInfo['analysis_path_root'] = remote_prefix.joinpath(*dirPathComponents[:-5]).relative_to(remote_prefix)
    expeInfo['project_id'] = dirPathComponents[-5]
    expeInfo['sub_project_id'] = dirPathComponents[-4]
 
@@ -92,10 +92,18 @@ def getPathComponent(filename,projectType):
    try:
       if projectConfig.is_file():
          projParser.read(projectConfig)
-         expeInfo['project_type'] = projParser.get('ALL','project_type')
+         try:
+            expeInfo['project_type'] = projParser.get('ALL','project_type')
+         except:
+            #TODO: soon remove, it was only for copatibility
+            expeInfo['project_type'] = projParser.get('ALL','projecttype')
+            projParser.set('ALL','project_type',expeInfo['project_type'])
+            projParser.remove_option('ALL','projecttype')
+            with open(projectConfig, 'w') as configfile:
+               projParser.write(configfile)
       else:
          projParser.add_section('ALL')
-         projParser.set('ALL','project_type',str(projectType))
+         projParser.set('ALL','project_type',str(project_type))
          with open(projectConfig, 'w') as configfile:
             projParser.write(configfile)
    except Exception as e:
