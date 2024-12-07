@@ -7,7 +7,7 @@ import ast
 class ePhy():
    def __init__(self, parent, numChannels = None) -> None:
       #super().__init__()
-      self.numChannels = numChannels
+      self.numChannels = int(numChannels)
       self.recSyst = None
       self.fileType = None
       self.dtype = None

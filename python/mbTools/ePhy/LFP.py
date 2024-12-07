@@ -147,7 +147,7 @@ class NPX(ePhy):
          raise Exception(f"Multiple files not implemented yet, please contact MB if you are interested by this option")
       for filename in self.files_list:
          seps=[m.start() for m in re.finditer('_',filename.name)]
-         datestr = fn[seps[1]+1:-4]
+         datestr = filename.name[seps[1]+1:-4]
          launch_start = datetime.strptime(datestr, '%Y-%m-%dT%H_%M_%S').astimezone()
          offset = 0.896598400
          launch_start+= timedelta(seconds=offset)

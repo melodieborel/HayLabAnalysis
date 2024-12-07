@@ -32,7 +32,7 @@ class experiment():
       self.num_lfp_channels = 32
 
       self.remote_prefix = Path(self.config.get('GENERAL','remote_prefix'))
-      currentFolder = self.remote_prefix / self.config.get('GENERAL','currentfolder')
+      currentFolder = self.remote_prefix / self.config.get('GENERAL','current_folder')
       self.loadCurrentFolder(currentFolder)
       
       try:
@@ -43,7 +43,7 @@ class experiment():
          print(f"something went wrong, make sure the experiment path ({self.expe_path}) is a folder")
 
    def loadCurrentFolder(self,currentFolder):
-      parserName = currentFolder / self.parserFN
+      parserName = currentFolder / self.parser_fn
       if currentFolder == Path(""):
          print("no folder currently selected")
          if self.config.getboolean('DATA','is_remote'):
@@ -74,9 +74,9 @@ class experiment():
          self.__dict__.update(getPathComponent(self.raw_data_path,self.project_type))
 
          if self.project_type == 1:
-            self.interim_analysis_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_analysis_path'] / self.condition_id / self.animal_id / self.recording_id
+            self.interim_analysis_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / self.recording_id
          else:
-            self.interim_analysis_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_analysis_path'] / self.animal_id / self.condition_id / self.recording_id
+            self.interim_analysis_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / self.condition_id / self.recording_id
          os.makedirs(self.interim_analysis_path, exist_ok=True)
 
          self.updateExpeConfigFile()
@@ -87,8 +87,8 @@ class experiment():
 
 
    def updateExpeConfigFile(self):
-      if self.interim_analysis_path == '': # for compatibility
-         self.interim_analysis_path = self.interimAnalysisPath
+      if type(self.remote_prefix) == str:
+         self.remote_prefix = Path(self.remote_prefix)
       configFN = self.remote_prefix / self.interim_analysis_path / self.parser_fn
       for item in self.__dict__.keys():
          self.parser.set('ALL',item,str(self.__dict__[item]))
@@ -162,9 +162,9 @@ class experiment():
       """
       animalConfBN='channelMaps.ini'
       if int(self.project_type) == 0:
-         animalConf = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_analysis_path'] / self.condition_id / self.animal_id / animalConfBN
+         animalConf = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / animalConfBN
       else:
-         animalConf = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_analysis_path'] / self.animal_id / animalConfBN
+         animalConf = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / animalConfBN
       animalParser = configparser.ConfigParser()
       animalParser.read(animalConf)
       self.channelsMap = ast.literal_eval(animalParser[self.animal_id]['channelsMap'])
