@@ -89,14 +89,17 @@ def getPathComponent(filename,projectType):
 
    projectConfig = remote_prefix.joinpath(*dirPathComponents[0:-3],'projectConfig.ini')
    projParser = configparser.ConfigParser()
-   if projectConfig.is_file():
-      projParser.read(projectConfig)
-      expeInfo['project_type'] = projParser.get('ALL','project_type')
-   else:
-      projParser.add_section('ALL')
-      projParser.set('ALL','project_type',str(projectType))
-      with open(projectConfig, 'w') as configfile:
-         projParser.write(configfile)
+   try:
+      if projectConfig.is_file():
+         projParser.read(projectConfig)
+         expeInfo['project_type'] = projParser.get('ALL','project_type')
+      else:
+         projParser.add_section('ALL')
+         projParser.set('ALL','project_type',str(projectType))
+         with open(projectConfig, 'w') as configfile:
+            projParser.write(configfile)
+   except Exception as e:
+      print(f"there was an error: {e}. Possibly, make sure this is not related to the configFile name that should be {projectConfig}. If another with a different name exists, try to duplicate it with the expected name.")
 
    if expeInfo['project_type'] == 0:
       expeInfo['condition_id'] = dirPathComponents[-3]
