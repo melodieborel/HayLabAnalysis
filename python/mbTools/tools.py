@@ -64,7 +64,14 @@ def superCleanPlot(lfp, npx, canauxLFP=None, structureLFP=None, canauxNPX=[0,1],
    print(idx2)
    x2=npx.times[idx2-int(pre*npx.sampling_rate):idx2+int(post*npx.sampling_rate)]-npx.times[0]
    y2=npx.signal['spike'].select_channels(canauxNPX).get_traces(start_frame=idx2-int(pre*npx.sampling_rate), end_frame=idx2+int(post*npx.sampling_rate), return_scaled=False)
-
+   
+   offsetsLFP = np.arange(y.shape[1])
+   y = np.add(y,offsetsLFP*offset)
+   
+   offsetsNPX = np.arange(y2.shape[1])
+   print(y2.shape)
+   y2 = np.add(y2,offsetsNPX*offset)
+   
    plt.plot(x, y*scaleLFP,'-')
    plt.plot(x2, y2*scaleNPX+offset,'-')
    plt.show()
