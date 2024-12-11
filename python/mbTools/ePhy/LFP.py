@@ -31,7 +31,7 @@ class IntanLFP(ePhy):
          self.fileType = 'OE32channels.bin'
          self.dtype=np.int16
          self.offset = 0
-      self.sampling_rate=20000
+      #self.sampling_rate=20000
       self.signal = self.loadData()
       self.loadMetaData()
 

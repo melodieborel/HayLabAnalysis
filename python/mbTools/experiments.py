@@ -134,6 +134,8 @@ class experiment():
       """findData: function that analyse the content of the raw data folder and detects component of the experiment to load all of them
       """
       from .ePhy.LFP import IntanLFP, NPX, LFP_DS
+      from .ePhy.TTL import TTLin
+      from .Imaging.Miniscope import Miniscope
       self.loadAnimalInfo()
       DSdata=False
       
@@ -169,6 +171,16 @@ class experiment():
          matching_files = self.find_files_with_string(raw_data_folder, "NP_spikes_*.raw")
          self.data['NPX'] = NPX(self, matching_files)
 
+      if self.find_files_with_string(raw_data_folder,  "_ttlin*.bin"): #NPX's Data
+         print('********found some OE TTL in files********')
+         matching_files = self.find_files_with_string(raw_data_folder, "_ttlin*.bin")
+         self.data['ttl'] = TTLin(self, matching_files)
+
+      if self.find_files_with_string(raw_data_folder,  "_miniscope_*.avi"): #NPX's Data
+         print('********found some Miniscope files********')
+         matching_files = self.find_files_with_string(raw_data_folder, "_miniscope_*.avi")
+         self.data['miniscope'] = Miniscope(self, matching_files)
+
    def loadAnimalInfo(self):
       """ loads channelMaps.ini located at the animal level of the interimAnalysis tree that contains animal metadata.
       Notably, channelsMap is a dict of brain structures with the corresponding electrode numbers.
@@ -179,12 +191,15 @@ class experiment():
          animalConf = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / animalConfBN
       else:
          animalConf = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / animalConfBN
-      animalParser = configparser.ConfigParser()
-      animalParser.read(animalConf)
-      self.channelsMap = ast.literal_eval(animalParser[self.animal_id]['channelsMap'])
-      print("Mapping found and loaded")
-      print(self.channelsMap)
-
+      try:
+         animalParser = configparser.ConfigParser()
+         animalParser.read(animalConf)
+         self.channelsMap = ast.literal_eval(animalParser[self.animal_id]['channelsMap'])
+         print("Mapping found and loaded")
+         print(self.channelsMap)
+      except:
+         print(f"could not load channel map. Please make sure the animalID {self.animal_id} is mapped in the file {animalConf}")
+         self.channelsMap = None
 
    def loadSpindles(self,matching_files,spindleBN,suffix):
       All_Spindle = dict()
