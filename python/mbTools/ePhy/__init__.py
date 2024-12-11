@@ -3,6 +3,7 @@ import numpy as np
 import os
 import configparser
 import ast
+from pathlib import Path
 
 class ePhy():
    def __init__(self, parent, numChannels = None) -> None:
@@ -40,12 +41,10 @@ class ePhy():
       return self.signal
 
    def loadMetaData(self):
-      bn=os.path.split(self.files_list[0])[0]
-      expeConfigFN=os.path.sep.join([bn,'expeConfig.ini'])
+      expeConfigFN= Path(self.files_list[0]).with_name('expeConfig.ini')
       self.parser = configparser.ConfigParser()
       self.parser.read(expeConfigFN)
-
-      if os.path.isfile(expeConfigFN):
+      if expeConfigFN.is_file():
          print('expeconfig exists so loading it')
          self.channelsMap = self.expe.channelsMap
          self.start=ast.literal_eval(self.parser['OE_LFP']['start'])
