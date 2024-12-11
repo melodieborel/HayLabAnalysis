@@ -139,10 +139,8 @@ class NPX(ePhy):
       if self.times.shape[0]<npix['spike'].get_num_frames():
          rab=npix['spike'].get_num_frames()-self.times.shape[0]
          print(f"there are {rab} less timestamps than samples so extrapoling rest")
-         extraTS = (np.arange(rab) + 1) * self.sampling_rate + self.times[-1]
+         extraTS = (np.arange(rab) + 1) / self.sampling_rate + self.times[-1]
          self.times = np.append(self.times, extraTS)
-      print(self.times.shape)
-      print(npix['spike'].get_num_frames())
       npix['spike'].set_times(self.times[:npix['spike'].get_num_frames()]) #rq not working if set before probe
       self.signal = npix
       self.channelLabels = [i for i in range(384)]

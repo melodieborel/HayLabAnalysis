@@ -20,6 +20,7 @@ class experiment():
    """experiment is a class for a whole experiment including all its component (NPX, miniscope, intan...)
    """
    def __init__(self) -> None:
+      self.config = localConf()
       self.setInstanceVars()
 
       currentFolder = self.remote_prefix / self.config.get('GENERAL','current_folder')
@@ -34,7 +35,6 @@ class experiment():
          
    def setInstanceVars(self):
       print("reseting vars")
-      self.config = localConf()
       self.expe_path = Path("")
       self.raw_data_path = ""
       self.interim_analysis_path = ""
@@ -76,21 +76,25 @@ class experiment():
          self.config.updateConf()
       else:
          print(f'current folder {currentFolder} does not contain a config file, it must be the raw data folder')
-         self.raw_data_path = currentFolder
-
+         self.raw_data_path = str(currentFolder.relative_to(self.remote_prefix))
+         
          self.project_type = self.config.get('ANALYSIS','project_type')
-         self.__dict__.update(getPathComponent(self.raw_data_path,self.project_type))
-
+         self.__dict__.update(getPathComponent(currentFolder,self.project_type))
+         
          if self.project_type == 1:
-            self.interim_analysis_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / self.recording_id
+            self.expe_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / self.recording_id
          else:
-            self.interim_analysis_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / self.condition_id / self.recording_id
-         os.makedirs(self.interim_analysis_path, exist_ok=True)
-
+            self.expe_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / self.condition_id / self.recording_id
+         
+         self.interim_analysis_path = str(self.expe_path.relative_to(self.remote_prefix))
+         print(self.expe_path)
+         print(self.interim_analysis_path)
+         
+         self.expe_path.mkdir(exist_ok=True, parents=True)
+         
          self.updateExpeConfigFile()
-
-         self.expe_path = self.interim_analysis_path
-         self.config.set('GENERAL','current_folder', self.expe_path)
+         
+         self.config.set('GENERAL','current_folder', self.interim_analysis_path)
          self.config.updateConf()
 
 
