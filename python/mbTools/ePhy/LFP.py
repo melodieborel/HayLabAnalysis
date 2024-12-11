@@ -136,7 +136,7 @@ class NPX(ePhy):
          #npix['lfp'] = np.fromfile(filename.replace(spikesPrefix,'NP_LFPdata_'), dtype=np.uint16).reshape(-1, self.numChannels)
          # npix['lfp-clock'] = np.fromfile(filename.replace(spikesPrefix,'NP_FrameCounter_'), dtype=np.uint64)
       
-      if False: #self.times.shape[0]<npix['spike'].get_num_frames():
+      if self.times.shape[0]<npix['spike'].get_num_frames():
          rab=npix['spike'].get_num_frames()-self.times.shape[0]
          print(f"there are {rab} less timestamps than samples so extrapoling rest")
          extraTS = (np.arange(rab) + 1) * self.sampling_rate + self.times[-1]
