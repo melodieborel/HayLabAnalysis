@@ -129,7 +129,7 @@ class experiment():
       if self.find_files_with_string(interim_analysis_folder,  "RawDataChannelExtractedDS.npy"): # pre-analysed data
          print('********found some RawDataChannelExtractedDS.npy files********')
          matching_files = self.find_files_with_string(interim_analysis_folder, "RawDataChannelExtractedDS.npy")
-         self.data['LFP_DS'] = LFP_DS(self, matching_files)
+         self.data['LFP_DS'] = LFP_DS(self, matching_files, numChannels=self.num_lfp_channels)
          DSdata=True
 
       if self.find_files_with_string(interim_analysis_folder,  f"{self.spindle_bn}_*.csv"): #NPX's Data
@@ -177,7 +177,7 @@ class experiment():
       for f in matching_files:
          try:
             print(f)
-            structure = re.findall(f'{spindleBN}_(.*){suffix}.csv', f)[0]
+            structure = re.findall(f'{spindleBN}_(.*){suffix}.csv', str(f))[0]
             print(structure)
             spindles = pd.read_csv(f, sep=',', header=0, index_col=0)
             if 'toKeep' not in spindles:

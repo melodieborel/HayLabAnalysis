@@ -165,16 +165,16 @@ class NPX(ePhy):
 
 
 class LFP_DS(ePhy):
-   def __init__(self, parent: experiment, files_list) -> None:
-      super().__init__(parent)
+   def __init__(self, parent: experiment, files_list, numChannels = 32) -> None:
+      super().__init__(parent, numChannels=numChannels)
       self.files_list = files_list
       self.fileType = 'NPY'
       self.signal = {}
       self.dtype=np.int16
       self.offset = 0
       self.sampling_rate=1000
-      self.signal = self.loadData()
       self.loadMetaData()
+      self.signal = self.loadData()
       self.reAlignData(realSR=self.sampling_rate)
 
    def loadData(self):
