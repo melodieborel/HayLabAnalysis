@@ -42,10 +42,13 @@ class ePhy():
 
    def loadMetaData(self):
       self.channelsMap = self.expe.channelsMap
-      self.start=ast.literal_eval(self.expe.parser['OE_LFP']['start'])
-      self.sampling_rate=ast.literal_eval(self.expe.parser['OE_LFP']['freq'])
-      NPX = ast.literal_eval(self.expe.parser['OE_LFP']['NPX'])
-      timesreset = ast.literal_eval(self.expe.parser['OE_LFP']['timesreset'])
+      try:
+         self.start=ast.literal_eval(self.expe.parser['OE_LFP']['start'])
+         self.sampling_rate=ast.literal_eval(self.expe.parser['OE_LFP']['freq'])
+         NPX = ast.literal_eval(self.expe.parser['OE_LFP']['NPX'])
+         timesreset = ast.literal_eval(self.expe.parser['OE_LFP']['timesreset'])
+      except:
+         print("could nt find realignment data")
 
       print("the mapping:", self.channelsMap)
       print("the offset: ", self.start)

@@ -20,18 +20,8 @@ class experiment():
    """experiment is a class for a whole experiment including all its component (NPX, miniscope, intan...)
    """
    def __init__(self) -> None:
-      self.config = localConf()
-      self.expe_path = Path("")
-      self.raw_data_path = ""
-      self.interim_analysis_path = ""
-      self.parser_fn = 'expeConfig1.ini'
-      self.parser = configparser.ConfigParser()
-      self.parser.read('defaultExpeConfig.ini') # check if there are modifs to load
-      self.data = dict()
-      self.expe_info = dict()
-      self.num_lfp_channels = 32
+      self.setInstanceVars()
 
-      self.remote_prefix = Path(self.config.get('GENERAL','remote_prefix'))
       currentFolder = self.remote_prefix / self.config.get('GENERAL','current_folder')
       self.loadCurrentFolder(currentFolder)
       
@@ -41,7 +31,25 @@ class experiment():
          fc1.register_callback(self.update_my_expe_choice)
       except Exception as error:
          print(f"something went wrong, make sure the experiment path ({self.expe_path}) is a folder")
+         
+   def setInstanceVars(self):
+      print("reseting vars")
+      self.config = localConf()
+      self.expe_path = Path("")
+      self.raw_data_path = ""
+      self.interim_analysis_path = ""
+      self.parser_fn = 'expeConfig1.ini'
+      self.parser = configparser.ConfigParser()
+      
+      self.parser.read('defaultExpeConfig.ini') # check if there are modifs to load
+      self.data = dict()
+      self.expe_info = dict()
+      self.num_lfp_channels = 32
+      
+      self.remote_prefix = Path(self.config.get('GENERAL','remote_prefix'))
 
+      
+      
    def loadCurrentFolder(self,currentFolder):
       parserName = currentFolder / self.parser_fn
       if currentFolder == Path(""):
@@ -92,9 +100,10 @@ class experiment():
       configFN = self.remote_prefix / self.interim_analysis_path / self.parser_fn
       for item in self.__dict__.keys():
          self.parser.set('ALL',item,str(self.__dict__[item]))
-      item_to_ignore = ["config","parser","data"]
+      item_to_ignore = ["config","parser","data","expe_path","expe_info","channelsMap"]
       for item in item_to_ignore:
          self.parser.remove_option('ALL',item)
+      configFN.parent.mkdir(exist_ok=True, parents=True)
       with open(configFN, 'w') as configfile:
          self.parser.write(configfile)
          print(f"{configFN} saved")
@@ -113,6 +122,7 @@ class experiment():
    
    def update_my_expe_choice(self,chooser):
       selection = Path(chooser.selected)
+      self.setInstanceVars()
       self.loadCurrentFolder(selection)
 
 
