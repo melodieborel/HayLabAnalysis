@@ -97,7 +97,7 @@ class experiment():
          self.parser.remove_option('ALL',item)
       with open(configFN, 'w') as configfile:
          self.parser.write(configfile)
-         #print(f"{configFN} saved")
+         print(f"{configFN} saved")
 
    def setnum_lfp_channels(self,num_lfp_channels):
       self.num_lfp_channels = num_lfp_channels

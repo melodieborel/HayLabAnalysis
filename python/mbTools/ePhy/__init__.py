@@ -41,16 +41,11 @@ class ePhy():
       return self.signal
 
    def loadMetaData(self):
-      expeConfigFN= Path(self.files_list[0]).with_name('expeConfig.ini')
-      self.parser = configparser.ConfigParser()
-      self.parser.read(expeConfigFN)
-      if expeConfigFN.is_file():
-         print('expeconfig exists so loading it')
-         self.channelsMap = self.expe.channelsMap
-         self.start=ast.literal_eval(self.parser['OE_LFP']['start'])
-         self.sampling_rate=ast.literal_eval(self.parser['OE_LFP']['freq'])
-         NPX = ast.literal_eval(self.parser['OE_LFP']['NPX'])
-         timesreset = ast.literal_eval(self.parser['OE_LFP']['timesreset'])
+      self.channelsMap = self.expe.channelsMap
+      self.start=ast.literal_eval(self.expe.parser['OE_LFP']['start'])
+      self.sampling_rate=ast.literal_eval(self.expe.parser['OE_LFP']['freq'])
+      NPX = ast.literal_eval(self.expe.parser['OE_LFP']['NPX'])
+      timesreset = ast.literal_eval(self.expe.parser['OE_LFP']['timesreset'])
 
       print("the mapping:", self.channelsMap)
       print("the offset: ", self.start)
@@ -60,12 +55,12 @@ class ePhy():
       """Retrieve a combined array with either all cannals (if structures is None (default)), or the differential signals correspondin to the mapped structures
 
       Args:
-          structures (None, "All", or array of structures, optional): indicates what data to combine. Defaults to None.
-          start (int, optional): if only part of the data to display. Defaults to 0.
-          end (optional): if only part of the data to display. Defaults to None.
+         structures (None, "All", or array of structures, optional): indicates what data to combine. Defaults to None.
+         start (int, optional): if only part of the data to display. Defaults to 0.
+         end (optional): if only part of the data to display. Defaults to None.
 
       Returns:
-          array: combined numpy array ready to visualize
+         array: combined numpy array ready to visualize
       """
       if end is None:
          end = self.signal.shape[0]
