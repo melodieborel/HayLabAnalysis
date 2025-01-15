@@ -19,7 +19,7 @@ class IntanLFP(ePhy):
       self.files_list = files_list
       self.recSyst = recSyst
       self.signal = None
-      self.bufferCount=1024
+      self.bufferCount=256#1024
       self.times=None
       if recSyst=='Bonsai':
          print('data recorded with Bonsai')
@@ -34,6 +34,7 @@ class IntanLFP(ePhy):
       #self.sampling_rate=20000
       self.signal = self.loadData()
       self.loadMetaData()
+      self.loadTimeStamps()
 
    def loadData(self):
       return super().loadData()
@@ -63,34 +64,62 @@ class IntanLFP(ePhy):
       if len(self.files_list)>1:
          raise Exception(f"Multiple files not implemented yet, please contact MB if you are interested by this option")
       for f in self.files_list:
-         fTS=f.replace('OE_32ch_data','OE_32ch_timestamps').replace('.bin','.csv')
-         seps=[m.start() for m in re.finditer('_',f.name)]
-         datestr = fn[seps[2]+1:-4]
-         launch_start = datetime.strptime(datestr, '%Y-%m-%dT%H_%M_%S').astimezone()
-         
+         ts_bn = self.__dict__.get('ts_bn', "timestamps")
+         print(f"timestamps basename in file name is {ts_bn}")
+         fTS=f.with_name(f.name.replace('data',ts_bn).replace('.bin','.csv'))
+
          import pandas as pd
          df = pd.read_csv(fTS, sep=',', header=None, names=['ts'])
          df.ts = pd.to_datetime(df.ts, format='ISO8601')
-         df['delays']=(df.ts-df.iloc[0]['ts']).dt.total_seconds()
-         self.times=df.delays.values
-         grid=np.arange(1024)
-         instFreq=1024/np.diff(self.times)
-         self.times=np.concatenate([grid/instFreq[i]+self.times[i] for i in range(self.times.shape[0]-1)])
+         if self.expe.refTime is None:
+            print('no ref time found for the expe so trying to get it from title')
+            seps=[m.start() for m in re.finditer('_',f.name)]
+            datestr = f.name[seps[2]+1:-4]
+            launch_start = datetime.strptime(datestr, '%Y-%m-%dT%H_%M_%S').astimezone()
+            print(f"the calculated launch start is {launch_start}")
+         else:
+            launch_start = self.expe.refTime
+         df['delays']=(df.ts-launch_start).dt.total_seconds()
+         times=df.delays.values
+         grid=np.linspace(self.bufferCount-1,0,self.bufferCount)
+         instFreq=self.bufferCount/np.diff(times,prepend=times[0]-self.bufferCount/self.sampling_rate)
+         times=np.concatenate([-grid/instFreq[i]+times[i] for i in range(times.shape[0])])
+         self.TS_times = times
 
-         self.sampling_rate = self.bufferCount/(df.ts.diff().mean().total_seconds())
-
-         self.start = (df.loc[0]['ts']-launch_start).total_seconds()
+         self.TS_sampling_rate = self.TS_times.shape[0]/(self.TS_times[-1]-self.TS_times[0])         
+         #self.start = self.TS_times[0]
          #self.times+=self.start
-         #launch_start = df.loc[0]['ts'] - timedelta(seconds=self.start)
-         print(f"the calculated sampling rate is {self.sampling_rate} Hz")
-         print(f"the recording tool {self.start} s to start")
-         print(f"the first timestamp is {df.iloc[0]['ts']}")
-         print(f"the before last timestamp is {df.iloc[-2]['ts']}")
-         print(f"the last timestamp is {df.iloc[-1]['ts']}")
-         print(f"the calculated launch start is {launch_start}")
+         print(f"the calculated sampling rate is {self.TS_sampling_rate} Hz")
+         print(f"the recording took {self.TS_times[0]} s to start")
 
          return df
    
+
+   def loadTimeStampsBoard(self):
+      if len(self.files_list)>1:
+         raise Exception(f"Multiple files not implemented yet, please contact MB if you are interested by this option")
+      for f in self.files_list:
+         fTS=f.with_name('Lou_OE_timestampsBoard_.csv')
+
+         import pandas as pd
+         df = pd.read_csv(fTS, dtype=np.uint32, parse_dates=True, infer_datetime_format=True, header=None, sep=',', names=['ts'])
+         if False:
+            if self.expe.refTime is None:
+               seps=[m.start() for m in re.finditer('_',f.name)]
+               datestr = f.name[seps[2]+1:-4]
+               launch_start = datetime.strptime(datestr, '%Y-%m-%dT%H_%M_%S').astimezone()
+               print(f"the calculated launch start is {launch_start}")
+            else:
+               launch_start = self.expe.refTime
+            print(launch_start, df.iloc[0]['ts'])
+            df['delays']=(df.ts-launch_start).dt.total_seconds()
+            times=df.delays.values
+            print(times.shape)
+            print(times)
+            self.timesBoard = times
+
+         return df
+      
    def convertTime2Index(self,t):
       self.times
       idx = 0

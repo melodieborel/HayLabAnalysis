@@ -45,6 +45,7 @@ class experiment():
       self.data = dict()
       self.expe_info = dict()
       self.num_lfp_channels = 32
+      self.refTime = None
       
       self.remote_prefix = Path(self.config.get('GENERAL','remote_prefix'))
 
@@ -135,12 +136,17 @@ class experiment():
       """
       from .ePhy.LFP import IntanLFP, NPX, LFP_DS
       from .ePhy.TTL import TTLin
-      from .Imaging.Miniscope import Miniscope
+      from .Imaging.Miniscope import Miniscope, Webcam
       self.loadAnimalInfo()
       DSdata=False
       
       interim_analysis_folder = self.remote_prefix / self.interim_analysis_path
       raw_data_folder = self.remote_prefix / self.raw_data_path
+
+      if self.find_files_with_string(raw_data_folder,  "recTS*.csv"): # pre-analysed data
+         print('********found recording start timestamp********')
+         self.refTime = self.loadTimeStamp(self.find_files_with_string(raw_data_folder,  "recTS*.csv"))
+         print(f"recording started on {self.refTime}")
 
       if self.find_files_with_string(interim_analysis_folder,  "RawDataChannelExtractedDS.npy"): # pre-analysed data
          print('********found some RawDataChannelExtractedDS.npy files********')
@@ -155,9 +161,10 @@ class experiment():
          self.data['Spindles'] = All_Spindles
 
       if fullSampling or not DSdata:
-         if self.find_files_with_string(raw_data_folder,  ".bin"): #Bonsai or IgorPro
+         if self.find_files_with_string(raw_data_folder,  "OE_data*.bin"): #Bonsai or IgorPro
             print('********found some .bin files********')
-            matching_files = self.find_files_with_string(raw_data_folder, ".bin")
+            matching_files = self.find_files_with_string(raw_data_folder, "OE_data*.bin")
+            print(matching_files)
             self.data['OE_LFP'] = IntanLFP(self, matching_files, numChannels=self.num_lfp_channels)
       
          if self.find_files_with_string(raw_data_folder,  "continuous.dat"): #OpenEphys
@@ -180,6 +187,11 @@ class experiment():
          print('********found some Miniscope files********')
          matching_files = self.find_files_with_string(raw_data_folder, "_miniscope_*.avi")
          self.data['miniscope'] = Miniscope(self, matching_files)
+
+      if self.find_files_with_string(raw_data_folder,  "_webcam_*.avi"): #NPX's Data
+         print('********found some webcam files********')
+         matching_files = self.find_files_with_string(raw_data_folder, "_webcam_*.avi")
+         self.data['webcam'] = Webcam(self, matching_files)
 
    def loadAnimalInfo(self):
       """ loads channelMaps.ini located at the animal level of the interimAnalysis tree that contains animal metadata.
@@ -217,3 +229,8 @@ class experiment():
             print(error)
       return All_Spindle
    
+   def loadTimeStamp(self, file):
+      import pandas as pd
+      df = pd.read_csv(file[0], sep=',', header=None, names=['ts'])
+      df.ts = pd.to_datetime(df.ts, format='ISO8601')
+      return df.ts[0]

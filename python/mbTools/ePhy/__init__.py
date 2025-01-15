@@ -41,15 +41,18 @@ class ePhy():
       return self.signal
 
    def loadMetaData(self):
+      from .LFP import IntanLFP, LFP_DS
       self.channelsMap = self.expe.channelsMap
       try:
-         self.start=ast.literal_eval(self.expe.parser['OE_LFP']['start'])
-         self.sampling_rate=ast.literal_eval(self.expe.parser['OE_LFP']['freq'])
-         NPX = ast.literal_eval(self.expe.parser['OE_LFP']['NPX'])
-         timesreset = ast.literal_eval(self.expe.parser['OE_LFP']['timesreset'])
-      except:
-         print("could nt find realignment data")
-
+         match self:
+            case x if isinstance(x, IntanLFP):
+               self.__dict__.update(dict(self.expe.parser.items('OE_LFP')))
+            case x if isinstance(x, LFP_DS):
+               self.__dict__.update(dict(self.expe.parser.items('OE_LFP')))
+            case _:
+               pass
+      except Exception as error:
+         print(error)
       print("the mapping:", self.channelsMap)
       print("the offset: ", self.start)
       print("the sampling rate: ", self.sampling_rate)
