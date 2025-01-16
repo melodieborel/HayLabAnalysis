@@ -10,7 +10,7 @@ DrugExperimentList=[0,1]
 saveexcel=0
 
 Method=0 # 1=AB 0=AH
-AnalysisID='_correctScor' 
+AnalysisID='_newSpdlMerge' 
 
 suffix='_AB' if Method else '_AH'
 
@@ -131,7 +131,8 @@ for DrugExperiment in DrugExperimentList:
     # Get the current date and time
     FolderNameSave=str(datetime.now())[:19]
     FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_").replace("-", "_")
-    destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Osc_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Osc_{FolderNameSave}{suffix}{AnalysisID}"
+    #destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/CGP/AB_Analysis/Osc_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/AnalysedMarch2023/Gaelle/Baseline_recording_ABmodified/AB_Analysis/Osc_{FolderNameSave}{suffix}{AnalysisID}"
+    destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/GaelleData/CGP/AB_Analysis/Osc_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/forgetting/Aurelie/GaelleData/Baseline/AB_Analysis/Osc_{FolderNameSave}{suffix}{AnalysisID}"
 
     os.makedirs(destination_folder)
     folder_to_save=Path(destination_folder)
@@ -246,19 +247,20 @@ for DrugExperiment in DrugExperimentList:
         data = {}        
         counter=0
         counter2=0
+        counter3=0
 
         norm_freq=20 # final miniscope frequency used for all recordings
 
         Spindles_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug', 'SpdlStatut','SpdlStartLocation',
-                                                             'GlobalSpindle', 'SpdlNumber','SpdlDuration','SWR_inside_Spdl','CalciumActivityPreference', 'CalciumActivityBefore',
-                                                             'CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter',
+                                                             'GlobalSpindle', 'SpdlNumber','SpdlDuration','SWR_inside_Spdl','DistanceSWR_Spdl','DistanceClosestSpdl','CalciumActivityPreference', 'CalciumActivityBefore',
+                                                             'CalciumActivityDuring','CalciumActivityAfter', 'AUC_calciumBaseline','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter',
                                                              'SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
         SWR_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug','SWRStatut','SpdlLoc', 'SWRNumber','SWRDuration',
-                                                       'SWR_inside_Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter',
-                                                       'AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
+                                                       'SWR_inside_Spdl','DistanceSWR_Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter',
+                                                       'AUC_calciumBaseline','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
         DS_GlobalResults= pd.DataFrame(data, columns=['Mice', 'Session','Session_Time','Unique_Unit','UnitNumber','UnitValue','Drug',
                                                       'DSStatut','DSLocation','DSNumber','DSDuration','Spdl_in_DS','CalciumActivityPreference','CalciumActivityBefore',
-                                                      'CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter',
+                                                      'CalciumActivityDuring','CalciumActivityAfter','AUC_calciumBaseline','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter',
                                                       'SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
         for drug in Drugs: 
             for coup in Coupling:
@@ -436,7 +438,7 @@ for DrugExperiment in DrugExperimentList:
                         ctxSpi=SpipropTrunc.loc[Pspin, "CTX"]                
                         diffSpi=SpipropTrunc.loc[Pspin, "LocalGlobal"]                
                         StartLocSpi=SpipropTrunc.loc[Pspin, "StartingLoc"]   
-                                    
+                        closestSpdl=SpipropTrunc.loc[Pspin, "DistanceClosestSpdl"]    
 
                         TooEarlySpdl=startSpi-durationSpdl*1000<StartFrame_msec # too close to the begining of the recording
                         TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
@@ -468,6 +470,7 @@ for DrugExperiment in DrugExperimentList:
 
                             Spdl_statut=[]
                             startSWRList = list(pd.Series(SWRpropTrunc["start time"]))
+                            delaiSWRSpdl=None
                             if len(startSWRList)>0:
                                 startClosest_SWR_idx = (np.abs(startSWRList - startSpi)).argmin()
                                 startClosest_SWR = startSWRList[startClosest_SWR_idx]
@@ -475,7 +478,8 @@ for DrugExperiment in DrugExperimentList:
                                 IsTrue=is_between(startSWRList,startSpi, endSpi)
                                 if (distance < before) or IsTrue:
                                     Spdl_statut = 'Coupled'
-                                    cCoupled+=1 if unit==0 else 0                              
+                                    cCoupled+=1 if unit==0 else 0   
+                                    delaiSWRSpdl=startClosest_SWR - startSpi                           
                                 else:
                                     Spdl_statut= 'UnCoupled'
                                     cUnCoupled+=1 if unit==0 else 0
@@ -507,6 +511,9 @@ for DrugExperiment in DrugExperimentList:
                             Spindles_GlobalResults.loc[counter, 'SpdlNumber'] = Pspin
                             Spindles_GlobalResults.loc[counter, 'SpdlDuration'] = endSpi- startSpi                        
                             Spindles_GlobalResults.loc[counter, 'SWR_inside_Spdl'] = IsTrue
+                            Spindles_GlobalResults.loc[counter, 'DistanceSWR_Spdl'] = delaiSWRSpdl 
+                            Spindles_GlobalResults.loc[counter, 'DistanceClosestSpdl'] = closestSpdl 
+
                             
                             # Activity before/ during/after oscillation
 
@@ -536,6 +543,7 @@ for DrugExperiment in DrugExperimentList:
                                 Spindles_GlobalResults.loc[counter, 'CalciumActivityBefore'] = ActBefore
                                 Spindles_GlobalResults.loc[counter, 'CalciumActivityDuring'] = ActDuring
                                 Spindles_GlobalResults.loc[counter, 'CalciumActivityAfter'] = ActAfter
+                                Spindles_GlobalResults.loc[counter, 'AUC_calciumBaseline'] = np.trapz(CaTrace[:round(durOsc/2)],np.arange(0,len(CaTrace[:round(durOsc/2)]),1))*2 # *2 cause 2 times shorter in lenght than the other
                                 Spindles_GlobalResults.loc[counter, 'AUC_calciumBefore'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))
                                 Spindles_GlobalResults.loc[counter, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
                                 Spindles_GlobalResults.loc[counter, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
@@ -639,6 +647,7 @@ for DrugExperiment in DrugExperimentList:
                             startSpiList = list(pd.Series(SpipropTrunc["start time"]))
                             endSpiList = list(pd.Series(SpipropTrunc["end time"]))
                             ctxSpiList = list(pd.Series(SpipropTrunc["CTX"]))
+                            delaiSWRSpdl=None
                             if len(startSpiList)>0:
                                 startClosest_Spdl_idx = (np.abs(startSpiList - startSwr)).argmin()
                                 startClosest_Spi = startSpiList[startClosest_Spdl_idx]
@@ -649,6 +658,7 @@ for DrugExperiment in DrugExperimentList:
                                 if distance<before or IsTrue:
                                     SWR_statut = 'Coupled'
                                     cCoupledSWR+=1 if unit==0 else 0
+                                    delaiSWRSpdl=startClosest_Spi - startSwr                           
                                 else:
                                     SWR_statut= 'UnCoupled'
                                     cUnCoupledSWR+=1 if unit==0 else 0
@@ -680,6 +690,7 @@ for DrugExperiment in DrugExperimentList:
                             SWR_GlobalResults.loc[counter2, 'SWRNumber'] = Pswr
                             SWR_GlobalResults.loc[counter2, 'SWRDuration'] = endSwr- startSwr
                             SWR_GlobalResults.loc[counter2, 'SWR_inside_Spdl'] = IsTrue
+                            SWR_GlobalResults.loc[counter2, 'DistanceSWR_Spdl'] = delaiSWRSpdl 
 
                             # Activity before/ during/after oscillation
 
@@ -711,6 +722,7 @@ for DrugExperiment in DrugExperimentList:
                                 SWR_GlobalResults.loc[counter2, 'CalciumActivityBefore'] = ActBefore
                                 SWR_GlobalResults.loc[counter2, 'CalciumActivityDuring'] = ActDuring
                                 SWR_GlobalResults.loc[counter2, 'CalciumActivityAfter'] = ActAfter
+                                SWR_GlobalResults.loc[counter2, 'AUC_calciumBaseline'] = np.trapz(CaTrace[:round(durOsc/2)],np.arange(0,len(CaTrace[:round(durOsc/2)]),1))*2 # *2 cause 2 times shorter in lenght than the other
                                 SWR_GlobalResults.loc[counter2, 'AUC_calciumBefore'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))
                                 SWR_GlobalResults.loc[counter2, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
                                 SWR_GlobalResults.loc[counter2, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
@@ -844,27 +856,27 @@ for DrugExperiment in DrugExperimentList:
                             
                             # Fill the big summary table DSs_GlobalResults
 
-                            DS_GlobalResults.loc[counter, 'Mice'] = mice
-                            DS_GlobalResults.loc[counter, 'Session'] = session
-                            DS_GlobalResults.loc[counter, 'Session_Time'] = None 
+                            DS_GlobalResults.loc[counter3, 'Mice'] = mice
+                            DS_GlobalResults.loc[counter3, 'Session'] = session
+                            DS_GlobalResults.loc[counter3, 'Session_Time'] = None 
 
                             indexMapp = np.where(B[session] == Calcium.index[unit])[0]
-                            DS_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
-                            DS_GlobalResults.loc[counter, 'UnitNumber'] = unit 
-                            DS_GlobalResults.loc[counter, 'UnitValue'] = Calcium.index[unit] 
+                            DS_GlobalResults.loc[counter3, 'Unique_Unit'] = indexMapp 
+                            DS_GlobalResults.loc[counter3, 'UnitNumber'] = unit 
+                            DS_GlobalResults.loc[counter3, 'UnitValue'] = Calcium.index[unit] 
                             
-                            DS_GlobalResults.loc[counter, 'Drug'] =  os.path.basename(os.path.dirname(dict_Path[session])) if DrugExperiment else 'Baseline'
+                            DS_GlobalResults.loc[counter3, 'Drug'] =  os.path.basename(os.path.dirname(dict_Path[session])) if DrugExperiment else 'Baseline'
 
-                            DS_GlobalResults.loc[counter, 'DSStatut'] = DS_statut
-                            DS_GlobalResults.loc[counter, 'DSLocation'] = ctxDS
-                            DS_GlobalResults.loc[counter, 'DSNumber'] = Pds
-                            DS_GlobalResults.loc[counter, 'DSDuration'] = endDS- startDS                        
-                            DS_GlobalResults.loc[counter, 'Spdl_in_DS'] = IsTrue
+                            DS_GlobalResults.loc[counter3, 'DSStatut'] = DS_statut
+                            DS_GlobalResults.loc[counter3, 'DSLocation'] = ctxDS
+                            DS_GlobalResults.loc[counter3, 'DSNumber'] = Pds
+                            DS_GlobalResults.loc[counter3, 'DSDuration'] = endDS- startDS                        
+                            DS_GlobalResults.loc[counter3, 'Spdl_in_DS'] = IsTrue
                             
                             # Activity before/ during/after oscillation
 
                             durOsc=round((endDS- startDS)/1000*minian_freq)
-                            durOsc=round(.5*minian_freq) # 1 seconds
+                            durOsc=round(.5*minian_freq) # .5 seconds
                             TooEarlyDS=startDS/1000<durOsc/minian_freq # too close to the begining of the recording
                             TooLateDS=startDS/1000+(durOsc/minian_freq*2)>LastFrame_msec/1000 # too close to the end of the recording
                             
@@ -886,13 +898,14 @@ for DrugExperiment in DrugExperimentList:
                                     pref='During' 
                                 else:
                                     pref='None'
-                                DS_GlobalResults.loc[counter, 'CalciumActivityPreference'] = pref
-                                DS_GlobalResults.loc[counter, 'CalciumActivityBefore'] = ActBefore
-                                DS_GlobalResults.loc[counter, 'CalciumActivityDuring'] = ActDuring
-                                DS_GlobalResults.loc[counter, 'CalciumActivityAfter'] = ActAfter
-                                DS_GlobalResults.loc[counter, 'AUC_calciumBefore'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))
-                                DS_GlobalResults.loc[counter, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
-                                DS_GlobalResults.loc[counter, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
+                                DS_GlobalResults.loc[counter3, 'CalciumActivityPreference'] = pref
+                                DS_GlobalResults.loc[counter3, 'CalciumActivityBefore'] = ActBefore
+                                DS_GlobalResults.loc[counter3, 'CalciumActivityDuring'] = ActDuring
+                                DS_GlobalResults.loc[counter3, 'CalciumActivityAfter'] = ActAfter
+                                DS_GlobalResults.loc[counter3, 'AUC_calciumBaseline'] = np.trapz(CaTrace[:round(durOsc/2)],np.arange(0,len(CaTrace[:round(durOsc/2)]),1))*2 # *2 cause 2 times shorter in lenght than the other
+                                DS_GlobalResults.loc[counter3, 'AUC_calciumBefore'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))
+                                DS_GlobalResults.loc[counter3, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
+                                DS_GlobalResults.loc[counter3, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
 
                                 ActBefore=np.mean(SpTrace[:durOsc],0)
                                 ActDuring=np.mean(SpTrace[durOsc:durOsc*2],0)
@@ -906,11 +919,11 @@ for DrugExperiment in DrugExperimentList:
                                     pref='During' 
                                 else:
                                     pref='None'
-                                DS_GlobalResults.loc[counter, 'SpikeActivityPreference'] = pref
-                                DS_GlobalResults.loc[counter, 'SpikeActivityBefore'] = np.mean(SpTrace[:durOsc],0)
-                                DS_GlobalResults.loc[counter, 'SpikeActivityDuring'] = np.mean(SpTrace[durOsc:durOsc*2],0)
-                                DS_GlobalResults.loc[counter, 'SpikeActivityAfter'] = np.mean(SpTrace[durOsc*2:durOsc*3],0)                         
-                            counter+=1     
+                                DS_GlobalResults.loc[counter3, 'SpikeActivityPreference'] = pref
+                                DS_GlobalResults.loc[counter3, 'SpikeActivityBefore'] = np.mean(SpTrace[:durOsc],0)
+                                DS_GlobalResults.loc[counter3, 'SpikeActivityDuring'] = np.mean(SpTrace[durOsc:durOsc*2],0)
+                                DS_GlobalResults.loc[counter3, 'SpikeActivityAfter'] = np.mean(SpTrace[durOsc*2:durOsc*3],0)                         
+                            counter3+=1     
 
                     ## Peristimulus Time Histogram 
                     for ctx in CTX: 
