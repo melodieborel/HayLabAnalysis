@@ -48,7 +48,7 @@ from minian.utilities import (
 )
 
 #dpath='crnldata/forgetting/Aurelie/Test'
-dpath='/mnt/data/minianAB/My_V4_Miniscope/'
+dpath='/mnt/data/minianAB/'
 
 
 minian_ds_path = os.path.join(dpath, f'minian{suffix}')
