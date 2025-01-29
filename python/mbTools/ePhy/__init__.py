@@ -53,6 +53,10 @@ class ePhy():
                pass
       except Exception as error:
          print(error)
+      if 'start' in self.__dict__:
+         self.start = float(self.start)
+      if 'freq' in self.__dict__:
+         self.sampling_rate = float(self.freq)
       print("the mapping:", self.channelsMap)
       print("the offset: ", self.start)
       print("the sampling rate: ", self.sampling_rate)

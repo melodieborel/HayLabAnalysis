@@ -161,9 +161,9 @@ class experiment():
          self.data['Spindles'] = All_Spindles
 
       if fullSampling or not DSdata:
-         if self.find_files_with_string(raw_data_folder,  "OE_data*.bin"): #Bonsai or IgorPro
+         if self.find_files_with_string(raw_data_folder,  "OE_*data*.bin"): #Bonsai or IgorPro
             print('********found some .bin files********')
-            matching_files = self.find_files_with_string(raw_data_folder, "OE_data*.bin")
+            matching_files = self.find_files_with_string(raw_data_folder, "OE_*data*.bin")
             print(matching_files)
             self.data['OE_LFP'] = IntanLFP(self, matching_files, numChannels=self.num_lfp_channels)
       
