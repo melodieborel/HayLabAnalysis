@@ -53,10 +53,13 @@ class IntanLFP(ePhy):
       self.reAlignTimes()
       
    def updateParser(self,key,value):
-      expeConfigFN=self.files_list[0].with_name('expeConfig.ini')
-      self.parser['OE_LFP'][key]=str(value)
+      #expeConfigFN=self.files_list[0].with_name('expeConfig.ini')
+      expeConfigFN = self.expe.remote_prefix / self.expe.interim_analysis_path / self.expe.parser_fn
+      if 'OE_LFP' not in self.expe.parser.sections():
+         self.expe.parser.add_section('OE_LFP')
+      self.expe.parser['OE_LFP'][key]=str(value)
       with open(expeConfigFN, 'w') as configfile:
-            self.parser.write(configfile)
+            self.expe.parser.write(configfile)
 
 
 

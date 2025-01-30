@@ -81,12 +81,21 @@ class experiment():
          
          self.project_type = self.config.get('ANALYSIS','project_type')
          self.__dict__.update(getPathComponent(currentFolder,self.project_type))
-         
-         if self.project_type == 1:
-            self.expe_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / self.recording_id
+                  
+         if "iterim_location" in self.config['ANALYSIS']:
+            print('a location for interim analysis was provided so using it')
+            if self.project_type == 1:
+               self.expe_path = self.remote_prefix / self.config['ANALYSIS']['iterim_location'] / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / self.recording_id
+            else:
+               self.expe_path = self.remote_prefix / self.config['ANALYSIS']['iterim_location'] / self.config['ANALYSIS']['interim_path'] / self.animal_id / self.condition_id / self.recording_id
          else:
-            self.expe_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / self.condition_id / self.recording_id
-         
+            print('no location for interim analysis was provided so using default')
+            if self.project_type == 1:
+               self.expe_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / self.recording_id
+            else:
+               self.expe_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / self.condition_id / self.recording_id
+
+
          self.interim_analysis_path = str(self.expe_path.relative_to(self.remote_prefix))
          print(self.expe_path)
          print(self.interim_analysis_path)
