@@ -3,7 +3,7 @@
 # Define the starting directory (default: current directory)
 #START_DIR="."
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Habituation/Blue/SleepBefore/2024_11_28/13_33_25/"
+START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Training/Blue/Cheeseboard/2024_12_02/15_23_06/"
 
 # Find all directories named "My_V4_Miniscope"
 
@@ -22,11 +22,13 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
         rm -rf /mnt/data/minianAB/* #empty mnt data
         #cp -r "${pathtofolder}" /mnt/data/minianAB/ #copy crnldata to mnt data 
         cp -r "${pathtofolder}/"* /mnt/data/minianAB/ #copy crnldata to mnt data 
-        srun --mem=80G --cpus-per-task=10 python /home/aurelie.brecier/HayLabAnalysis/python/MinianCluster.py
+        
+        srun --mem=80G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/pipelineMinian.py
+        
         # Check the exit status of srun
         if [ $? -ne 0 ]; then
             echo "Error: srun failed for $pathtofolder. Skipping..."
-            continue
+            break #continue
         fi
         #cp -r /mnt/data/minianAB/ "${pathtofolder}" #copy mnt data to crnldata 
         cp -r /mnt/data/minianAB/ "${pathtofolder}/"*  #copy crnldata to mnt data 
