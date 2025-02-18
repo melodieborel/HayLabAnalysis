@@ -65,8 +65,8 @@ param_init_merge = {"thres_corr": 0.8}
 # CNMF Parameters#
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
-    "dl_wnd": 15, #15, #Default minian = 10
-    "sparse_penal": 0.03, #0.012, #Default minian =0.01
+    "dl_wnd": 10, #15, #Default minian = 10
+    "sparse_penal": 0.01, #0.012, #Default minian =0.01
     "size_thres": (25, None),
 }
 param_first_temporal = {
@@ -146,13 +146,12 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
 
     dpath = os.path.abspath(dpath)
     
-    n_workers = int(os.getenv("MINIAN_NWORKERS", 8))
     cluster = LocalCluster(
-        n_workers=n_workers,
-        #memory_limit="36GB",
+        n_workers=int(os.getenv("MINIAN_NWORKERS", 40)), # /!\ max 40 or 64 CPUs per node in remote machine # /!\ 8 total cores in local machine 
+        memory_limit="6GB", #per worker, /!\ max 95 or 256 GB per node in remote machine # /!\ 32GB total RAM in local machine 
         resources={"MEM": 1},
-        threads_per_worker=6,
-        dashboard_address=":8787",
+        threads_per_worker=2,
+        dashboard_address=":8780",
     )
     annt_plugin = TaskAnnotation()
     cluster.scheduler.add_plugin(annt_plugin)
@@ -391,8 +390,6 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
         c0_new.rename("c0").chunk({"unit_id": 1, "frame": -1}), intpath, overwrite=True
     )
     A = A.sel(unit_id=C.coords["unit_id"].values)
-
-    #generate_videos(varr.sel(subset), Y_fm_chk, A=A, C=C_chk, vpath=dpath)
    
     # SAVE FINAL RESULTS
 
@@ -403,6 +400,8 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     b0 = save_minian(b0.rename("b0"), **param_save_minian)
     b = save_minian(b.rename("b"), **param_save_minian)
     f = save_minian(f.rename("f"), **param_save_minian)
+    
+    #generate_videos(varr.sel(subset), Y_fm_chk, A=A, C=C_chk, vpath=dpath)
 
     client.close()
     cluster.close()
