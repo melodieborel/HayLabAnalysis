@@ -1,12 +1,13 @@
 #!/bin/bash
 
-# Activate "dlc" environement before
 # cd in /HayLabAnalysis/bash
-#(dlc) aurelie.brecier@node14:~/HayLabAnalysis/bash$ 
+#(base) aurelie.brecier@node14:~/HayLabAnalysis/bash$ 
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
+START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Habituation/"
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Habituation/Blue/Cheeseboard/2024_11_28/test/"
+
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -23,16 +24,26 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         rm -rf /mnt/data/AurelieB_dlc/* #empty mnt data
         cp -r "${pathtofolder}/"* /mnt/data/AurelieB_dlc/ #copy crnldata to mnt data 
-        
-        srun --mem=60G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_analyze_videos.py
-        #srun --partition=GPU --mem=20G --cpus-per-task=4 --gres=gpu:1g.20gb:1 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_analyze_videos.py
-        
-        # Check the exit status of srun
-        if [ $? -ne 0 ]; then
-            echo "Error: srun failed for $pathtofolder. Skipping..."
-            continue #break
-        fi
 
+
+        for file in /mnt/data/AurelieB_dlc/*.avi; do
+        
+            # Define output file name
+            output_file="${file%.avi}_compressed.avi"
+
+            echo "Compressing: $file → $output_file"
+
+            # Compress the .avi file using ffmpeg
+            
+            ffmpeg -i "$file" -vcodec libx264 -crf 23 -preset medium -acodec aac -b:a 128k "$output_file" -loglevel quiet -y > /dev/null 2>&1
+            #srun --cpus-per-task=20 --mem=60G ffmpeg -i "$file" -vcodec libx264 -crf 23 -preset medium -acodec aac -b:a 128k "$output_file" -loglevel quiet -y > /dev/null 2>&1 &
+
+            rm -f $file
+
+            echo "Done: $output_file"
+        done
+        
+        rm -rf ${pathtofolder}/* #empty folder    
         cp -r /mnt/data/AurelieB_dlc/* "${pathtofolder}/" #copy dlc folder of mnt data to crnldata 
         rm -rf /mnt/data/AurelieB_dlc/* #empty mnt data
     fi
@@ -40,3 +51,6 @@ done
 
 # Reset IFS to default
 IFS=$'\n'
+
+
+
