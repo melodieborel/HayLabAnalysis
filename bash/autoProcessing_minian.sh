@@ -1,5 +1,11 @@
 #!/bin/bash
 
+
+# Activate "minian" environement before
+# cd in /HayLabAnalysis/bash
+#(minian) aurelie.brecier@node14:~/HayLabAnalysis/bash$ 
+
+
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Habituation/Green/"
@@ -17,8 +23,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         echo "Found folder: $pathtofolder"
 
-        rm -rf /mnt/data/minianAB/* #empty mnt data
-        cp -r "${pathtofolder}/"* /mnt/data/minianAB/ #copy crnldata to mnt data 
+        rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
+        cp -r "${pathtofolder}/"* /mnt/data/AurelieB_minian/ #copy crnldata to mnt data 
         
         srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/pipelineMinian.py
         
@@ -28,8 +34,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
             continue #break
         fi
 
-        cp -r /mnt/data/minianAB/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
-        rm -rf /mnt/data/minianAB/* #empty mnt data
+        cp -r /mnt/data/AurelieB_minian/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
+        rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
     fi
 done
 
