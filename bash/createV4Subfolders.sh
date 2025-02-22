@@ -5,6 +5,7 @@
 # Starting directory (default is the current directory)
 
 start_directory="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/"
+start_directory="/crnldata/forgetting/Aurelie/CGPExperiment/CGPinjection/"
 
 echo "Searching for folders containing .avi files in '$start_directory'..."
 

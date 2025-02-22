@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # cd in /HayLabAnalysis/bash
-#(base) aurelie.brecier@node14:~/HayLabAnalysis/bash$ 
+#Activate dlc env (ffmpeg installed)
+#(dlc) aurelie.brecier@node14:~/HayLabAnalysis/bash$ 
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Habituation/"
-START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Habituation/Blue/Cheeseboard/2024_11_28/test/"
+START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Training/"
 
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
@@ -36,11 +36,15 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
             # Compress the .avi file using ffmpeg
             
             ffmpeg -i "$file" -vcodec libx264 -crf 23 -preset medium -acodec aac -b:a 128k "$output_file" -loglevel quiet -y > /dev/null 2>&1
-            #srun --cpus-per-task=20 --mem=60G ffmpeg -i "$file" -vcodec libx264 -crf 23 -preset medium -acodec aac -b:a 128k "$output_file" -loglevel quiet -y > /dev/null 2>&1 &
 
-            rm -f $file
-
-            echo "Done: $output_file"
+            if [[ -s "$output_file" ]]; then # Check if the compressed file is empty = failed compresssion
+                rm -f $file
+                echo "Done: $output_file"
+            else
+                rm -f $output_file
+                echo "/!\ Compression failed /!\ "
+                continue
+            fi          
         done
         
         rm -rf ${pathtofolder}/* #empty folder    

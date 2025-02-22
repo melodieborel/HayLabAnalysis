@@ -2,7 +2,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Habituation/"
+START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Test/Green/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -17,11 +17,11 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         echo "Found folder: $pathtofolder"
 
-        rm -rf /mnt/data/AurelieB_dlc/* #empty mnt data
-        cp -r "${pathtofolder}/"* /mnt/data/AurelieB_dlc/ #copy crnldata to mnt data 
+        rm -rf /mnt/data/AurelieB_other/* #empty mnt data
+        cp -r "${pathtofolder}/"* /mnt/data/AurelieB_other/ #copy crnldata to mnt data 
 
         # Define folder containing AVI files
-        INPUT_FOLDER="/mnt/data/AurelieB_dlc/"
+        INPUT_FOLDER="/mnt/data/AurelieB_other/"
         OUTPUT_FILE="$INPUT_FOLDER/output.avi"
         FILE_LIST="file_list.txt"
 
@@ -54,13 +54,13 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
         rm -f "$FILE_LIST"
 
         # Rename avi file 
-        mv "$INPUT_FOLDER/output.avi" "$INPUT_FOLDER/0.avi"
+        mv "$INPUT_FOLDER/output.avi" "$INPUT_FOLDER/0_compressed.avi"
         
         echo "Merging complete. Output file: 0.avi"
 
         rm -rf ${pathtofolder}/* #empty folder    
-        cp -r /mnt/data/AurelieB_dlc/* "${pathtofolder}/" #copy dlc folder of mnt data to crnldata 
-        rm -rf /mnt/data/AurelieB_dlc/* #empty mnt data
+        cp -r /mnt/data/AurelieB_other/* "${pathtofolder}/" #copy dlc folder of mnt data to crnldata 
+        rm -rf /mnt/data/AurelieB_other/* #empty mnt data
     fi
 done
 

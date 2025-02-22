@@ -6,7 +6,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Habituation/Blue/Cheeseboard/2024_11_28/test/"
+START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Training/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -24,7 +24,7 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
         rm -rf /mnt/data/AurelieB_dlc/* #empty mnt data
         cp -r "${pathtofolder}/"* /mnt/data/AurelieB_dlc/ #copy crnldata to mnt data 
         
-        srun --mem=60G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_analyze_videos.py
+        srun --mem=90G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_analyze_videos.py
         #srun --partition=GPU --mem=20G --cpus-per-task=4 --gres=gpu:1g.20gb:1 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_analyze_videos.py
         
         # Check the exit status of srun
