@@ -2,7 +2,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Test/Green/"
+START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Training/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -13,7 +13,7 @@ IFS=$'\n'
 for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \; | sort -u); do
     
     if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* && ! -d "$pathtofolder/plot-poses" ]]; then #only process cheeseboard movies that were not already processed
-    # if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"Cheeseboard"* ]]; then  #only process cheeseboard movies 
+    #if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"Cheeseboard"* ]]; then  #only process cheeseboard movies 
 
         echo "Found folder: $pathtofolder"
 
@@ -43,6 +43,10 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
             rm -f "$FILE_LIST"
             exit 1
         fi
+
+        # Remove DLC video analysis
+        #find "${INPUT_FOLDER}" -type f \( -name "*.h5" -o -name "*.pickle" \) -exec rm -f {} \;
+        #find "${INPUT_FOLDER}" -type d -name "plot-poses" -exec rm -rf {} \;
 
         # Merge using ffmpeg, suppress all output
         ffmpeg -f concat -safe 0 -i "$FILE_LIST" -c copy "$OUTPUT_FILE" > /dev/null 2>&1
