@@ -171,6 +171,7 @@ for root, dirs, files in os.walk(folder_path):
         Summary_table.loc[counter, 'reward_location_pix'] = str([reward_x,reward_y])
         Summary_table.loc[counter, 'duration_trial_s'] = round(duration_trial,2)
         Summary_table.loc[counter, 'total_distance_cm'] = round(total_distance,2)
+        Summary_table.loc[counter, 'average_speed'] = round(np.nanmean(distances_to_reward)/pixel_to_cm*frame_rate,2)
         Summary_table.loc[counter, 'latency_to_reward_s'] = round(latency,2)
         Summary_table.loc[counter, 'time_spent_at_reward_s'] = round(time_spent_in_zone,2)
         Summary_table.loc[counter, 'distance_to_reward_cm'] = round(distance_to_reward,2)
