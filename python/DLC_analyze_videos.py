@@ -9,8 +9,11 @@ import deeplabcut
 import time
 totst = time.time()
 
-# Define start directory
-START_DIR = "/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Training/testtest/"
+# Define directory to analyze
+START_DIR = "/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Training/"
+
+# Define config DLC file
+path_config_file='/home/aurelie.brecier/CheeseboardMiniscope-AurelieB-2025-02-21/config.yaml'
 
 print(f"Searching for folders containing .avi files in '{START_DIR}'...")
 
@@ -43,27 +46,15 @@ for folder in sorted(folders_with_avi):
         # Process data
         st = time.time()
 
-        #path_config_file='/home/aurelie.brecier/Cheeseboard-Aurelie-2025-02-19/config.yaml'
-        path_config_file='/home/aurelie.brecier/CheeseboardMiniscope-AurelieB-2025-02-21/config.yaml'
-
-        #videofile_path = ["/mnt/data/DLC_Aurelie/0.avi"]
         videofile_path = ["/mnt/data/AurelieB_dlc/"] #will analyse all .avi files in this directory
 
-        deeplabcut.analyze_videos(path_config_file,videofile_path, videotype='.avi')#, save_as_csv=True)
-        deeplabcut.filterpredictions(path_config_file, videofile_path, shuffle=1, p_bound=0.01, ARdegree=3, MAdegree=1)
-
+        deeplabcut.analyze_videos(path_config_file,videofile_path, videotype='.avi', save_as_csv=False)
         #deeplabcut.create_labeled_video(path_config_file,videofile_path)
-        #deeplabcut.plot_trajectories(path_config_file,videofile_path, imagetype=".svg")
+        #deeplabcut.filterpredictions(path_config_file, videofile_path, shuffle=1, p_bound=0.01, alpha=0.01, ARdegree=5, MAdegree=2, save_as_csv=False)
+        #deeplabcut.plot_trajectories(path_config_file,videofile_path, imagetype=".svg", filtered=False) 
 
         elapsed_time = time.time() - st
         print('Execution time:', time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
-
-
-        try:
-            result = subprocess.run(["srun", "your_command_here"], check=True)
-        except subprocess.CalledProcessError:
-            print(f"Error: srun failed for {folder}. Skipping...")
-            continue
 
         # Copy processed data back to original folder
         for item in os.listdir(mnt_data_path):
