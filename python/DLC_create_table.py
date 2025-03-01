@@ -55,7 +55,7 @@ for root, dirs, files in os.walk(folder_path):
 
         # Define parameters
         pixel_to_cm = 2.25  
-        reward_zone = 8 * pixel_to_cm if "Training" in filename else 20 * pixel_to_cm  # 8 cm for training, 20 cm for test
+        reward_zone = 20 * pixel_to_cm if "Training" in filename else 20 * pixel_to_cm  # 8 cm for training, 20 cm for test
         table_center_x, table_center_y = 313, 283  # Center of the cheeseboard table on the video
         table_radius = 270 / 2
         min_stay_at_reward = 5 * frame_rate  # 5 seconds
@@ -119,6 +119,7 @@ for root, dirs, files in os.walk(folder_path):
 
         # Define when the mouse eats the reward
         found_reward_frame = np.nan
+        found_reward_time = np.nan
         consecutive_count = 0
         for i, (x, y) in enumerate(zip(individual_x, individual_y)):
             if calculate_relative_distance(x, y, reward_x, reward_y) <= reward_zone:
@@ -136,9 +137,13 @@ for root, dirs, files in os.walk(folder_path):
             else:
                 latency = (found_reward_frame - start_frame) / frame_rate
             distance_to_reward, distances_to_reward = calculate_distance_run(individual_x[start_frame:found_reward_frame], individual_y[start_frame:found_reward_frame])
+            
+            individual_x_filt = individual_x[~np.isnan(individual_x)]        
+            individual_y_filt = individual_y[~np.isnan(individual_y)]
+
             enter_reward_zone = 0
             consecutive_count = 0
-            for i, (x, y) in enumerate(zip(individual_x, individual_y)):
+            for i, (x, y) in enumerate(zip(individual_x_filt, individual_y_filt)):
                 if calculate_relative_distance(x, y, reward_x, reward_y) <= reward_zone:
                     if consecutive_count == 0:
                         enter_reward_zone += 1
@@ -168,6 +173,10 @@ for root, dirs, files in os.walk(folder_path):
         Summary_table.loc[counter, 'session_time'] = sesstion_time
         Summary_table.loc[counter, 'trial'] = int(trial)
         Summary_table.loc[counter, 'trial_time'] = trial_time
+        Summary_table.loc[counter, 'start_time'] = start_time
+        Summary_table.loc[counter, 'end_time'] = end_time
+        Summary_table.loc[counter, 'reward_zone_radius_cm'] = reward_zone/pixel_to_cm
+        Summary_table.loc[counter, 'found_reward_time'] = found_reward_time
         Summary_table.loc[counter, 'reward_location_pix'] = str([reward_x,reward_y])
         Summary_table.loc[counter, 'duration_trial_s'] = round(duration_trial,2)
         Summary_table.loc[counter, 'total_distance_cm'] = round(total_distance,2)
