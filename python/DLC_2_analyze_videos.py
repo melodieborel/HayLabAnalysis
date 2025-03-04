@@ -1,3 +1,5 @@
+##### ON THE CLUSTER #####
+
 # Activate "dlc" environement before
 # (dlc) aurelie.brecier@node14:~$ srun --mem=90G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_analyze_videos.py
 
