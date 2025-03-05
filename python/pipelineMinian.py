@@ -21,7 +21,7 @@ st = time.time()
 ##################################
 # Set up Initial Basic Parameters#
 minian_path = "."
-dpath='/mnt/data/minianAB/'
+dpath='/mnt/data/AurelieB_minian/'
 minian_ds_path = os.path.join(dpath, f'minian{suffix}')
 intpath = os.path.join(dpath, f'minian_intermediate{suffix}')
 subset = dict(frame=slice(0, None))
