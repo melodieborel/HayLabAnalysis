@@ -1,3 +1,4 @@
+##### LOCAL #####
 
 import pandas as pd
 import numpy as np
@@ -55,7 +56,7 @@ for root, dirs, files in os.walk(folder_path):
 
         # Define parameters
         pixel_to_cm = 2.25  
-        reward_zone = 8 * pixel_to_cm if "Training" in filename else 20 * pixel_to_cm  # 8 cm for training, 20 cm for test
+        reward_zone = 20 * pixel_to_cm if "Training" in filename else 20 * pixel_to_cm  # 8 cm for training, 20 cm for test
         table_center_x, table_center_y = 313, 283  # Center of the cheeseboard table on the video
         table_radius = 270 / 2
         min_stay_at_reward = 5 * frame_rate  # 5 seconds
@@ -72,15 +73,35 @@ for root, dirs, files in os.walk(folder_path):
                     distances[i] = np.nanmean([x for x in neighbors if not np.isnan(x)])
             total_distance_cm = np.nansum(distances) / pixel_to_cm  # Convert to cm
             return total_distance_cm, distances
+        
+        def find_long_non_nan_sequences(arr, min_length=5):
+            mask = ~np.isnan(arr)  # True for non-NaN values
+            diff = np.diff(np.concatenate(([0], mask.astype(int), [0])))  # Add padding to detect edges
+            starts = np.where(diff == 1)[0]  # Where a sequence starts
+            ends = np.where(diff == -1)[0]   # Where a sequence ends
+            sequences = [arr[start:end] for start, end in zip(starts, ends) if (end - start) > min_length]
+            return sequences
 
-        def remove_abnormal_speed(x, y, max_speed):
-            distances = np.sqrt(np.diff(x) ** 2 + np.diff(y) ** 2)  
-            for i in range(1, len(distances) - 1):
-                if np.isnan(distances[i]):
-                    neighbors = [distances[i-1], distances[i+1]]
-                    distances[i] = np.nanmean([x for x in neighbors if not np.isnan(x)])
-            mask = np.insert(distances <= max_speed, 0, True)  # Keep first point
-            return x[mask], y[mask]
+        def remove_outliers_median_filter(data, window=4):
+            data = np.array(data, dtype=float)  # Ensure NumPy array with float type
+            filtered_data = np.copy(data)  # Copy to avoid modifying original data
+            half_window = window // 2
+            for i in range(len(data)):
+                # Define window range, ensuring it doesn't exceed bounds
+                start = max(0, i - half_window)
+                end = min(len(data), i + half_window + 1)
+                # Extract local values in window
+                local_values = data[start:end]
+                # Check if the window contains at least one non-NaN value
+                if np.all(np.isnan(local_values)):
+                    median_value = np.nan  # Keep NaN if no valid numbers
+                else:
+                    median_value = np.nanmedian(local_values)  # Compute median ignoring NaNs
+                # Replace only if the current value is not NaN
+                if not np.isnan(data[i]):
+                    filtered_data[i] = median_value
+            return filtered_data
+
 
         # Remove uncertain location predictions (likelihood < 0.9)
         df.iloc[:, 0] = df.apply(lambda row: row.iloc[0] if row.iloc[-1] > 0.9 else np.nan, axis=1)
@@ -88,8 +109,9 @@ for root, dirs, files in os.walk(folder_path):
 
         # Separate the individual's positions into x and y coordinates
         X = df.iloc[:, 0]
-        individual_x = np.array(X.values)
         Y = df.iloc[:, 1]
+        
+        individual_x = np.array(X.values)
         individual_y = np.array(Y.values)
 
         # Define when the mouse is on the cheeseboard (start)
@@ -99,10 +121,15 @@ for root, dirs, files in os.walk(folder_path):
                 individual_x[i] = np.nan
                 individual_y[i] = np.nan
 
-        x_start = individual_x[~np.isnan(individual_x)][0] if np.any(~np.isnan(individual_x)) else None # first non nan value
-        y_start = individual_y[~np.isnan(individual_y)][0] if np.any(~np.isnan(individual_y)) else None # first non nan value
-
+        x_start = find_long_non_nan_sequences(individual_x)[0][0] # first value of the first long non nan sequence
+        y_start = find_long_non_nan_sequences(individual_y)[0][0] # first value of the first long non nan sequence
         start_frame = np.where(individual_x == x_start)[0].item()
+        individual_x[:start_frame]=np.nan # remove any path before the real start
+        individual_y[:start_frame]=np.nan # remove any path before the real start
+
+        individual_x = remove_outliers_median_filter(individual_x)
+        individual_y = remove_outliers_median_filter(individual_y)
+
         for i in range(len(individual_x)-1, 0, -1): # Find the last non-NaN value which is not isolated
             if not np.isnan(individual_x[i]) and not np.isnan(individual_x[i-1]):
                 last_frame = i
@@ -119,6 +146,7 @@ for root, dirs, files in os.walk(folder_path):
 
         # Define when the mouse eats the reward
         found_reward_frame = np.nan
+        found_reward_time = np.nan
         consecutive_count = 0
         for i, (x, y) in enumerate(zip(individual_x, individual_y)):
             if calculate_relative_distance(x, y, reward_x, reward_y) <= reward_zone:
@@ -136,9 +164,13 @@ for root, dirs, files in os.walk(folder_path):
             else:
                 latency = (found_reward_frame - start_frame) / frame_rate
             distance_to_reward, distances_to_reward = calculate_distance_run(individual_x[start_frame:found_reward_frame], individual_y[start_frame:found_reward_frame])
+            
+            individual_x_filt = individual_x[~np.isnan(individual_x)]        
+            individual_y_filt = individual_y[~np.isnan(individual_y)]
+
             enter_reward_zone = 0
             consecutive_count = 0
-            for i, (x, y) in enumerate(zip(individual_x, individual_y)):
+            for i, (x, y) in enumerate(zip(individual_x_filt, individual_y_filt)):
                 if calculate_relative_distance(x, y, reward_x, reward_y) <= reward_zone:
                     if consecutive_count == 0:
                         enter_reward_zone += 1
@@ -168,6 +200,10 @@ for root, dirs, files in os.walk(folder_path):
         Summary_table.loc[counter, 'session_time'] = sesstion_time
         Summary_table.loc[counter, 'trial'] = int(trial)
         Summary_table.loc[counter, 'trial_time'] = trial_time
+        Summary_table.loc[counter, 'start_time'] = start_time
+        Summary_table.loc[counter, 'end_time'] = end_time
+        Summary_table.loc[counter, 'reward_zone_radius_cm'] = reward_zone/pixel_to_cm
+        Summary_table.loc[counter, 'found_reward_time'] = found_reward_time
         Summary_table.loc[counter, 'reward_location_pix'] = str([reward_x,reward_y])
         Summary_table.loc[counter, 'duration_trial_s'] = round(duration_trial,2)
         Summary_table.loc[counter, 'total_distance_cm'] = round(total_distance,2)
