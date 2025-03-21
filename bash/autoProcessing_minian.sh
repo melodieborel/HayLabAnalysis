@@ -26,8 +26,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
         rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
         cp -r "${pathtofolder}/"* /mnt/data/AurelieB_minian/ #copy crnldata to mnt data 
         
-        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_0_minian_pipeline.py
-        srun --mem=50G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_0_minian_pipeline.py
+        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_minian_pipeline.py
+        srun --mem=50G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_minian_pipeline.py
 
         # Check the exit status of srun
         if [ $? -ne 0 ]; then
