@@ -6,7 +6,7 @@
 
 start_directory="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/"
 start_directory="/crnldata/forgetting/Aurelie/CGPExperiment/CGPinjection/"
-start_directory="//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L1NDNF_mice/BlueLines/baseline/2022-06-20_13-38-39_session1/"
+start_directory="//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB"
 
 
 echo "Searching for folders containing .avi files in '$start_directory'..."
@@ -61,5 +61,4 @@ for dir in "${!folder_count[@]}"; do
             fi
         done
     fi
-
 done
