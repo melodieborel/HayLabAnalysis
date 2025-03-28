@@ -8,7 +8,6 @@ start_directory="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/"
 start_directory="/crnldata/forgetting/Aurelie/CGPExperiment/CGPinjection/"
 start_directory="/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
 
-
 echo "Searching for folders containing .avi files in '$start_directory'..."
 
 # Use a for loop to process directories containing .avi files
