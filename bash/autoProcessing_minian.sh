@@ -1,14 +1,12 @@
 #!/bin/bash
 
-
 # Activate "minian" environement before
 # cd in /HayLabAnalysis/bash
-#(minian) aurelie.brecier@node14:~/HayLabAnalysis/bash$ 
-
+#(minian) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_minian.sh
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/Tests/"
+START_DIR="/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L1NDNF_mice/BlueLines/baseline/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -18,16 +16,32 @@ IFS=$'\n'
 # Loop through all the folders containing .avi files 
 for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \; | sort -u); do
     
-    if [[ "$pathtofolder" == *"My_V4_Miniscope"* && ! -d "$pathtofolder/minian" ]]; then #only process miniscope movies that were not already processed
-    # if [[ "$pathtofolder" == *"My_V4_Miniscope"* ]]; then  #only process miniscope movies 
+    if [[ "$pathtofolder" == *"V4_Miniscope"* && ! -d "$pathtofolder/minian" ]]; then #only process miniscope movies that were not already processed
+    # if [[ "$pathtofolder" == *"V4_Miniscope"* ]]; then  # process all miniscope movies 
 
         echo "Found folder: $pathtofolder"
-
-        rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
-        cp -r "${pathtofolder}/"* /mnt/data/AurelieB_minian/ #copy crnldata to mnt data 
         
-        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_minian_pipeline.py
-        srun --mem=50G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_minian_pipeline.py
+        rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
+ 
+        # Use '/' as a delimiter to split the path and count the parts
+        pathtofolder_len=$(echo "$pathtofolder" | awk -F'/' '{print NF}')
+
+        mouse_name=$(echo "$pathtofolder" | awk -F'/' '{print $8}')
+        if [ "$pathtofolder_len" -eq 12 ]; then           
+            session_name=$(echo "$pathtofolder" | awk -F'/' '{print $12}')
+        elif [ "$pathtofolder_len" -eq 10 ]; then
+            session_name=$(echo "$pathtofolder" | awk -F'/' '{print $10}')
+        fi        
+
+        echo "$mouse_name"
+        echo "$session_name"
+
+        mkdir -p "/mnt/data/AurelieB_minian/$mouse_name/$session_name/"
+
+        cp -r "${pathtofolder}/"* /mnt/data/AurelieB_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
+        
+        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py
+        srun --mem=90G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py &>/dev/null
 
         # Check the exit status of srun
         if [ $? -ne 0 ]; then
@@ -35,7 +49,7 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
             continue #break
         fi
 
-        cp -r /mnt/data/AurelieB_minian/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
+        cp -r /mnt/data/AurelieB_minian/$mouse_name/$session_name/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
         rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
     fi
 done
