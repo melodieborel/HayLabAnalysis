@@ -6,7 +6,7 @@
 
 start_directory="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/"
 start_directory="/crnldata/forgetting/Aurelie/CGPExperiment/CGPinjection/"
-start_directory="//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L1NDNF_mice/BlueLines/baseline/2022-06-20_13-38-39_session1/"
+start_directory="/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
 
 
 echo "Searching for folders containing .avi files in '$start_directory'..."
@@ -28,13 +28,12 @@ for dir in "${!folder_count[@]}"; do
     count=${folder_count["$dir"]}
 
     # Check if the parent directory name is "V4miniscope"
-    #if [[ "$dir" == *"/My_V4_Miniscope"* && "$count" -gt 15 ]]; then
+    #if [[ "$dir" == *"/My_V4_Miniscope"* && "$count" -gt 15 ]]; then 
     if [ "$count" -gt 15 ]; then
 
         echo "Directory '$dir' contains $count .avi files. Creating subfolders..."
 
         # Determine the name of the grandparent directory
-        #grandparent_dir=$(basename $(dirname "$dir"))
         grandparent_dir=$(basename $(dirname "$dir"))
         grandparent_dir="${grandparent_dir##*_}"
 
@@ -61,5 +60,4 @@ for dir in "${!folder_count[@]}"; do
             fi
         done
     fi
-
 done

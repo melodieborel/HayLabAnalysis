@@ -12,7 +12,9 @@ import holoviews as hv
 import numpy as np
 import xarray as xr
 from dask.distributed import Client, LocalCluster
+import shutil
 import time
+from dask import config
 
 st = time.time()
 
@@ -21,7 +23,16 @@ st = time.time()
 ##################################
 # Set up Initial Basic Parameters#
 minian_path = "."
+
 dpath='/mnt/data/AurelieB_minian/'
+mouse_name = [f for f in os.listdir(dpath) if os.path.isdir(os.path.join(dpath, f))]
+mouse_name = mouse_name[0]
+path_mouse = os.path.join(dpath, mouse_name)
+
+session_name = [f for f in os.listdir(path_mouse) if os.path.isdir(os.path.join(path_mouse, f))]
+session_name = session_name[0]
+dpath = os.path.join(path_mouse, session_name)
+
 minian_ds_path = os.path.join(dpath, f'minian{suffix}')
 intpath = os.path.join(dpath, f'minian_intermediate{suffix}')
 subset = dict(frame=slice(0, None))
@@ -53,8 +64,8 @@ param_seeds_init = {
     "wnd_size": 100, # 100, #Default minian = 1000
     "method": "rolling",
     "stp_size": 50, #50, #Default minian =500
-    "max_wnd": 10, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15
-    "diff_thres": 3,
+    "max_wnd": 20, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15
+    "diff_thres": 3, #3
 }
 param_pnr_refine = {"noise_freq": 0.06, "thres": 1}
 param_ks_refine = {"sig": 0.05}
@@ -65,9 +76,9 @@ param_init_merge = {"thres_corr": 0.8}
 # CNMF Parameters#
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
-    "dl_wnd": 10, #15, #Default minian = 10
-    "sparse_penal": 0.01, #0.012, #Default minian =0.01
-    "size_thres": (25, None),
+    "dl_wnd": 20, #15, #Default minian = 10 #the window size of the morphological dilation operation
+    "sparse_penal": 0.0015, #0.012, #Default minian =0.01 #☻ the bigger, the smaller the ROI
+    "size_thres": (25, None), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted
 }
 param_first_temporal = {
     "noise_freq": 0.06,
@@ -77,11 +88,15 @@ param_first_temporal = {
     "jac_thres": 0.2,
 }
 param_first_merge = {"thres_corr": 0.8}
+param_second_spatial = param_first_spatial
+param_second_temporal = param_first_temporal
+""""
 param_second_spatial = {
-    "dl_wnd": 10,
-    "sparse_penal": 0.01,
+    "dl_wnd": 20,
+    "sparse_penal": 0.002,
     "size_thres": (25, None),
-}
+}"
+
 param_second_temporal = {
     "noise_freq": 0.06,
     "sparse_penal": 1,
@@ -89,7 +104,7 @@ param_second_temporal = {
     "add_lag": 20,
     "jac_thres": 0.4,
 }
-
+"""
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -149,13 +164,16 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     cluster = LocalCluster(
         n_workers=int(os.getenv("MINIAN_NWORKERS", 40)), # /!\ max 40 or 64 CPUs per node in remote machine # /!\ 8 total cores in local machine 
         memory_limit="6GB", #per worker, /!\ max 95 or 256 GB per node in remote machine # /!\ 32GB total RAM in local machine 
-        resources={"MEM": 1},
+        resources={"MEM": 1}, #set to 1 before
         threads_per_worker=2,
-        dashboard_address=":8780",
+        dashboard_address=None,
+        #processes=False, # to avoid distributed.nanny - WARNING - Restarting worker ?
     )
+
+    config.set({'interface': 'lo'}) 
     annt_plugin = TaskAnnotation()
     cluster.scheduler.add_plugin(annt_plugin)
-    client = Client(cluster)
+    client = Client(cluster) 
 
     ##################################
             # PRE- PROCESSING #
@@ -170,7 +188,9 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
         overwrite=True,
     )
 
-    varr_ref = varr.sel(subset)
+    # SELECT A SUBSET OF THE VIDEO IF NEEDED
+    varr_ref = varr.sel(height=slice(120, 600))
+    #varr_ref = varr.sel(subset)
 
     # CLEAN UP - GLOW REMOVAL 
     varr_min = varr_ref.min("frame").compute()
@@ -405,6 +425,11 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
 
     client.close()
     cluster.close()
+    
+    # Copy the script file to the destination folder
+    source_script = "/mnt/data/home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py"
+    destination_file_path = f"{minian_ds_path}/MINI_1_run_minian_pipeline.txt"
+    shutil.copy(source_script, destination_file_path)
 
     elapsed_time = time.time() - st
     print('Execution time:', time.strftime("%H:%M:%S", time.gmtime(elapsed_time)))
