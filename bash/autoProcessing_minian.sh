@@ -5,6 +5,7 @@
 #(minian) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_minian.sh
 
 # Define the starting directory
+
 #START_DIR="/crnldata/forgetting/Clementine/CheeseboardExperiment/DAQ_data/ClementineR/Training/GL/Cheesboard/2025_03_31/12_22_47/"
 START_DIR="/crnldata/forgetting/Clementine/CheeseboardExperiment/DAQ_data/ClementineR/Habituation/YL/Cheesboard/2025_03_26/13_31_34/"
 
