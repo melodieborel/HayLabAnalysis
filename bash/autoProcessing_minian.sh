@@ -5,8 +5,8 @@
 #(minian) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_minian.sh
 
 # Define the starting directory
-START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L1NDNF_mice/BlueLines/baseline/"
+#START_DIR="/crnldata/forgetting/Clementine/CheeseboardExperiment/DAQ_data/ClementineR/Training/GL/Cheesboard/2025_03_31/12_22_47/"
+START_DIR="/crnldata/forgetting/Clementine/CheeseboardExperiment/DAQ_data/ClementineR/Habituation/YL/Cheesboard/2025_03_26/13_31_34/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -21,27 +21,23 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         echo "Found folder: $pathtofolder"
         
-        rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
+        rm -rf /mnt/data/ClemR_minian/* #empty mnt data
  
         # Use '/' as a delimiter to split the path and count the parts
         pathtofolder_len=$(echo "$pathtofolder" | awk -F'/' '{print NF}')
 
-        mouse_name=$(echo "$pathtofolder" | awk -F'/' '{print $8}')
-        if [ "$pathtofolder_len" -eq 12 ]; then           
-            session_name=$(echo "$pathtofolder" | awk -F'/' '{print $12}')
-        elif [ "$pathtofolder_len" -eq 10 ]; then
-            session_name=$(echo "$pathtofolder" | awk -F'/' '{print $10}')
-        fi        
+        mouse_name=$(echo "$pathtofolder" | awk -F'/' '{print $9}')
+        session_name=$(echo "$pathtofolder" | awk -F'/' '{print $12}')
 
         echo "$mouse_name"
         echo "$session_name"
 
-        mkdir -p "/mnt/data/AurelieB_minian/$mouse_name/$session_name/"
+        mkdir -p "/mnt/data/ClemR_minian/$mouse_name/$session_name/"
 
-        cp -r "${pathtofolder}/"* /mnt/data/AurelieB_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
+        cp -r "${pathtofolder}/"* /mnt/data/ClemR_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
         
         #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py
-        srun --mem=90G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py &>/dev/null
+        srun --mem=90G --cpus-per-task=40 python /home/clementine.robein/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py #&>/dev/null
 
         # Check the exit status of srun
         if [ $? -ne 0 ]; then
@@ -49,8 +45,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
             continue #break
         fi
 
-        cp -r /mnt/data/AurelieB_minian/$mouse_name/$session_name/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
-        rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
+        cp -r /mnt/data/ClemR_minian/$mouse_name/$session_name/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
+        rm -rf /mnt/data/ClemR_minian/* #empty mnt data
     fi
 done
 
