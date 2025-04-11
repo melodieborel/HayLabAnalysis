@@ -28,7 +28,7 @@ for dir in "${!folder_count[@]}"; do
 
     # Check if the parent directory name is "V4miniscope"
     #if [[ "$dir" == *"/My_V4_Miniscope"* && "$count" -gt 15 ]]; then 
-    if [ "$count" -gt 15 ]; then
+    if [ "$count" -gt 30 ]; then
 
         echo "Directory '$dir' contains $count .avi files. Creating subfolders..."
 
@@ -52,8 +52,8 @@ for dir in "${!folder_count[@]}"; do
 
             file_count=$((file_count + 1))
 
-            # Switch to a new subfolder after 15 files
-            if [ "$file_count" -ge 15 ]; then
+            # Switch to a new subfolder after 30 files
+            if [ "$file_count" -ge 30 ]; then
                 subfolder_index=$((subfolder_index + 1))
                 file_count=0
             fi

@@ -6,7 +6,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L1NDNF_mice/BlueLines/baseline/"
+START_DIR="/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L1NDNF_mice/RedLines/preCGP/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -28,9 +28,10 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         mouse_name=$(echo "$pathtofolder" | awk -F'/' '{print $8}')
         if [ "$pathtofolder_len" -eq 12 ]; then           
-            session_name=$(echo "$pathtofolder" | awk -F'/' '{print $12}')
-        elif [ "$pathtofolder_len" -eq 10 ]; then
-            session_name=$(echo "$pathtofolder" | awk -F'/' '{print $10}')
+            session_name=$(echo "$pathtofolder" | awk -F'/' '{print $12}')     
+        elif [ "$pathtofolder_len" -eq 11 ]; then
+            text=$(echo "$pathtofolder" | awk -F'/' '{print $10}')
+            session_name="${text##*_}"      
         fi        
 
         echo "$mouse_name"
@@ -40,8 +41,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         cp -r "${pathtofolder}/"* /mnt/data/AurelieB_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
         
-        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py
-        srun --mem=90G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py &>/dev/null
+        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
+        srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
 
         # Check the exit status of srun
         if [ $? -ne 0 ]; then

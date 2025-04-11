@@ -77,7 +77,7 @@ param_init_merge = {"thres_corr": 0.8}
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
     "dl_wnd": 20, #15, #Default minian = 10 #the window size of the morphological dilation operation
-    "sparse_penal": 0.0015, #0.012, #Default minian =0.01 #☻ the bigger, the smaller the ROI
+    "sparse_penal": 0.0008, #0.012, #Default minian =0.01 #☻ the bigger, the smaller the ROI
     "size_thres": (25, None), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted
 }
 param_first_temporal = {
@@ -189,8 +189,8 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     )
 
     # SELECT A SUBSET OF THE VIDEO IF NEEDED
-    varr_ref = varr.sel(height=slice(120, 600))
-    #varr_ref = varr.sel(subset)
+    #varr_ref = varr.sel(height=slice(120, 600))
+    varr_ref = varr.sel(subset)
 
     # CLEAN UP - GLOW REMOVAL 
     varr_min = varr_ref.min("frame").compute()
@@ -427,8 +427,8 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     cluster.close()
     
     # Copy the script file to the destination folder
-    source_script = "/mnt/data/home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py"
-    destination_file_path = f"{minian_ds_path}/MINI_1_run_minian_pipeline.txt"
+    source_script = "/mnt/data/home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py"
+    destination_file_path = f"{minian_ds_path}/MINI_1_detect_units_remote.txt"
     shutil.copy(source_script, destination_file_path)
 
     elapsed_time = time.time() - st
