@@ -37,8 +37,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         cp -r "${pathtofolder}/"* /mnt/data/ClemR_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
         
-        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py
-        srun --mem=90G --cpus-per-task=40 python /home/clementine.robein/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py #&>/dev/null
+        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_pipeline.py
+        srun --mem=90G --cpus-per-task=40 python /home/clementine.robein/HayLabAnalysis/python/MINI_1_detect_units_pipeline.py #&>/dev/null
 
         # Check the exit status of srun
         if [ $? -ne 0 ]; then

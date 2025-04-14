@@ -427,8 +427,8 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     cluster.close()
     
     # Copy the script file to the destination folder
-    source_script = "/mnt/data/home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py"
-    destination_file_path = f"{minian_ds_path}/MINI_1_run_minian_pipeline.txt"
+    source_script = "/mnt/data/home/clementine.robein/HayLabAnalysis/python/MINI_1_detect_units_pipeline.py"
+    destination_file_path = f"{minian_ds_path}/MINI_1_detect_units_pipeline.txt"
     shutil.copy(source_script, destination_file_path)
 
     elapsed_time = time.time() - st
