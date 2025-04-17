@@ -13,7 +13,7 @@ import xarray as xr
 ##################################
         # DEFINE PATH #
 ##################################
-DIR= Path("//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L1NDNF_mice/RedLines/")
+DIR= Path("//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L1NDNF_mice/BlueLines/preCGP/")
 
 ##################################
     # CREATE SYNCHRO FILE #
