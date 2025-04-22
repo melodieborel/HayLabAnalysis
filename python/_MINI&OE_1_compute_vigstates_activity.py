@@ -4,12 +4,12 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
+DrugExperiment=1 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
 suffix='' 
-AnalysisID='_CellAssembly' 
+AnalysisID='_CGP' 
 
-saveexcel=1
+saveexcel=0
 
 dir = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
 
@@ -140,7 +140,7 @@ def extractPatterns(actmat,significance,method):
         patterns = significance.components_[idxs,:]
     elif method == 'ica':
         from sklearn.decomposition import FastICA
-        ica = FastICA(n_components=nassemblies)
+        ica = FastICA(n_components=nassemblies, max_iter=1000)
         ica.fit(actmat.T)
         patterns = ica.components_
     else:
@@ -230,7 +230,7 @@ VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','S
                                                         'TotZ_CaPopCoupling', 'TotSpPopCoupling', 'TotZ_SpPopCoupling'])
 counter2=0
 CellAssembly_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','Session', 'Session_Date', 'Session_Time', 'Assembly_ID', 'Assembly_size', 'Cells_in_Assembly',
-                                                            'ExpeType', 'Drug', 'Substate', 'Avg_Activity' ])
+                                                            'ExpeType', 'Drug', 'Substate', 'Avg_Activity', 'EventFreq', 'EventTime' ])
 
 for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
@@ -446,7 +446,6 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
             # Define cell assemblies
 
             patterns,significance,zactmat= runPatterns(Carray.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)
-            print(len(patterns), 'assemblies found')
             if len(patterns)>0:
                 thresh = np.mean(patterns)+2*np.std(patterns)
                 patterns_th=patterns.copy()
@@ -463,13 +462,20 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         assembly_activity = zscore(Calcium.iloc[non_nan_indices].values.astype(float).T).mean(axis=1)
                         assembly_nb+=1
                         assembly_ID=f'Assembly_{mice}_{assembly_nb}'
-                        print(len(cells_in_assembly))
 
-                        for m in mapp:                   
+                        mean = np.mean(assembly_activity)
+                        std = np.std(assembly_activity)
+                        prominence_threshold = mean + 2 * std
+
+                        for m in mapp:  
                             Bool = (SleepScoredTS_upscaled_ministart == m)
                             assembly_activity_VigSpe = assembly_activity.copy()
                             assembly_activity_VigSpe = assembly_activity_VigSpe[0:np.shape(SleepScoredTS_upscaled_ministart)[0]] # if Calcium imaging longer than LFP rec
-                            mean_act_ass = np.mean(assembly_activity_VigSpe[Bool])
+                            assembly_activity_VigSpe[~Bool] = np.nan
+                            sizeVigSt=len(assembly_activity_VigSpe[Bool])
+                            mean_act_ass = np.nanmean(assembly_activity_VigSpe)
+                            
+                            peaks, properties = find_peaks(assembly_activity_VigSpe, prominence=prominence_threshold)
 
                             CellAssembly_GlobalResults.loc[counter2, 'Mice'] = mice
                             CellAssembly_GlobalResults.loc[counter2, 'NeuronType'] = NeuronType
@@ -487,9 +493,10 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
                             CellAssembly_GlobalResults.loc[counter2, 'Substate'] = mapp[m]
                             CellAssembly_GlobalResults.loc[counter2, 'Avg_Activity'] = mean_act_ass
+                            CellAssembly_GlobalResults.loc[counter2, 'EventFreq'] = len(peaks)/(sizeVigSt/minian_freq) if sizeVigSt>0 else 0
+                            CellAssembly_GlobalResults.loc[counter2, 'EventTime'] = str(np.round(peaks/minian_freq+StartTime, 2))
 
                             counter2+=1
-
             for m in mapp:
 
                 # Correlation between each neurons according to vigilance states 
@@ -549,7 +556,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             
                 CaCorrVigStateMatrix.append(CaCorrMatrix)
                 SpCorrVigStateMatrix.append(SpCorrMatrix) 
-
+            
             TotCaCorr = locals()[f'TotCaCorr{drug}']
             TotSpCorr = locals()[f'TotSpCorr{drug}']
             
@@ -562,11 +569,12 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 indexMapp = np.where(mapping_sess[session] == Calcium.index[unit])[0]
                 
                 if len(indexMapp)>0 : # The neuron needs to be in the cross-registration
-
+                    
+                    
                     Carray_unit =Carray[:,unit]
                     Darray_unit =Darray[:,unit]
                     Sarray_unit =Sarray[:,unit]
-
+                    
                     # Population Coupling independent of vigilance states 
 
                     Carray_Population =np.mean(Carray[:,otherunit_range], axis=1)
@@ -599,7 +607,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             
                             corr_matrix = np.corrcoef(Sarray_unit, Sarray_unit2)
                             TotSpCorrMatrix[f'{mice}{indexMapp}'][indexMapp2]={1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
-
+                    
                     # For each substates
                     for index in range(len(substates)):
                         
@@ -657,11 +665,12 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         corCorrected = {1: 0.99999, -1: -0.99999}.get(np.round(corr_matrix[0, 1],5), np.round(corr_matrix[0, 1],5))
                         VigilanceState_GlobalResults.loc[counter, 'Z_SpPopCoupling'] = np.arctanh(corCorrected)
                         
+                        
                         VigilanceState_GlobalResults.loc[counter, 'TotCaPopCoupling'] = TotCaPopCoupling
                         VigilanceState_GlobalResults.loc[counter, 'TotZ_CaPopCoupling'] = TotZ_CaPopCoupling
                         VigilanceState_GlobalResults.loc[counter, 'TotSpPopCoupling'] = TotSpPopCoupling
                         VigilanceState_GlobalResults.loc[counter, 'TotZ_SpPopCoupling'] = TotZ_SpPopCoupling
-
+                        
 
                         StatesCaCorrName=f'StatesCaCorr{substates.Identity[index]}Matrix{drug}'
                         StatesCaCorrMatrix = locals()[StatesCaCorrName]
