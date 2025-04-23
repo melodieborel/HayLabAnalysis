@@ -431,7 +431,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
             SleepScoredTS_upscaled = np.repeat(SleepScoredTS, scale_factor, axis=0)
             StartTime_frame=round(StartTime*minian_freq)
             SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled[StartTime_frame:StartTime_frame+rec_dur]
-            #SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == 0.5] = 0
+            #SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == '2'] = '1'
 
             # Determine each substate identity and duration
             SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled_ministart.astype(int)
