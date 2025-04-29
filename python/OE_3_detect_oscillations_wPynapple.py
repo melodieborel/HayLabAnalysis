@@ -19,6 +19,8 @@ import pandas as pd
 from pathlib import Path
 import os
 import warnings
+from scipy.stats import zscore
+
 warnings.filterwarnings("ignore")
 
 #######################################################################################
@@ -42,7 +44,7 @@ def restriction_parameter(All_Spindle):
                     listtodrop.append(tt+1)
                 else:
                     listtodrop.append(tt+1)
-
+    """
     for tt in range(nb_spindle-1):
         # merge spdls that are 200ms apart
         if((All_Spindle['start time'][tt + 1] - All_Spindle['end time'][tt])<200):
@@ -54,7 +56,7 @@ def restriction_parameter(All_Spindle):
                 All_Spindle['start time'][tt] = min(All_Spindle['start time'][tt], All_Spindle['start time'][tt+1])
                 All_Spindle['end time'][tt] = max(All_Spindle['end time'][tt + 1], All_Spindle['end time'][tt])
                 listtodrop.append(tt+1)
-
+    """
     for tt in range(nb_spindle):
         #Update duration because of the merging
         All_Spindle['Duration'][tt]=All_Spindle['end time'][tt]-All_Spindle['start time'][tt]
@@ -151,6 +153,11 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
 
     notNREMBool = SleepScoredTS_upscaled==1 
 
+
+    CA1=zscore(np.array(CA1))#-np.mean(np.array(CA1)))#/np.mean(np.array(CA1))
+    S1=zscore(np.array(S1))#-np.mean(np.array(S1)))#/np.mean(np.array(S1))
+    PFC=zscore(np.array(PFC))#-np.mean(np.array(PFC)))#/np.mean(np.array(PFC))
+
     CA1[notNREMBool] = 0
     S1[notNREMBool] = 0
     PFC[notNREMBool] = 0
@@ -160,25 +167,24 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
     ###########################################
 
     lfp = nap.Tsd(t=np.arange(len(CA1))/samplerate, d=CA1)
-    freqs = np.geomspace(3, 250, 100)
-    mwt_RUN = nap.compute_wavelet_transform(lfp, fs=samplerate, freqs=freqs, gaussian_width=3, window_length=2)
+    freqs = np.geomspace(3, 200, 100)
+    mwt_RUN = nap.compute_wavelet_transform(lfp, fs=samplerate, freqs=freqs, gaussian_width=4, window_length=1) # gw=4, wl=1 only very pretty SWRs
     ripple_freq_index = np.logical_and(freqs > 120, freqs < 200)
     ripple_power = np.mean(np.abs(mwt_RUN[:, ripple_freq_index]), 1)
-    smoothed_ripple_power = ripple_power.smooth(0.005) #in seconds 0.005 
-    threshold_ripple_power = smoothed_ripple_power.threshold(100)
+    smoothed_ripple_power = ripple_power.smooth(0.01) #in seconds 0.005 
+    threshold_ripple_power = smoothed_ripple_power.threshold(.175) #.25 only very pretty SWRs // .1 too much for TBC
     rip_ep = threshold_ripple_power.time_support
     rip_ep['dur_ms']=np.round((rip_ep['end']-rip_ep['start'])*1000)
-    #rip_ep=rip_ep[rip_ep['dur_ms']>50]
+    rip_ep=rip_ep[rip_ep['dur_ms']>10] #5ms
 
     emp=[]
     All_SWR = pd.DataFrame(emp, columns = ['start time', 'end time', 'Duration'])
     All_SWR['start time']=rip_ep['start']*1000
     All_SWR['end time']=rip_ep['end']*1000
     All_SWR['Duration']=rip_ep['dur_ms']
+    All_SWR['toKeep']= 'True'
 
     # Store the results in All_SWR_prop pd dataframe and save as pkl/csv for post processing.
-    filename3 = folder_base / f'SWR_detection_initial.csv'
-    All_SWR.to_csv(filename3)
     filename = folder_base / f'SWR_detection.csv'
     All_SWR.to_csv(filename)
 
@@ -192,12 +198,12 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
         ##         PFC         ##
 
     lfp = nap.Tsd(t=np.arange(len(PFC))/samplerate, d=PFC)
-    freqs = np.geomspace(3, 250, 100)
-    mwt_RUN = nap.compute_wavelet_transform(lfp, fs=samplerate, freqs=freqs, gaussian_width=6, window_length=2.0)
-    spdl_freq_index = np.logical_and(freqs > 10, freqs < 16)
+    freqs = np.geomspace(3, 200, 100)
+    mwt_RUN = nap.compute_wavelet_transform(lfp, fs=samplerate, freqs=freqs, gaussian_width=3, window_length=1.5)
+    spdl_freq_index = np.logical_and(freqs > 11, freqs < 17)
     spdl_power = np.mean(np.abs(mwt_RUN[:, spdl_freq_index]), 1)
     smoothed_spdl_power = spdl_power.smooth(0.1) #in seconds 0.005 
-    threshold_spdl_power = smoothed_spdl_power.threshold(100)
+    threshold_spdl_power = smoothed_spdl_power.threshold(.4)
     spdl_ep = threshold_spdl_power.time_support
     spdl_ep['dur_ms']=np.round((spdl_ep['end']-spdl_ep['start'])*1000)
     #spdl_ep=spdl_ep[spdl_ep['dur_ms']>500]
@@ -207,9 +213,8 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
     All_SpindlePFC['start time']=spdl_ep['start']*1000
     All_SpindlePFC['end time']=spdl_ep['end']*1000
     All_SpindlePFC['Duration']=spdl_ep['dur_ms']
+    All_SpindlePFC['toKeep']= 'True'
 
-    filename = folder_base / f'SpindlesPFC_detection_intial.csv'
-    All_SpindlePFC.to_csv(filename)
     filename = folder_base / f'SpindlesPFC_detection.csv'
     All_SpindlePFC.to_csv(filename)
 
@@ -219,12 +224,12 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
             ##         S1         ##
 
     lfp = nap.Tsd(t=np.arange(len(S1))/samplerate, d=S1)
-    freqs = np.geomspace(3, 250, 100)
-    mwt_RUN = nap.compute_wavelet_transform(lfp, fs=samplerate, freqs=freqs, gaussian_width=6, window_length=2.0)
-    spdl_freq_index = np.logical_and(freqs > 10, freqs < 16)
+    freqs = np.geomspace(3, 200, 100)
+    mwt_RUN = nap.compute_wavelet_transform(lfp, fs=samplerate, freqs=freqs, gaussian_width=3, window_length=1.5)
+    spdl_freq_index = np.logical_and(freqs > 11, freqs < 17)
     spdl_power = np.mean(np.abs(mwt_RUN[:, spdl_freq_index]), 1)
     smoothed_spdl_power = spdl_power.smooth(0.1) #in seconds 0.005 
-    threshold_spdl_power = smoothed_spdl_power.threshold(100)
+    threshold_spdl_power = smoothed_spdl_power.threshold(.4)
     spdl_ep = threshold_spdl_power.time_support
     spdl_ep['dur_ms']=np.round((spdl_ep['end']-spdl_ep['start'])*1000)
     #spdl_ep=spdl_ep[spdl_ep['dur_ms']>500]
@@ -234,9 +239,8 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
     All_SpindleS1['start time']=spdl_ep['start']*1000
     All_SpindleS1['end time']=spdl_ep['end']*1000
     All_SpindleS1['Duration']=spdl_ep['dur_ms']
+    All_SpindleS1['toKeep']= 'True'
 
-    filename = folder_base / f'SpindlesS1_detection_intial.csv'
-    All_SpindleS1.to_csv(filename)
     filename = folder_base / f'SpindlesS1_detection.csv'
     All_SpindleS1.to_csv(filename)
     
@@ -247,18 +251,17 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
                 # Merge Spdl #
     ########################################
     
-    All_SpindlePFC['toKeep']='True'
     All_SpindlePFC['CTX']='PFC'
     All_SpindlePFC['StartingLoc']='PFC'
     All_SpindlePFC = All_SpindlePFC.reset_index(drop=True)
     NewPFClist=restriction_parameter(All_SpindlePFC)
 
-    All_SpindleS1['toKeep'] ='True'
     All_SpindleS1['CTX']='S1'
     All_SpindleS1['StartingLoc']='S1'
     All_SpindleS1 = All_SpindleS1.reset_index(drop=True)
     NewS1list=restriction_parameter(All_SpindleS1)
 
+    #Spdllist=pd.concat([All_SpindlePFC,All_SpindleS1],ignore_index=False)  
     Spdllist=pd.concat([NewPFClist,NewS1list],ignore_index=False)  
 
     Spdllist['LocalGlobal']='Local'
