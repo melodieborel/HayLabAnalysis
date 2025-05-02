@@ -4,7 +4,7 @@
                             # Define Experiment type #
 #######################################################################################
 
-AnalysisID='_TEST' #to identify this analysis from another
+AnalysisID='' #to identify this analysis from another
 DrugExperiment=0 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
 saveexcel=0
@@ -13,9 +13,9 @@ Local=1
 desired_order = ['AW','QW', 'NREM', 'IS', 'REM', 'undefined']   
 
 #choosed_folder='VigSt_2024-07-22_18_21_32_AB_FINAL' if DrugExperiment else 'VigSt_2024-07-22_17_16_28_AB_FINAL'
-choosed_folder1='VigSt_2025-04-16_18_40_04_CellAssembly' # for Baseline Expe
+choosed_folder1='VigSt_2025-04-30_11_04_08' # for Baseline Expe
 choosed_folder2='VigSt_' # for CGP Expe
-choosed_folder3='AVG_VigSt_2025-04-17_13_17_51_Correlations' # for Correlations
+choosed_folder3='AVG_Corr_2025-04-30_14_43_55' # for Correlations
 
 #######################################################################################
                                 # Load packages #
@@ -682,7 +682,7 @@ for NrSubtype in NrSubtypeList:
                 # POPULATION COUPLING #
                 #####################
 
-                CaPopCoupling_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Session', values='TotZ_CaPopCoupling', aggfunc='mean')
+                CaPopCoupling_perUnit = filtered_df.pivot_table(index='Unit_ID', columns='Session_ID', values='TotZ_CaPopCoupling', aggfunc='mean')
                 CaPopCoupling_perUnit['AllSession']=CaPopCoupling_perUnit.mean(axis=1)  
                 # Save CaPopCoupling_perUnit
                 filenameOutCaPopCoupling = f'{folder_to_save2}/{List_name}/{NrSubtype}_Tot_ZCaPopCoupling.xlsx'
@@ -715,27 +715,6 @@ for NrSubtype in NrSubtypeList:
                 filenameOutAUCM = f'{folder_to_save2}/{List_name}/{NrSubtype}_VigSt_AUC_perMouse.xlsx'
                 resultNormalizedAUC_calcium_perMouse.to_excel(filenameOutAUCM)
 
-                #####################
-                # SI evolution #
-                #####################
-                """
-                combined_df_Drug['TrSession'] = combined_df_Drug['Session'].str[:8]
-                resultNormalizedAUC_calcium_perUnit = combined_df_Drug.pivot_table(index='Unit_ID', columns=[combined_df_Drug['Substate'],combined_df_Drug['Session_ID']], values='NormalizedAUC_calcium', aggfunc='mean')   
-                A=(resultNormalizedAUC_calcium_perUnit['NREM']-resultNormalizedAUC_calcium_perUnit['REM'])/(resultNormalizedAUC_calcium_perUnit['NREM']+resultNormalizedAUC_calcium_perUnit['REM'])
-                A = A[A.notna().sum(axis=1)>1]
-                A['first_non_nan'] = A.bfill(axis=1).iloc[:, 0]
-                A['last_non_nan'] = A.ffill(axis=1).iloc[:, -2]
-
-                # Apply the function
-                A['first_non_nan_Names'] = replace_values(A['first_non_nan'], '_1st')
-                A['last_non_nan_Names'] = replace_values(A['last_non_nan'], '_last')
-
-                dftest=A['first_non_nan_Names'] + A['first_non_nan_Names']
-
-                
-                filenameOutSI = f'{folder_to_save2}/{List_name}/{NrSubtype}_SIevolution.xlsx'
-                A.to_excel(filenameOutSI)
-                """
                 #####################
                 # DECONV ACTIVITY #
                 #####################
@@ -812,24 +791,24 @@ for NrSubtype in NrSubtypeList:
             filenameOut = f'{folder_to_save}/{NrSubtype}_SelectivityIndex.xlsx'
             mergeRes.to_excel(filenameOut)
 
-    #######################
-    # Propreties VigStates
-    #######################
+#######################
+# Propreties VigStates
+#######################
 
-    filenameOut = f'{folder_to_save}/VigStPropreties.xlsx'
-    writer = pd.ExcelWriter(filenameOut)
+filenameOut = f'{folder_to_save}/VigStPropreties.xlsx'
+writer = pd.ExcelWriter(filenameOut)
 
-    combined_df2 = combined_dfO.drop_duplicates(subset='Substate_ID', keep='first')
+combined_df2 = combined_dfO.drop_duplicates(subset='Substate_ID', keep='first')
 
-    DurationVigStates = combined_df2.pivot_table(index='Mice', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='mean', fill_value=None)
-    try: DurationVigStates = DurationVigStates[desired_order]
-    except: pass        
-    AllDurationVigStates=pd.concat([AllDurationVigStates, DurationVigStates], axis=0)
+DurationVigStates = combined_df2.pivot_table(index='Mice', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='mean', fill_value=None)
+try: DurationVigStates = DurationVigStates[desired_order]
+except: pass        
+AllDurationVigStates=pd.concat([AllDurationVigStates, DurationVigStates], axis=0)
 
-    TotDurationVigStates = combined_df2.pivot_table(index='Mice', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='sum', fill_value=None)
-    try: TotDurationVigStates = TotDurationVigStates[desired_order]
-    except: pass
-    AllTotDurationVigStates=pd.concat([AllTotDurationVigStates, TotDurationVigStates], axis=0)
+TotDurationVigStates = combined_df2.pivot_table(index='Mice', columns=[combined_df2['Drug'], combined_df2['Substate']], values='DurationSubstate', aggfunc='sum', fill_value=None)
+try: TotDurationVigStates = TotDurationVigStates[desired_order]
+except: pass
+AllTotDurationVigStates=pd.concat([AllTotDurationVigStates, TotDurationVigStates], axis=0)
 
 AllDurationVigStates.to_excel(writer, sheet_name=f'MeanEpisodeDurations')
 AllTotDurationVigStates.to_excel(writer, sheet_name=f'TotalEpisodeDurations')

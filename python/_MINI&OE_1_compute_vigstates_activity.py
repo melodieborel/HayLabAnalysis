@@ -4,12 +4,11 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=1 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
+DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-suffix='' 
-AnalysisID='_CGP' 
+AnalysisID='' 
 
-saveexcel=0
+saveexcel=1
 
 dir = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
 
@@ -205,13 +204,13 @@ def computeAssemblyActivity(patterns,zactmat,zerodiag = True):
                 # Load sleep score and Ca2+ time series numpy arrays #
 #######################################################################################
 
-all_expe_types=['preCGP', 'postCGP'] if DrugExperiment else ['baseline', 'preCGP']
+all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baseline', 'preCGP']
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_CGP_analysis/VigSt_{FolderNameSave}{suffix}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_baseline_analysis/VigSt_{FolderNameSave}{suffix}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_CGP_analysis/VigSt_{FolderNameSave}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_baseline_analysis/VigSt_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 

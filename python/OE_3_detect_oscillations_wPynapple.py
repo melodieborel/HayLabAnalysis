@@ -172,7 +172,7 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
     ripple_freq_index = np.logical_and(freqs > 120, freqs < 200)
     ripple_power = np.mean(np.abs(mwt_RUN[:, ripple_freq_index]), 1)
     smoothed_ripple_power = ripple_power.smooth(0.01) #in seconds 0.005 
-    threshold_ripple_power = smoothed_ripple_power.threshold(.175) #.25 only very pretty SWRs // .1 too much for TBC
+    threshold_ripple_power = smoothed_ripple_power.threshold(.15) #.25 only very pretty SWRs // .1 too much for TBC
     rip_ep = threshold_ripple_power.time_support
     rip_ep['dur_ms']=np.round((rip_ep['end']-rip_ep['start'])*1000)
     rip_ep=rip_ep[rip_ep['dur_ms']>10] #5ms

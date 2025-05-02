@@ -4,14 +4,14 @@
                             # Define Experiment type #
 #######################################################################################
 
-AnalysisID='_Correlations' #to identify this analysis from another
+AnalysisID='' #to identify this analysis from another
 DrugExperiment=0 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
 saveexcel=1
 Local=1
 
 #choosed_folder='VigSt_2024-07-22_18_21_32_AB_FINAL' if DrugExperiment else 'VigSt_2024-07-22_17_16_28_AB_FINAL'
-choosed_folder1='VigSt_2025-04-16_18_40_04_CellAssembly' # for Baseline Expe
+choosed_folder1='VigSt_2025-04-30_11_04_08' # for Baseline Expe
 choosed_folder2='VigSt_' # for CGP Expe
 
 desired_order = ['AW','QW', 'NREM', 'IS', 'REM', 'undefined']   
@@ -74,7 +74,7 @@ directory2= f'{InitialDirectory2}/{choosed_folder2}'
 # Get the current date and time
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_global_analysis/AVG_VigSt_{FolderNameSave}{AnalysisID}" if Local else f"/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_global_analysis/AVG_VigSt_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_global_analysis/Corr_VigSt_{FolderNameSave}{AnalysisID}" if Local else f"/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_global_analysis/Corr_VigSt_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -97,7 +97,7 @@ for NrSubtype in NrSubtypeList:
     if NrSubtype=='L1NDNF_mice':
         MiceList=['BlackLines', 'BlueLines', 'GreenDots', 'GreenLines', 'RedLines']
     else:
-        MiceList=['Purple', 'ThreeColDots', 'ThreeBlueCrosses']
+        MiceList=['PurpleSquare', 'ThreeColDots', 'ThreeBlueCrosses']
     
     nametofind2='VigSt_CaCorr'
     nametofind3='VigSt_SpCorr'      
