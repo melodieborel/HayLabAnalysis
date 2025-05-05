@@ -4,7 +4,7 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=0 # 0 if Baseline Experiment / 1 if CGP Experiment
+DrugExperiment=1 # 0 if Baseline Experiment / 1 if CGP Experiment
 
 saveexcel=1
 
@@ -236,13 +236,14 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 dict_TodropFile[session]  = unit_to_drop
 
 
+            #SWRlist= pd.read_csv(session_path / f'OpenEphys/SWR_detection.csv' )
             SWRlist= pd.read_csv(session_path / f'OpenEphys/SWRproperties.csv' )
-            SWRlist['toKeep'] = SWRlist['toKeep'].astype(str)  if DrugExperiment else 'True'
+            SWRlist['toKeep'] = 'True' # SWRlist['toKeep'].astype(str)
             dict_SWRprop[session]  =SWRlist[SWRlist['toKeep'].isin(['VRAI', 'True'])]
 
             #Spdllist = pd.read_csv(session_path / f'OpenEphys/SpindlesS1&PFC_detection.csv')
             Spdllist = pd.read_csv(session_path / f'OpenEphys/Spindleproperties_S1&PFC.csv')
-            Spdllist['toKeep'] = Spdllist['toKeep'].astype(str)
+            Spdllist['toKeep'] = 'True' # Spdllist['toKeep'].astype(str)
             dict_Spindleprop[session]  = Spdllist[Spdllist['toKeep'].isin(['VRAI', 'True'])]
 
 

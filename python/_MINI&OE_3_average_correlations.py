@@ -5,13 +5,12 @@
 #######################################################################################
 
 AnalysisID='' #to identify this analysis from another
-DrugExperiment=0 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
+DrugExperiment=1 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
-saveexcel=1
+saveexcel=0
 Local=1
 
-#choosed_folder='VigSt_2024-07-22_18_21_32_AB_FINAL' if DrugExperiment else 'VigSt_2024-07-22_17_16_28_AB_FINAL'
-choosed_folder1='VigSt_2025-04-30_11_04_08' # for Baseline Expe
+choosed_folder1='VigSt_2025-05-03_12_01_21' # for Baseline Expe
 choosed_folder2='VigSt_' # for CGP Expe
 
 desired_order = ['AW','QW', 'NREM', 'IS', 'REM', 'undefined']   
@@ -69,7 +68,7 @@ def divide_keys(data, startkey, everykey):
 InitialDirectory1 = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_baseline_analysis" if Local else "/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_baseline_analysis" 
 directory1= f'{InitialDirectory1}/{choosed_folder1}'
 InitialDirectory2 ="//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_CGP_analysis" if Local else "/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_CGP_analysis"
-directory2= f'{InitialDirectory2}/{choosed_folder2}'
+directory2= f'{InitialDirectory2}/{choosed_folder1}'
 
 # Get the current date and time
 FolderNameSave=str(datetime.now())[:19]
@@ -83,7 +82,8 @@ source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayL
 destination_file_path = f"{destination_folder}/_MINI&OE_3_average_correlations.txt"
 shutil.copy(source_script, destination_file_path)
 
-directories= [directory1, directory2] if DrugExperiment else [directory1]
+#directories= [directory1, directory2] if DrugExperiment else [directory1]
+directories= [directory2] 
 
 NrSubtypeList=['L1NDNF_mice','L2_3_mice']
 

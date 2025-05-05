@@ -4,8 +4,8 @@
                             # Define Experiment type #
 #######################################################################################
 
-AnalysisID='' #to identify this analysis from another
-DrugExperiment=0 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
+AnalysisID='_CGP' #to identify this analysis from another
+DrugExperiment=1 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
 saveexcel=0
 Local=1
@@ -13,9 +13,9 @@ Local=1
 desired_order = ['AW','QW', 'NREM', 'IS', 'REM', 'undefined']   
 
 #choosed_folder='VigSt_2024-07-22_18_21_32_AB_FINAL' if DrugExperiment else 'VigSt_2024-07-22_17_16_28_AB_FINAL'
-choosed_folder1='VigSt_2025-04-30_11_04_08' # for Baseline Expe
-choosed_folder2='VigSt_' # for CGP Expe
-choosed_folder3='AVG_Corr_2025-04-30_14_43_55' # for Correlations
+choosed_folder1='VigSt_2025-05-03_10_01_32' # for Baseline Expe
+choosed_folder2='VigSt_2025-05-03_12_01_21' # for CGP Expe
+choosed_folder3='Corr_VigSt_2025-05-03_14_47_15' # for Correlations
 
 #######################################################################################
                                 # Load packages #
@@ -54,39 +54,6 @@ def extract_micename(index_value):
 def max_column_name(row):
     return row.idxmax()
     
-# Define a function to replace values based on conditions
-def replace_values(arr, idx ):
-    result = []
-    for value in arr:
-        if value < -0.5:
-            result.append(f'REM{idx}')
-        elif -0.5 <= value <= 0.5:
-            result.append(f'NonSel{idx}')
-        elif 0.5 < value:
-            result.append(f'NREM{idx}')
-        else:
-            result.append(value)  # Keep value if it's outside the defined ranges
-    return result
-
-def normalize_row(row):
-    max_col = row.idxmax()  # Find the column with the maximum value
-    max_val = row[max_col]  # Get the maximum value
-    return row / max_val   # Normalize the row by dividing by the maximum value
-
-def divide_keys(data, startkey, everykey):
-    for it in range(startkey, len(data), everykey):        
-        key2 = list(data.keys())[it-1]
-        key3 = list(data.keys())[it]
-        d=data[key3]
-        data[key3]=d.replace(0, np.nan)
-        if startkey>1:
-            key1 = list(data.keys())[it-2]
-            data[key1] = data[key1] / data[key3]
-        data[key2] = data[key2] / data[key3]
-    keys_to_delete = list(data.keys())[startkey::everykey]
-    for key in keys_to_delete:
-        del data[key]
-    return data   
 
 #######################################################################################
                             # Define Directories #
@@ -257,7 +224,7 @@ for NrSubtype in NrSubtypeList:
                         dfCaTot_filtered[sheet_name] = dfCa.loc[indices_to_keep_existing, columns_to_keep_existing]
                     
                     if DrugExperiment>=1:
-                        # Keep only correlation pairs that occurs for the 2 Drugs
+                        # Keep only correlation pairs that occurs for each Drug condition
                         for sheet_name, df in dfCaTot_filtered.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -311,7 +278,7 @@ for NrSubtype in NrSubtypeList:
                         dfCaTot_filtered[sheet_name] = dfCa.loc[indices_to_keep_existing, columns_to_keep_existing]
                     
                     if DrugExperiment>=1:
-                        # Keep only correlation pairs that occurs for the 2 Drugs
+                        # Keep only correlation pairs that occurs for each Drug condition
                         for sheet_name, df in dfCaTot_filtered.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -366,11 +333,10 @@ for NrSubtype in NrSubtypeList:
                         dfCa_filtered[sheet_name] = dfCa.loc[indices_to_keep_existing, columns_to_keep_existing]
 
                     if DrugExperiment==1: 
-                        # Keep only correlation pairs that occurs for each Drug                 
+                        # Keep only correlation pairs that occurs for each Drug condition                
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['baseline_NREM', 'Z_baseline_NREM', 'baseline_REM', 'Z_baseline_REM','CGP_NREM', 'Z_CGP_NREM', 'CGP_REM', 'Z_CGP_REM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]
+                        keys_to_keep =['baseline_AW', 'Z_baseline_AW', 'CGP_AW', 'Z_CGP_AW']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -384,9 +350,8 @@ for NrSubtype in NrSubtypeList:
                         dfCa_DoubleFiltered = {name: df.loc[common_indices, common_columns] for name, df in dfCa_filtered2.items()}
 
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['baseline_Wake', 'Z_baseline_Wake', 'baseline_REM', 'Z_baseline_REM','CGP_Wake', 'Z_CGP_Wake', 'CGP_REM', 'Z_CGP_REM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]
+                        keys_to_keep =['baseline_QW', 'Z_baseline_QW', 'CGP_QW', 'Z_CGP_QW']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -400,9 +365,23 @@ for NrSubtype in NrSubtypeList:
                         dfCa_DoubleFiltered2 = {name: df.loc[common_indices, common_columns] for name, df in dfCa_filtered2.items()}
                         
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['baseline_Wake', 'Z_baseline_Wake', 'baseline_NREM', 'Z_baseline_NREM','CGP_Wake', 'Z_CGP_Wake', 'CGP_NREM', 'Z_CGP_NREM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]
+                        keys_to_keep =['baseline_NREM', 'Z_baseline_NREM', 'CGP_NREM', 'Z_CGP_NREM']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
+                        for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
+                            df = df[~(df.fillna(0) == 0).all(axis=1)]
+                            df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
+                            dfCa_filtered2[sheet_name] = df    
+                        first_key = list(dfCa_filtered2.keys())[0]
+                        common_columns = dfCa_filtered2[first_key].columns
+                        common_indices = dfCa_filtered2[first_key].index
+                        for df in dfCa_filtered2.values():
+                            common_columns = common_columns.intersection(df.columns)
+                            common_indices = common_indices.intersection(df.index)
+                        dfCa_DoubleFiltered2 = {name: df.loc[common_indices, common_columns] for name, df in dfCa_filtered2.items()}
+
+                        dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
+                        keys_to_keep =['baseline_REM', 'Z_baseline_REM', 'CGP_REM', 'Z_CGP_REM']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -421,9 +400,8 @@ for NrSubtype in NrSubtypeList:
                     elif DrugExperiment==0:
                         # Keep only correlation pairs that occurs for each Vig States  
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['CGP_AW', 'Z_CGP_AW','CGP_QW', 'Z_CGP_QW', 'CGP_NREM', 'Z_CGP_NREM', 'CGP_REM', 'Z_CGP_REM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]
+                        keys_to_keep =['baseline_AW', 'Z_baseline_AW','baseline_QW', 'Z_baseline_QW', 'baseline_NREM', 'Z_baseline_NREM', 'baseline_REM', 'Z_baseline_REM']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -439,9 +417,8 @@ for NrSubtype in NrSubtypeList:
                     elif DrugExperiment ==2: 
                         # Keep only correlation pairs that occurs for each Vig States  
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['baseline_AW', 'Z_baseline_AW', 'baseline_QW', 'Z_baseline_QW', 'baseline_NREM', 'Z_baseline_NREM', 'baseline_REM', 'Z_baseline_REM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]
+                        keys_to_keep =['CGP_AW', 'Z_CGP_AW','CGP_QW', 'Z_CGP_QW', 'CGP_NREM', 'Z_CGP_NREM', 'CGP_REM', 'Z_CGP_REM']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -455,9 +432,8 @@ for NrSubtype in NrSubtypeList:
                         dfCa_DoubleFiltered = {name: df.loc[common_indices, common_columns] for name, df in dfCa_filtered2.items()}
                         
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['CGP_Wake', 'Z_CGP_Wake', 'CGP_NREM', 'Z_CGP_NREM', 'CGP_REM', 'Z_CGP_REM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]         
+                        keys_to_keep =['baseline_AW', 'Z_baseline_AW','baseline_QW', 'Z_baseline_QW', 'baseline_NREM', 'Z_baseline_NREM', 'baseline_REM', 'Z_baseline_REM']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}       
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -526,11 +502,10 @@ for NrSubtype in NrSubtypeList:
                         dfCa_filtered[sheet_name] = dfCa.loc[indices_to_keep_existing, columns_to_keep_existing]
                         
                     if DrugExperiment==1: 
-                        # Keep only correlation pairs that occurs for each Drug                      
+                        # Keep only correlation pairs that occurs for each Drug condition                     
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['baseline_NREM', 'Z_baseline_NREM', 'baseline_REM', 'Z_baseline_REM','CGP_NREM', 'Z_CGP_NREM', 'CGP_REM', 'Z_CGP_REM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]
+                        keys_to_keep =['baseline_AW', 'Z_baseline_AW', 'CGP_AW', 'Z_CGP_AW']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -544,9 +519,23 @@ for NrSubtype in NrSubtypeList:
                         dfCa_DoubleFiltered = {name: df.loc[common_indices, common_columns] for name, df in dfCa_filtered2.items()}
 
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['baseline_Wake', 'Z_baseline_Wake', 'baseline_REM', 'Z_baseline_REM','CGP_Wake', 'Z_CGP_Wake', 'CGP_REM', 'Z_CGP_REM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]
+                        keys_to_keep =['baseline_QW', 'Z_baseline_QW', 'CGP_QW', 'Z_CGP_QW']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
+                        for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
+                            df = df[~(df.fillna(0) == 0).all(axis=1)]
+                            df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
+                            dfCa_filtered2[sheet_name] = df    
+                        first_key = list(dfCa_filtered2.keys())[0]
+                        common_columns = dfCa_filtered2[first_key].columns
+                        common_indices = dfCa_filtered2[first_key].index
+                        for df in dfCa_filtered2.values():
+                            common_columns = common_columns.intersection(df.columns)
+                            common_indices = common_indices.intersection(df.index)
+                        dfCa_DoubleFiltered2 = {name: df.loc[common_indices, common_columns] for name, df in dfCa_filtered2.items()}
+
+                        dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
+                        keys_to_keep =['baseline_NREM', 'Z_baseline_NREM', 'CGP_NREM', 'Z_CGP_NREM']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -560,9 +549,8 @@ for NrSubtype in NrSubtypeList:
                         dfCa_DoubleFiltered2 = {name: df.loc[common_indices, common_columns] for name, df in dfCa_filtered2.items()}
                         
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['baseline_Wake', 'Z_baseline_Wake', 'baseline_NREM', 'Z_baseline_NREM','CGP_Wake', 'Z_CGP_Wake', 'CGP_NREM', 'Z_CGP_NREM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]
+                        keys_to_keep =['baseline_REM', 'Z_baseline_REM', 'CGP_REM', 'Z_CGP_REM']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -599,9 +587,8 @@ for NrSubtype in NrSubtypeList:
                     elif DrugExperiment ==2: 
                         # Keep only correlation pairs that occurs for each Vig States  
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['baseline_Wake', 'Z_baseline_Wake', 'baseline_NREM', 'Z_baseline_NREM', 'baseline_REM', 'Z_baseline_REM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]
+                        keys_to_keep =['CGP_AW', 'Z_CGP_AW','CGP_QW', 'Z_CGP_QW', 'CGP_NREM', 'Z_CGP_NREM', 'CGP_REM', 'Z_CGP_REM']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]
@@ -615,9 +602,8 @@ for NrSubtype in NrSubtypeList:
                         dfCa_DoubleFiltered = {name: df.loc[common_indices, common_columns] for name, df in dfCa_filtered2.items()}
                         
                         dfCa_filtered2 = copy.deepcopy(dfCa_filtered)
-                        for key in ['CGP_Wake', 'Z_CGP_Wake', 'CGP_NREM', 'Z_CGP_NREM', 'CGP_REM', 'Z_CGP_REM']:
-                            if key in dfCa_filtered2:
-                                del dfCa_filtered2[key]         
+                        keys_to_keep =['baseline_AW', 'Z_baseline_AW','baseline_QW', 'Z_baseline_QW', 'baseline_NREM', 'Z_baseline_NREM', 'baseline_REM', 'Z_baseline_REM']
+                        dfCa_filtered2 = {k: dfCa_filtered2[k] for k in keys_to_keep if k in dfCa_filtered2}              
                         for sheet_name, df in dfCa_filtered2.items(): #remove inactive/non recorded neurons
                             df = df[~(df.fillna(0) == 0).all(axis=1)]
                             df = df.loc[:, ~(df.fillna(0) == 0).all(axis=0)]

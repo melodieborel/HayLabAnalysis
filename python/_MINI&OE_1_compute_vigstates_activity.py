@@ -4,11 +4,11 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
+DrugExperiment=1 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
 AnalysisID='' 
 
-saveexcel=1
+saveexcel=0
 
 dir = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
 
@@ -168,16 +168,23 @@ def runPatterns(actmat, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 
     significance.nullhyp = nullhyp
     significance = runSignificance(zactmat_,significance)
     if np.isnan(significance.nassemblies):
-        return
+        patterns = []
+        zactmat = []
+        significance = []
+        #return
     if significance.nassemblies<1:
-        print('WARNING !')
+        print('WARNING 1!')
         print('    no assembly detecded!')
         patterns = []
         zactmat = []
+        significance = []
     else:
         patterns_ = extractPatterns(zactmat_,significance,method)
         if patterns_ is np.nan:
-            return
+            patterns = []
+            zactmat = []
+            significance = []
+            #return
         patterns = np.zeros((np.size(patterns_,0),nneurons))
         patterns[:,~silentneurons] = patterns_
         zactmat = np.copy(actmat)
@@ -186,18 +193,18 @@ def runPatterns(actmat, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 
 
 def computeAssemblyActivity(patterns,zactmat,zerodiag = True):
     if len(patterns) == 0:
-        print('WARNING !')
+        print('WARNING 2!')
         print('    no assembly detecded!')
         assemblyAct = []
-        return assemblyAct
-    nassemblies = len(patterns)
-    nbins = np.size(zactmat,1)
-    assemblyAct = np.zeros((nassemblies,nbins))
-    for (assemblyi,pattern) in enumerate(patterns):
-        projMat = np.outer(pattern,pattern)
-        projMat -= zerodiag*np.diag(np.diag(projMat))
-        for bini in range(nbins):
-            assemblyAct[assemblyi,bini] = np.dot(np.dot(zactmat[:,bini],projMat),zactmat[:,bini])
+    else:
+        nassemblies = len(patterns)
+        nbins = np.size(zactmat,1)
+        assemblyAct = np.zeros((nassemblies,nbins))
+        for (assemblyi,pattern) in enumerate(patterns):
+            projMat = np.outer(pattern,pattern)
+            projMat -= zerodiag*np.diag(np.diag(projMat))
+            for bini in range(nbins):
+                assemblyAct[assemblyi,bini] = np.dot(np.dot(zactmat[:,bini],projMat),zactmat[:,bini])
     return assemblyAct
 
 #######################################################################################
@@ -365,6 +372,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
             nb_unit=len(CalciumSub)
             if nb_unit==0:
+                print(f'no cells kept in the session: {session}')
                 continue  # next iteration
             
             # Realigned the traces to the recorded timestamps 
@@ -443,7 +451,6 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
 
             # Define cell assemblies
-
             patterns,significance,zactmat= runPatterns(Carray.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)
             if len(patterns)>0:
                 thresh = np.mean(patterns)+2*np.std(patterns)
