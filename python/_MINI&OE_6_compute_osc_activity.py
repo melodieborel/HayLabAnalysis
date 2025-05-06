@@ -18,8 +18,8 @@ dir = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
 
 before = 500 # Max distance in ms between a SWR and a spindle to be considered as Precoupled
 after = 1000 # Max distance in ms between a spindle and a SWR to be considered as Postcoupled
-durationSpdl = 5 # number of sec before and after the Spdl onset taken into acount
-durationSWR = 3 # number of sec before and after the SWR onset taken into acount
+durationSpdl = 2 # number of sec before and after the Spdl onset taken into acount
+durationSWR = 2 # number of sec before and after the SWR onset taken into acount
 
 drugs=['baseline', 'CGP'] if DrugExperiment else ['baseline']
 
@@ -547,9 +547,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                             resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
                                             key=mice + str(indexMapp).replace('[','').replace(']','')
                                             dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
-                                #else: 
-                                    #print(f"/!\ Cell idx {unit} not in the cross registration")
-                                        
+ 
                         #######################################################################################
                                                             # for SWRs #
                         #######################################################################################
