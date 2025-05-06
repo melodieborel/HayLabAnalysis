@@ -347,7 +347,6 @@ for DrugExperiment in DrugExperimentList:
                     kept_uniq_unit_List.append(str(indexMapp))
                     
                 nb_unit=len(Calcium)
-                
               
                 Carray=Calcium.values.T.astype(float)
                 Sarray=Spike.values.T.astype(float)

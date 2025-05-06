@@ -336,6 +336,8 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 
                 nb_of_previousframe=firstframe
 
+                firstframe+=rec_dur
+
 
                 # Deal with dropped frames (failure to acquire miniscope images)
 
@@ -357,18 +359,14 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
                 SpipropO=dict_Spindleprop[session]
                 SpipropM=SpipropO.copy()
-                SpipropM['start time'] = SpipropM['start time'] - StartTime*1000
-                SpipropM['end time'] = SpipropM['end time'] - StartTime*1000
-                SpipropTrunc=SpipropM[SpipropM['start time']> 0]
-                SpipropTrunc=SpipropTrunc[SpipropTrunc['end time']< rec_dur_sec*1000]
-
                 SWRpropO=dict_SWRprop[session]
                 SWRpropM=SWRpropO.copy()
-                SWRpropM['start time'] = SWRpropM['start time'] - StartTime*1000
-                SWRpropM['end time'] = SWRpropM['end time'] - StartTime*1000
-                SWRpropTrunc=SWRpropM[SWRpropM['start time']> 0]
-                SWRpropTrunc=SWRpropTrunc[SWRpropTrunc['end time']< rec_dur_sec*1000]
 
+                SpipropM=SpipropM[SpipropM['start time']> StartFrame_msec]
+                SpipropTrunc=SpipropM[SpipropM['end time']< LastFrame_msec]
+                SWRpropM=SWRpropM[SWRpropM['start time']> StartFrame_msec]
+                SWRpropTrunc=SWRpropM[SWRpropM['end time']< LastFrame_msec]
+                
                 HalfSpdl = round(durationSpdl*minian_freq)
                 HalfSWR = round(durationSWR*minian_freq)
 
@@ -419,11 +417,11 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             endPreviousSpi=SpipropTrunc.loc[prevspin, "end time"] if prevspin else startSpi-durationSpdl*1000 #line and not index cause sometimes, index are not ordered    
                             prevspin=Pspin
 
-                            if startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
+                            if 1==1:# startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
 
-                                TooEarlySpdl=startSpi-durationSpdl*1000<=0 # too close to the begining of the recording
-                                TooLateSpdl=startSpi+durationSpdl*1000>=rec_dur_sec*1000 # too close to the end of the recording
-                                
+                                TooEarlySpdl=startSpi-durationSpdl*1000<StartFrame_msec # too close to the begining of the recording
+                                TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
+                        
                                 if TooEarlySpdl or TooLateSpdl:
                                     print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None            
                                 else:
@@ -567,7 +565,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             endPreviousSwr=SWRpropTrunc.loc[prevSWR, "end time"] if prevSWR else startSwr-durationSWR*1000                             
                             prevSWR=Pswr
 
-                            if startSwr - endPreviousSwr >= durationSWR*1000 : # if the spindle is not too close from the end of previous one 
+                            if 1==1:#startSwr - endPreviousSwr >= durationSWR*1000 : # if the spindle is not too close from the end of previous one 
                                 
                                 TooEarlySWR=startSwr-durationSWR*1000<StartFrame_msec # too close to the begining of the recording
                                 TooLateSWR=startSwr+durationSWR*1000>LastFrame_msec # too close to the end of the recording
@@ -726,7 +724,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         with open(filenameOut, 'wb') as pickle_file:
                             pickle.dump(dict_All_Activity, pickle_file)
 
-    sentence3=f"Nb of unique units for {mice} = {len(dict_All_Activity)} / Data saved in {time.time() - start2:.2f} seconds"
+    sentence3=f"{mice} data saved in {time.time() - start2:.2f} seconds"
     print(sentence3)   
 
 
