@@ -75,7 +75,7 @@ class Tee:
         for f in self.files:
             f.flush()
 
-            
+
 minian_path = os.path.join(os.path.abspath('.'),'minian')
 print("The folder used for minian procedures is : {}".format(minian_path))
 sys.path.append(minian_path)
@@ -357,13 +357,17 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
                 SpipropO=dict_Spindleprop[session]
                 SpipropM=SpipropO.copy()
+                SpipropM['start time'] = SpipropM['start time'] - StartTime*1000
+                SpipropM['end time'] = SpipropM['end time'] - StartTime*1000
+                SpipropTrunc=SpipropM[SpipropM['start time']> 0]
+                SpipropTrunc=SpipropTrunc[SpipropTrunc['end time']< rec_dur_sec*1000]
+
                 SWRpropO=dict_SWRprop[session]
                 SWRpropM=SWRpropO.copy()
-
-                SpipropM=SpipropM[SpipropM['start time']> StartFrame_msec]
-                SpipropTrunc=SpipropM[SpipropM['end time']< LastFrame_msec]
-                SWRpropM=SWRpropM[SWRpropM['start time']> StartFrame_msec]
-                SWRpropTrunc=SWRpropM[SWRpropM['end time']< LastFrame_msec]
+                SWRpropM['start time'] = SWRpropM['start time'] - StartTime*1000
+                SWRpropM['end time'] = SWRpropM['end time'] - StartTime*1000
+                SWRpropTrunc=SWRpropM[SWRpropM['start time']> 0]
+                SWRpropTrunc=SWRpropTrunc[SWRpropTrunc['end time']< rec_dur_sec*1000]
 
                 HalfSpdl = round(durationSpdl*minian_freq)
                 HalfSWR = round(durationSWR*minian_freq)
@@ -405,7 +409,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             
                             # Get the calcium and spike trace associated with the spdl
             
-                            startSpi=SpipropTrunc.loc[Pspin, "start time"]                
+                            startSpi=SpipropTrunc.loc[Pspin, "start time"]    
                             endSpi=SpipropTrunc.loc[Pspin, "end time"]    
                             ctxSpi=SpipropTrunc.loc[Pspin, "CTX"]                
                             diffSpi=SpipropTrunc.loc[Pspin, "LocalGlobal"]                
@@ -417,11 +421,11 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
                             if startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
 
-                                TooEarlySpdl=startSpi-durationSpdl*1000<StartFrame_msec # too close to the begining of the recording
-                                TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
+                                TooEarlySpdl=startSpi-durationSpdl*1000<=0 # too close to the begining of the recording
+                                TooLateSpdl=startSpi+durationSpdl*1000>=rec_dur_sec*1000 # too close to the end of the recording
                                 
                                 if TooEarlySpdl or TooLateSpdl:
-                                    print("... /!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None            
+                                    print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None            
                                 else:
 
                                     if ctxSpi=='S1':
@@ -496,7 +500,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 
                                     counter+=1    
                             #else: 
-                                #print("/!\ Spindle too close to the end of the previous one,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None
+                            #    print("/!\ Spindle too close to the end of the previous one,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None
                         
                         ## Peristimulus Time Histogram 
                         start4 = time.time()
@@ -691,7 +695,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
                 print(f"... The {unit_count} units of {session} analyzed in {time.time() - start2:.2f} seconds")
 
-                sentence2=f"... {nb_spindle} spindles ({cCoupled} Coupled & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global, {cLocalS1} LocalS1 & {cLocalPFC} LocalPFC) and {nb_swr} SWR detected ({cCoupledSWR} Coupled & {cUnCoupledSWR} Uncoupled SWR)"
+                sentence2=f"... {cCoupled+cUnCoupled}/{nb_spindle} spindles kept ({cCoupled} Coupled & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global, {cLocalS1} LocalS1 & {cLocalPFC} LocalPFC) and {cCoupledSWR+cUnCoupledSWR}/{nb_swr} SWR kept ({cCoupledSWR} Coupled & {cUnCoupledSWR} Uncoupled SWR)"
                 print(sentence2) 
             else:
                 print(f'/!\ {session} not taken into account cause minian frequency = {minian_freq}')
@@ -722,7 +726,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         with open(filenameOut, 'wb') as pickle_file:
                             pickle.dump(dict_All_Activity, pickle_file)
 
-    sentence3=f"Nb of unique units for {mice} = {len(mapping)} / Data saved in {time.time() - start2:.2f} seconds"
+    sentence3=f"Nb of unique units for {mice} = {len(dict_All_Activity)} / Data saved in {time.time() - start2:.2f} seconds"
     print(sentence3)   
 
 
