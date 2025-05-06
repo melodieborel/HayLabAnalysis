@@ -4,11 +4,13 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=1 # 0 if Baseline Experiment / 1 if CGP Experiment
+DrugExperiment=0 # 0 if Baseline Experiment / 1 if CGP Experiment
 
 saveexcel=1
 
-AnalysisID='_likeAH' 
+AHmethod=0 # 0 if using the method of Aurelie Hay (2025) / 1 if using the method of Audrey Hay (2025)
+
+AnalysisID='_likeAH' if AHmethod else '_pynapple' # '_pynapple' if using the method of Aurelie Hay (2025) / '_minian' if using the method of Audrey Hay (2025)
 suffix=''
 
 CTX=['S1', 'PFC', 'S1PFC']
@@ -18,8 +20,8 @@ dir = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
 
 before = 500 # Max distance in ms between a SWR and a spindle to be considered as Precoupled
 after = 1000 # Max distance in ms between a spindle and a SWR to be considered as Postcoupled
-durationSpdl = 2 # number of sec before and after the Spdl onset taken into acount
-durationSWR = 2 # number of sec before and after the SWR onset taken into acount
+durationSpdl = 1 # number of sec before and after the Spdl onset taken into acount
+durationSWR = 1 # number of sec before and after the SWR onset taken into acount
 
 drugs=['baseline', 'CGP'] if DrugExperiment else ['baseline']
 
@@ -50,6 +52,7 @@ import shutil
 from bisect import bisect_left
 from ast import literal_eval
 from scipy import interpolate
+import time
 
 from itertools import groupby
 from ephyviewer import mkQApp, MainViewer, TraceViewer
@@ -60,6 +63,19 @@ from datetime import datetime
 import warnings
 warnings.filterwarnings("ignore")
 
+import sys
+class Tee:
+    def __init__(self, *files):
+        self.files = files
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
+            f.flush()
+    def flush(self):
+        for f in self.files:
+            f.flush()
+
+            
 minian_path = os.path.join(os.path.abspath('.'),'minian')
 print("The folder used for minian procedures is : {}".format(minian_path))
 sys.path.append(minian_path)
@@ -132,6 +148,9 @@ destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analyse
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
+logfile = open(f"{destination_folder}/output_log.txt", 'w')
+sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
+
 # Copy the script file to the destination folder
 source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayLabAnalysis/python/_MINI&OE_6_compute_osc_activity.py"
 destination_file_path = f"{destination_folder}/_MINI&OE_6_compute_osc_activity.txt"
@@ -152,7 +171,7 @@ SWR_GlobalResults= pd.DataFrame(data, columns=['Mice', 'NeuronType','Session','S
                                                 'AUC_calciumBaseline','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
 
 for dpath in Path(dir).glob('**/mappingsAB.pkl'):
-
+    
     mappfile = open(dpath.parents[0]/ f'mappingsAB.pkl', 'rb')
     mapping = pickle.load(mappfile)
     mapping_sess = mapping['session']   
@@ -204,6 +223,8 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
         if any(p in all_expe_types for p in minianpath.parts): # have to be to the expe_types
 
+            start = time.time()
+
             cCoupled=0
             cUnCoupled=0
             cGlobal=0
@@ -236,16 +257,13 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 dict_TodropFile[session]  = unit_to_drop
 
 
-            #SWRlist= pd.read_csv(session_path / f'OpenEphys/SWR_detection.csv' )
-            SWRlist= pd.read_csv(session_path / f'OpenEphys/SWRproperties.csv' )
+            SWRlist= pd.read_csv(session_path / f'OpenEphys/SWRproperties.csv' ) if AHmethod else pd.read_csv(session_path / f'OpenEphys/SWR_detection.csv' ) 
             SWRlist['toKeep'] = 'True' # SWRlist['toKeep'].astype(str)
             dict_SWRprop[session]  =SWRlist[SWRlist['toKeep'].isin(['VRAI', 'True'])]
 
-            #Spdllist = pd.read_csv(session_path / f'OpenEphys/SpindlesS1&PFC_detection.csv')
-            Spdllist = pd.read_csv(session_path / f'OpenEphys/Spindleproperties_S1&PFC.csv')
+            Spdllist = pd.read_csv(session_path / f'OpenEphys/Spindleproperties_S1&PFC.csv') if AHmethod else pd.read_csv(session_path / f'OpenEphys/SpindlesS1&PFC_detection.csv' ) 
             Spdllist['toKeep'] = 'True' # Spdllist['toKeep'].astype(str)
             dict_Spindleprop[session]  = Spdllist[Spdllist['toKeep'].isin(['VRAI', 'True'])]
-
 
             nb_minian_total+=1
 
@@ -353,10 +371,19 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 nb_spindle = SpipropTrunc.shape[0]
                 nb_swr = SWRpropTrunc.shape[0]
 
+                print(f"... Loading time = {time.time() - start:.2f} seconds")
+
+                start2 = time.time()
+
+                unit_count=0
                 for unit in range(nb_unit): # for each kept units (cause Cseries/Sseries only have kept units)
+                    
                     indexMapp = np.where(mapping_sess[session] == Calcium.index[unit])[0]
                     
                     if len(indexMapp)>0 : # The neuron needs to be in the cross-registration
+
+                        unit_count+=1
+                        
                         Carray_unit =Carray[:,unit]
                         Darray_unit =Darray[:,unit]
                         peaks, _ = find_peaks(Darray_unit)#, height=np.std(SpTrace))
@@ -371,6 +398,9 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                 locals()[f'ActivityCa_{coup}Spin{ctx}']=[] #For each unit 
                                 locals()[f'ActivitySp_{coup}Spin{ctx}']=[] #For each unit  
 
+                        start3 = time.time()
+                        prevspin=[]
+
                         for Pspin in SpipropTrunc.index: 
                             
                             # Get the calcium and spike trace associated with the spdl
@@ -382,136 +412,94 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             StartLocSpi=SpipropTrunc.loc[Pspin, "StartingLoc"]   
                             closestSpdl=SpipropTrunc.loc[Pspin, "DistanceClosestSpdl"]    
 
-                            TooEarlySpdl=startSpi-durationSpdl*1000<StartFrame_msec # too close to the begining of the recording
-                            TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
-                            
-                            if TooEarlySpdl or TooLateSpdl:
-                                print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit==0 else None            
-                            else:
+                            endPreviousSpi=SpipropTrunc.loc[prevspin, "end time"] if prevspin else startSpi-durationSpdl*1000 #line and not index cause sometimes, index are not ordered    
+                            prevspin=Pspin
 
-                                if ctxSpi=='S1':
-                                    cLocalS1+=1 if unit==0 else 0
-                                elif ctxSpi=='PFC': 
-                                    cLocalPFC+=1 if unit==0 else 0
-                                elif ctxSpi=='S1PFC': 
-                                    cGlobal+=1 if unit==0 else 0    
+                            if startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
 
-                                # Find the index of the closest value in the column
-                                Frame_Spindle_start_all = (TS_miniscope_sub - startSpi).abs().idxmin()
-                                Frame_Spindle_start=Frame_Spindle_start_all-nb_of_previousframe
+                                TooEarlySpdl=startSpi-durationSpdl*1000<StartFrame_msec # too close to the begining of the recording
+                                TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
+                                
+                                if TooEarlySpdl or TooLateSpdl:
+                                    print("... /!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None            
+                                else:
 
-                                CaTrace = list(Carray_unit[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl])
-                                SpTrace = list(Sarray_unit[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl]) 
+                                    if ctxSpi=='S1':
+                                        cLocalS1+=1 if unit_count==1 else 0
+                                    elif ctxSpi=='PFC': 
+                                        cLocalPFC+=1 if unit_count==1 else 0
+                                    elif ctxSpi=='S1PFC': 
+                                        cGlobal+=1 if unit_count==1 else 0    
 
-                                ActivityCa_Spin=locals()[f'ActivityCa_Spin{ctxSpi}']
-                                ActivitySp_Spin=locals()[f'ActivitySp_Spin{ctxSpi}']
-                                ActivityCa_Spin.append(CaTrace)
-                                ActivitySp_Spin.append(SpTrace)               
+                                    # Find the index of the closest value in the column
+                                    Frame_Spindle_start_all = (TS_miniscope_sub - startSpi).abs().idxmin()
+                                    Frame_Spindle_start=Frame_Spindle_start_all-nb_of_previousframe
 
-                                # Define if that spindle is coupled with a SWR or not
+                                    CaTrace = list(Carray_unit[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl])
+                                    SpTrace = list(Sarray_unit[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl]) 
 
-                                Spdl_statut=[]
-                                startSWRList = list(pd.Series(SWRpropTrunc["start time"]))
-                                delaiSWRSpdl=None
-                                if len(startSWRList)>0:
-                                    startClosest_SWR_idx = (np.abs(startSWRList - startSpi)).argmin()
-                                    startClosest_SWR = startSWRList[startClosest_SWR_idx]
-                                    distance = abs(startClosest_SWR - startSpi)
-                                    IsTrue=is_between(startSWRList,startSpi, endSpi)
-                                    if (distance < before) or IsTrue:
-                                        Spdl_statut = 'Coupled'
-                                        cCoupled+=1 if unit==0 else 0   
-                                        delaiSWRSpdl=startClosest_SWR - startSpi                           
+                                    ActivityCa_Spin=locals()[f'ActivityCa_Spin{ctxSpi}']
+                                    ActivitySp_Spin=locals()[f'ActivitySp_Spin{ctxSpi}']
+                                    ActivityCa_Spin.append(CaTrace)
+                                    ActivitySp_Spin.append(SpTrace)               
+
+                                    # Define if that spindle is coupled with a SWR or not
+
+                                    Spdl_statut=[]
+                                    startSWRList = list(pd.Series(SWRpropTrunc["start time"]))
+                                    delaiSWRSpdl=None
+                                    if len(startSWRList)>0:
+                                        startClosest_SWR_idx = (np.abs(startSWRList - startSpi)).argmin()
+                                        startClosest_SWR = startSWRList[startClosest_SWR_idx]
+                                        distance = abs(startClosest_SWR - startSpi)
+                                        IsTrue=is_between(startSWRList,startSpi, endSpi)
+                                        if (distance < before) or IsTrue:
+                                            Spdl_statut = 'Coupled'
+                                            cCoupled+=1 if unit_count==1 else 0   
+                                            delaiSWRSpdl=startClosest_SWR - startSpi                           
+                                        else:
+                                            Spdl_statut= 'UnCoupled'
+                                            cUnCoupled+=1 if unit_count==1 else 0
                                     else:
                                         Spdl_statut= 'UnCoupled'
-                                        cUnCoupled+=1 if unit==0 else 0
-                                else:
-                                    Spdl_statut= 'UnCoupled'
-                                    cUnCoupled+=1 if unit==0 else 0
+                                        cUnCoupled+=1 if unit_count==1 else 0
 
-                                ActivityCa_SpinCp=locals()[f'ActivityCa_{Spdl_statut}Spin{ctxSpi}']
-                                ActivitySp_SpinCp=locals()[f'ActivitySp_{Spdl_statut}Spin{ctxSpi}']
-                                ActivityCa_SpinCp.append(CaTrace)
-                                ActivitySp_SpinCp.append(SpTrace)
-                                
-                                # Fill the big summary table Spindles_GlobalResults
+                                    ActivityCa_SpinCp=locals()[f'ActivityCa_{Spdl_statut}Spin{ctxSpi}']
+                                    ActivitySp_SpinCp=locals()[f'ActivitySp_{Spdl_statut}Spin{ctxSpi}']
+                                    ActivityCa_SpinCp.append(CaTrace)
+                                    ActivitySp_SpinCp.append(SpTrace)
+                                    
+                                    # Fill the big summary table Spindles_GlobalResults
 
-                                Spindles_GlobalResults.loc[counter, 'Mice'] = mice
-                                Spindles_GlobalResults.loc[counter, 'NeuronType'] = NeuronType
+                                    Spindles_GlobalResults.loc[counter, 'Mice'] = mice
+                                    Spindles_GlobalResults.loc[counter, 'NeuronType'] = NeuronType
 
-                                Spindles_GlobalResults.loc[counter, 'Session'] = session
-                                Spindles_GlobalResults.loc[counter, 'Session_Date'] = session_date 
-                                Spindles_GlobalResults.loc[counter, 'Session_Time'] = session_time                    
+                                    Spindles_GlobalResults.loc[counter, 'Session'] = session
+                                    Spindles_GlobalResults.loc[counter, 'Session_Date'] = session_date 
+                                    Spindles_GlobalResults.loc[counter, 'Session_Time'] = session_time                    
 
-                                Spindles_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
-                                Spindles_GlobalResults.loc[counter, 'UnitNumber'] = unit 
-                                Spindles_GlobalResults.loc[counter, 'UnitValue'] = Calcium.index[unit] 
-                                
-                                Spindles_GlobalResults.loc[counter, 'ExpeType'] =  expe_type
-                                Spindles_GlobalResults.loc[counter, 'Drug'] =  drug
+                                    Spindles_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
+                                    Spindles_GlobalResults.loc[counter, 'UnitNumber'] = unit 
+                                    Spindles_GlobalResults.loc[counter, 'UnitValue'] = Calcium.index[unit] 
+                                    
+                                    Spindles_GlobalResults.loc[counter, 'ExpeType'] =  expe_type
+                                    Spindles_GlobalResults.loc[counter, 'Drug'] =  drug
 
-                                Spindles_GlobalResults.loc[counter, 'SpdlStatut'] = Spdl_statut
-                                Spindles_GlobalResults.loc[counter, 'SpdlStartLocation'] = StartLocSpi
-                                Spindles_GlobalResults.loc[counter, 'GlobalSpindle'] = diffSpi
-                                Spindles_GlobalResults.loc[counter, 'SpdlNumber'] = Pspin
-                                Spindles_GlobalResults.loc[counter, 'SpdlDuration'] = endSpi- startSpi                        
-                                Spindles_GlobalResults.loc[counter, 'SWR_inside_Spdl'] = IsTrue
-                                Spindles_GlobalResults.loc[counter, 'DistanceSWR_Spdl'] = delaiSWRSpdl 
-                                Spindles_GlobalResults.loc[counter, 'DistanceClosestSpdl'] = closestSpdl 
-
-                                
-                                # Activity before/ during/after oscillation
-
-                                durOsc=round((endSpi- startSpi)/1000*minian_freq)
-                                durOsc=round(1*minian_freq) # 1 seconds
-                                TooEarlySpdl=startSpi/1000<durOsc/minian_freq # too close to the begining of the recording
-                                TooLateSpdl=startSpi/1000+(durOsc/minian_freq*2)>LastFrame_msec/1000 # too close to the end of the recording
-                                if TooEarlySpdl or TooLateSpdl:
-                                    print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s, Spdl duration=", round(durOsc/minian_freq, 1), 's') if unit==0 else None            
-                                else:                                
-                                    CaTrace = list(Carray_unit[Frame_Spindle_start-durOsc:Frame_Spindle_start+durOsc*2])
-                                    SpTrace = list(Sarray_unit[Frame_Spindle_start-durOsc:Frame_Spindle_start+durOsc*2]) 
-                                
-                                    ActBefore=np.mean(CaTrace[:durOsc],0)
-                                    ActDuring=np.mean(CaTrace[durOsc:durOsc*2],0)
-                                    ActAfter=np.mean(CaTrace[durOsc*2:durOsc*3],0)
-                                            
-                                    if ActBefore > ActDuring and ActBefore > ActAfter:
-                                        pref='Before'
-                                    elif ActAfter > ActDuring and ActAfter > ActBefore:
-                                        pref='After' 
-                                    elif ActDuring > ActAfter and ActDuring > ActBefore:
-                                        pref='During' 
-                                    else:
-                                        pref='None'
-                                    Spindles_GlobalResults.loc[counter, 'CalciumActivityPreference'] = pref
-                                    Spindles_GlobalResults.loc[counter, 'CalciumActivityBefore'] = ActBefore
-                                    Spindles_GlobalResults.loc[counter, 'CalciumActivityDuring'] = ActDuring
-                                    Spindles_GlobalResults.loc[counter, 'CalciumActivityAfter'] = ActAfter
-                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumBaseline'] = np.trapz(CaTrace[:round(durOsc/2)],np.arange(0,len(CaTrace[:round(durOsc/2)]),1))*2 # *2 cause 2 times shorter in lenght than the other
-                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumBefore'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))
-                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
-                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
-
-                                    ActBefore=np.mean(SpTrace[:durOsc],0)
-                                    ActDuring=np.mean(SpTrace[durOsc:durOsc*2],0)
-                                    ActAfter=np.mean(SpTrace[durOsc*2:durOsc*3],0)
-
-                                    if ActBefore > ActDuring and ActBefore > ActAfter:
-                                        pref='Before'
-                                    elif ActAfter > ActDuring and ActAfter > ActBefore:
-                                        pref='After' 
-                                    elif ActDuring > ActAfter and ActDuring > ActBefore:
-                                        pref='During' 
-                                    else:
-                                        pref='None'
-                                    Spindles_GlobalResults.loc[counter, 'SpikeActivityPreference'] = pref
-                                    Spindles_GlobalResults.loc[counter, 'SpikeActivityBefore'] = np.mean(SpTrace[:durOsc],0)
-                                    Spindles_GlobalResults.loc[counter, 'SpikeActivityDuring'] = np.mean(SpTrace[durOsc:durOsc*2],0)
-                                    Spindles_GlobalResults.loc[counter, 'SpikeActivityAfter'] = np.mean(SpTrace[durOsc*2:durOsc*3],0)                         
-                                counter+=1     
-
+                                    Spindles_GlobalResults.loc[counter, 'SpdlStatut'] = Spdl_statut
+                                    Spindles_GlobalResults.loc[counter, 'SpdlStartLocation'] = StartLocSpi
+                                    Spindles_GlobalResults.loc[counter, 'GlobalSpindle'] = diffSpi
+                                    Spindles_GlobalResults.loc[counter, 'SpdlNumber'] = Pspin
+                                    Spindles_GlobalResults.loc[counter, 'SpdlDuration'] = endSpi- startSpi                        
+                                    Spindles_GlobalResults.loc[counter, 'SWR_inside_Spdl'] = IsTrue
+                                    Spindles_GlobalResults.loc[counter, 'DistanceSWR_Spdl'] = delaiSWRSpdl 
+                                    Spindles_GlobalResults.loc[counter, 'DistanceClosestSpdl'] = closestSpdl 
+                
+                                    counter+=1    
+                            #else: 
+                                #print("/!\ Spindle too close to the end of the previous one,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None
+                        
                         ## Peristimulus Time Histogram 
+                        start4 = time.time()
                         for ctx in CTX: 
                             for coup in Coupling: 
                                 # All Ca traces for each spindles per Unique unit (according to cross-registration)
@@ -547,10 +535,13 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                             resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
                                             key=mice + str(indexMapp).replace('[','').replace(']','')
                                             dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
- 
+
+                        print(f'... {len(SpipropTrunc)} Spdl processed in {time.time() - start3:.2f} & PSTH done in {time.time() - start4:.2f} seconds for one cell') if unit_count==1 else None
+
                         #######################################################################################
                                                             # for SWRs #
                         #######################################################################################
+                        
                         for coup in Coupling:
                             for ctx in CTX:   
                                 if coup =='Coupled':     
@@ -560,139 +551,99 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                     locals()[f'ActivityCa_{coup}swr']=[] #For each unit 
                                     locals()[f'ActivitySp_{coup}swr']=[] #For each unit  
 
+                        start5 = time.time()
+
+                        prevSWR=[]
                         for Pswr in SWRpropTrunc.index: 
 
                             # Get the calcium and spike trace associated with the SWR
                             startSwr=SWRpropTrunc.loc[Pswr, "start time"]
                             endSwr=SWRpropTrunc.loc[Pswr, "end time"]
-                            
-                            TooEarlySWR=startSwr-durationSWR*1000<StartFrame_msec # too close to the begining of the recording
-                            TooLateSWR=startSwr+durationSWR*1000>LastFrame_msec # too close to the end of the recording
-                            if TooEarlySWR or TooLateSWR:
-                                print("/!\ SWR too close to the begining/end of the recording,", session, ", SWR n°", Pswr, ", Start SWR =",  round(startSwr/1000,1), "s") if unit==0 else None 
-                            else:
 
-                                Frame_SWR_start_all = (TS_miniscope_sub - startSwr).abs().idxmin()
-                                Frame_SWR_start=Frame_SWR_start_all-nb_of_previousframe
+                            endPreviousSwr=SWRpropTrunc.loc[prevSWR, "end time"] if prevSWR else startSwr-durationSWR*1000                             
+                            prevSWR=Pswr
 
-                                CaTrace = list(Carray_unit[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR])
-                                SpTrace = list(Sarray_unit[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR]) 
-
-                                ActivityCa_swr=locals()[f'ActivityCa_swr']
-                                ActivitySp_swr=locals()[f'ActivitySp_swr']
-
-                                ActivityCa_swr.append(CaTrace)
-                                ActivitySp_swr.append(SpTrace)
-
-                                # Define if that SWR is coupled with a SPDL or not
-
-                                SWR_statut=[]
-                                startSpiList = list(pd.Series(SpipropTrunc["start time"]))
-                                endSpiList = list(pd.Series(SpipropTrunc["end time"]))
-                                ctxSpiList = list(pd.Series(SpipropTrunc["CTX"]))
-                                delaiSWRSpdl=None
-                                if len(startSpiList)>0:
-                                    startClosest_Spdl_idx = (np.abs(startSpiList - startSwr)).argmin()
-                                    startClosest_Spi = startSpiList[startClosest_Spdl_idx]
-                                    endClosest_Spi=endSpiList[startClosest_Spdl_idx]
-                                    ctxSpi=ctxSpiList[startClosest_Spdl_idx]
-                                    distance = abs(startClosest_Spi - startSwr) #  + StartTimeIndexSpi]  
-                                    IsTrue = startSwr>startClosest_Spi and startSwr<endClosest_Spi #SWR inside the Spindle
-                                    if distance<before or IsTrue:
-                                        SWR_statut = 'Coupled'
-                                        cCoupledSWR+=1 if unit==0 else 0
-                                        delaiSWRSpdl=startClosest_Spi - startSwr                           
-                                    else:
-                                        SWR_statut= 'UnCoupled'
-                                        cUnCoupledSWR+=1 if unit==0 else 0
-                                        ctxSpi=''
-                                else: 
-                                    SWR_statut= 'UnCoupled'
-                                    cUnCoupledSWR+=1 if unit==0 else 0
-                                    ctxSpi=''
-
-                                ActivityCa_swrCp=locals()[f'ActivityCa_{SWR_statut}swr{ctxSpi}']
-                                ActivitySp_swrCp=locals()[f'ActivitySp_{SWR_statut}swr{ctxSpi}']
-                                ActivityCa_swrCp.append(CaTrace)
-                                ActivitySp_swrCp.append(SpTrace)
+                            if startSwr - endPreviousSwr >= durationSWR*1000 : # if the spindle is not too close from the end of previous one 
                                 
-                                # Fill the big summary table SWR_GlobalResults
-
-                                SWR_GlobalResults.loc[counter2, 'Mice'] = mice
-                                SWR_GlobalResults.loc[counter2, 'NeuronType'] = NeuronType
-
-                                SWR_GlobalResults.loc[counter2, 'Session'] = session
-                                SWR_GlobalResults.loc[counter2, 'Session_Date'] = session_date 
-                                SWR_GlobalResults.loc[counter2, 'Session_Time'] = session_time                    
-
-                                SWR_GlobalResults.loc[counter2, 'Unique_Unit'] = indexMapp 
-                                SWR_GlobalResults.loc[counter2, 'UnitNumber'] = unit 
-                                SWR_GlobalResults.loc[counter2, 'UnitValue'] = Calcium.index[unit] 
+                                TooEarlySWR=startSwr-durationSWR*1000<StartFrame_msec # too close to the begining of the recording
+                                TooLateSWR=startSwr+durationSWR*1000>LastFrame_msec # too close to the end of the recording
                                 
-                                SWR_GlobalResults.loc[counter2, 'ExpeType'] =  expe_type
-                                SWR_GlobalResults.loc[counter2, 'Drug'] = drug
-
-                                SWR_GlobalResults.loc[counter2, 'SWRStatut'] = SWR_statut
-                                SWR_GlobalResults.loc[counter2, 'SpdlLoc'] = ctxSpi
-                                SWR_GlobalResults.loc[counter2, 'SWRNumber'] = Pswr
-                                SWR_GlobalResults.loc[counter2, 'SWRDuration'] = endSwr- startSwr
-                                SWR_GlobalResults.loc[counter2, 'SWR_inside_Spdl'] = IsTrue
-                                SWR_GlobalResults.loc[counter2, 'DistanceSWR_Spdl'] = delaiSWRSpdl 
-
-                                # Activity before/ during/after oscillation
-
-                                durOsc=round((endSwr- startSwr)/1000*minian_freq)
-                                durOsc=round(.5*minian_freq) # 1 seconds
-                                TooEarlySWR=startSwr/1000<durOsc/minian_freq # too close to the begining of the recording
-                                TooLateSWR=startSwr/1000+(durOsc/minian_freq*2)>LastFrame_msec/1000 # too close to the end of the recording
-                                #TooEarlySWR=startSwr-durOsc*1000<StartFrame_msec # too close to the begining of the recording
-                                #TooLateSWR=startSwr+durOsc*1000>LastFrame_msec # too close to the end of the recording
                                 if TooEarlySWR or TooLateSWR:
-                                    print("/!\ SWR too close to the begining/end of the recording,", session, ", SWR n°", Pswr, ", Start SWR =", round(startSwr/1000,1), "s, SWR duration=", round(durOsc/minian_freq, 1), 's') if unit==0 else None            
-                                else:                                
-                                    CaTrace = list(Carray_unit[Frame_SWR_start-durOsc:Frame_SWR_start+durOsc*2])
-                                    SpTrace = list(Sarray_unit[Frame_SWR_start-durOsc:Frame_SWR_start+durOsc*2]) 
+                                    print("/!\ SWR too close to the begining/end of the recording,", session, ", SWR n°", Pswr, ", Start SWR =",  round(startSwr/1000,1), "s") if unit_count==1 else None 
+                                else:
 
-                                    ActBefore=np.mean(CaTrace[:durOsc],0)
-                                    ActDuring=np.mean(CaTrace[durOsc:durOsc*2],0)
-                                    ActAfter=np.mean(CaTrace[durOsc*2:durOsc*3],0)
-                                            
-                                    if ActBefore > ActDuring and ActBefore > ActAfter:
-                                        pref='Before'
-                                    elif ActAfter > ActDuring and ActAfter > ActBefore:
-                                        pref='After' 
-                                    elif ActDuring > ActAfter and ActDuring > ActBefore:
-                                        pref='During' 
-                                    else:
-                                        pref='None'
-                                    SWR_GlobalResults.loc[counter2, 'CalciumActivityPreference'] = pref
-                                    SWR_GlobalResults.loc[counter2, 'CalciumActivityBefore'] = ActBefore
-                                    SWR_GlobalResults.loc[counter2, 'CalciumActivityDuring'] = ActDuring
-                                    SWR_GlobalResults.loc[counter2, 'CalciumActivityAfter'] = ActAfter
-                                    SWR_GlobalResults.loc[counter2, 'AUC_calciumBaseline'] = np.trapz(CaTrace[:round(durOsc/2)],np.arange(0,len(CaTrace[:round(durOsc/2)]),1))*2 # *2 cause 2 times shorter in lenght than the other
-                                    SWR_GlobalResults.loc[counter2, 'AUC_calciumBefore'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))
-                                    SWR_GlobalResults.loc[counter2, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
-                                    SWR_GlobalResults.loc[counter2, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
-                                
-                                    ActBefore=np.mean(SpTrace[:durOsc],0)
-                                    ActDuring=np.mean(SpTrace[durOsc:durOsc*2],0)
-                                    ActAfter=np.mean(SpTrace[durOsc*2:durOsc*3],0)
+                                    Frame_SWR_start_all = (TS_miniscope_sub - startSwr).abs().idxmin()
+                                    Frame_SWR_start=Frame_SWR_start_all-nb_of_previousframe
 
-                                    if ActBefore > ActDuring and ActBefore > ActAfter:
-                                        pref='Before'
-                                    elif ActAfter > ActDuring and ActAfter > ActBefore:
-                                        pref='After' 
-                                    elif ActDuring > ActAfter and ActDuring > ActBefore:
-                                        pref='During' 
-                                    else:
-                                        pref='None'
-                                    SWR_GlobalResults.loc[counter2, 'SpikeActivityPreference'] = pref
-                                    SWR_GlobalResults.loc[counter2, 'SpikeActivityBefore'] = np.mean(SpTrace[:durOsc],0)
-                                    SWR_GlobalResults.loc[counter2, 'SpikeActivityDuring'] = np.mean(SpTrace[durOsc:durOsc*2],0)
-                                    SWR_GlobalResults.loc[counter2, 'SpikeActivityAfter'] = np.mean(SpTrace[durOsc*2:durOsc*3],0)
-                                counter2+=1    
+                                    CaTrace = list(Carray_unit[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR])
+                                    SpTrace = list(Sarray_unit[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR]) 
 
-                            ## Peristimulus Time Histogram 
+                                    ActivityCa_swr=locals()[f'ActivityCa_swr']
+                                    ActivitySp_swr=locals()[f'ActivitySp_swr']
+
+                                    ActivityCa_swr.append(CaTrace)
+                                    ActivitySp_swr.append(SpTrace)
+
+                                    # Define if that SWR is coupled with a SPDL or not
+
+                                    SWR_statut=[]
+                                    startSpiList = list(pd.Series(SpipropTrunc["start time"]))
+                                    endSpiList = list(pd.Series(SpipropTrunc["end time"]))
+                                    ctxSpiList = list(pd.Series(SpipropTrunc["CTX"]))
+                                    delaiSWRSpdl=None
+                                    if len(startSpiList)>0:
+                                        startClosest_Spdl_idx = (np.abs(startSpiList - startSwr)).argmin()
+                                        startClosest_Spi = startSpiList[startClosest_Spdl_idx]
+                                        endClosest_Spi=endSpiList[startClosest_Spdl_idx]
+                                        ctxSpi=ctxSpiList[startClosest_Spdl_idx]
+                                        distance = abs(startClosest_Spi - startSwr) #  + StartTimeIndexSpi]  
+                                        IsTrue = startSwr>startClosest_Spi and startSwr<endClosest_Spi #SWR inside the Spindle
+                                        if distance<before or IsTrue:
+                                            SWR_statut = 'Coupled'
+                                            cCoupledSWR+=1 if unit_count==1 else 0
+                                            delaiSWRSpdl=startClosest_Spi - startSwr                           
+                                        else:
+                                            SWR_statut= 'UnCoupled'
+                                            cUnCoupledSWR+=1 if unit_count==1 else 0
+                                            ctxSpi=''
+                                    else: 
+                                        SWR_statut= 'UnCoupled'
+                                        cUnCoupledSWR+=1 if unit_count==1 else 0
+                                        ctxSpi=''
+
+                                    ActivityCa_swrCp=locals()[f'ActivityCa_{SWR_statut}swr{ctxSpi}']
+                                    ActivitySp_swrCp=locals()[f'ActivitySp_{SWR_statut}swr{ctxSpi}']
+                                    ActivityCa_swrCp.append(CaTrace)
+                                    ActivitySp_swrCp.append(SpTrace)
+                                    
+                                    # Fill the big summary table SWR_GlobalResults
+
+                                    SWR_GlobalResults.loc[counter2, 'Mice'] = mice
+                                    SWR_GlobalResults.loc[counter2, 'NeuronType'] = NeuronType
+
+                                    SWR_GlobalResults.loc[counter2, 'Session'] = session
+                                    SWR_GlobalResults.loc[counter2, 'Session_Date'] = session_date 
+                                    SWR_GlobalResults.loc[counter2, 'Session_Time'] = session_time                    
+
+                                    SWR_GlobalResults.loc[counter2, 'Unique_Unit'] = indexMapp 
+                                    SWR_GlobalResults.loc[counter2, 'UnitNumber'] = unit 
+                                    SWR_GlobalResults.loc[counter2, 'UnitValue'] = Calcium.index[unit] 
+                                    
+                                    SWR_GlobalResults.loc[counter2, 'ExpeType'] =  expe_type
+                                    SWR_GlobalResults.loc[counter2, 'Drug'] = drug
+
+                                    SWR_GlobalResults.loc[counter2, 'SWRStatut'] = SWR_statut
+                                    SWR_GlobalResults.loc[counter2, 'SpdlLoc'] = ctxSpi
+                                    SWR_GlobalResults.loc[counter2, 'SWRNumber'] = Pswr
+                                    SWR_GlobalResults.loc[counter2, 'SWRDuration'] = endSwr- startSwr
+                                    SWR_GlobalResults.loc[counter2, 'SWR_inside_Spdl'] = IsTrue
+                                    SWR_GlobalResults.loc[counter2, 'DistanceSWR_Spdl'] = delaiSWRSpdl 
+                                    counter2+=1  
+                            #else: 
+                            #    print("/!\ SWR too close to the end of the previous one,", session, ", SWR n°", Pswr, ", Start SWR =",  round(startSwr/1000,1), "s") if unit==0 else None
+
+                        ## Peristimulus Time Histogram 
+                        start6 = time.time()
                         for ctx in CTX: 
                             for coup in Coupling: 
                                 if coup=='Coupled':
@@ -735,8 +686,11 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                             resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
                                             key=mice + str(indexMapp).replace('[','').replace(']','')
                                             dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
-                            
-                                    
+                        
+                        print(f'... {len(SWRpropTrunc)} SWR processed in {time.time() - start5:.2f} seconds & PSTH done in {time.time() - start6:.2f} seconds for one cell') if unit_count==1 else None
+
+                print(f"... The {unit_count} units of {session} analyzed in {time.time() - start2:.2f} seconds")
+
                 sentence2=f"... {nb_spindle} spindles ({cCoupled} Coupled & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global, {cLocalS1} LocalS1 & {cLocalPFC} LocalPFC) and {nb_swr} SWR detected ({cCoupledSWR} Coupled & {cUnCoupledSWR} Uncoupled SWR)"
                 print(sentence2) 
             else:
@@ -746,6 +700,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             # Save Spindles & SWR analysis #
     #######################################################################################
     # Do average Calcium & Spike results for Spindles & SWR Peristimulus Time Histogram 
+    start7 = time.time()
 
     Data=['Ca', 'Sp']
     for data in Data:   
@@ -767,10 +722,11 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         with open(filenameOut, 'wb') as pickle_file:
                             pickle.dump(dict_All_Activity, pickle_file)
 
-    sentence3=f"Nb of unique units for {mice} = {len(dict_All_Activity)}"
-    print(sentence3)    
+    sentence3=f"Nb of unique units for {mice} = {len(mapping)} / Data saved in {time.time() - start2:.2f} seconds"
+    print(sentence3)   
 
 
+start8 = time.time()
 if saveexcel: 
     # Save the big summary table Spindles_GlobalResults
     writer = pd.ExcelWriter(folder_to_save / f'Spdl_Global.xlsx')
@@ -787,3 +743,8 @@ with open(folder_to_save / f'Spdl_Global.pkl', 'wb') as pickle_file:
 
 with open(folder_to_save / f'SWR_Global.pkl', 'wb') as pickle_file:
     pickle.dump(SWR_GlobalResults, pickle_file)
+
+print(f"Global matrix saved in {time.time() - start8:.2f} seconds")
+
+sys.stdout = sys.__stdout__
+logfile.close()

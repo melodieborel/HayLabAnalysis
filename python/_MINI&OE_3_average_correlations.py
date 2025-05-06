@@ -45,6 +45,18 @@ from collections import defaultdict
 import warnings
 warnings.filterwarnings("ignore")
 
+import sys
+class Tee:
+    def __init__(self, *files):
+        self.files = files
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
+            f.flush()
+    def flush(self):
+        for f in self.files:
+            f.flush()
+
 def divide_keys(data, startkey, everykey):
     for it in range(startkey, len(data), everykey):        
         key2 = list(data.keys())[it-1]
@@ -81,6 +93,10 @@ folder_to_save=Path(destination_folder)
 source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayLabAnalysis/python/_MINI&OE_3_average_correlations.py" if Local else "/python/_MINI&OE_3_average_correlations.py" 
 destination_file_path = f"{destination_folder}/_MINI&OE_3_average_correlations.txt"
 shutil.copy(source_script, destination_file_path)
+
+logfile = open(f"{destination_folder}/output_log.txt", 'w')
+sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
+
 
 #directories= [directory1, directory2] if DrugExperiment else [directory1]
 directories= [directory2] 
@@ -266,3 +282,6 @@ for NrSubtype in NrSubtypeList:
     filenameOut = f'{folder_to_save}/{NrSubtype}_Tot_SpCorr.pkl'
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(dfs5_per_sheet, pickle_file)
+
+sys.stdout = sys.__stdout__
+logfile.close()

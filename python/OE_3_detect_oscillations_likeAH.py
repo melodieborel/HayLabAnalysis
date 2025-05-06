@@ -22,6 +22,8 @@ from datetime import datetime
 import shutil
 from scipy.signal import find_peaks
 from scipy.signal import chirp, find_peaks, peak_widths
+import warnings
+warnings.filterwarnings("ignore")
 
 #Load LFP coordinates 
 Channels = f'{os.getcwd()}\python\_LFP_coordinates_of_all_mice.csv'
@@ -427,130 +429,136 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
         All_SpindleS1.to_csv(filename)
         
         print(len(All_SpindleS1), 'Spdl detected in S1')
-
-
-            
-        ########################################
-                    # Merge Spdl #
-        ########################################
-
-
-        def restriction_parameter(All_Spindle):
-            nb_spindle = All_Spindle.shape[0]
-            listtodrop = []
-            for tt in range(nb_spindle - 1):
-                # merge spindle that starts within a previous spindle
-                if All_Spindle.loc[tt, 'end time'] > All_Spindle.loc[tt + 1, 'start time']:
-                    if All_Spindle.loc[tt, 'Duration'] < All_Spindle.loc[tt + 1, 'Duration']:
-                        if All_Spindle.loc[tt, 'start time'] < All_Spindle.loc[tt + 1, 'start time']:
-                            All_Spindle.loc[tt + 1, 'start time'] = All_Spindle.loc[tt, 'start time']
-                            listtodrop.append(tt)
-                        else:
-                            listtodrop.append(tt)
-                    elif All_Spindle.loc[tt, 'Duration'] > All_Spindle.loc[tt + 1, 'Duration']:
-                        if All_Spindle.loc[tt, 'end time'] < All_Spindle.loc[tt + 1, 'end time']:
-                            All_Spindle.loc[tt, 'end time'] = All_Spindle.loc[tt + 1, 'end time']
-                            listtodrop.append(tt + 1)
-                        else:
-                            listtodrop.append(tt + 1)
-
-            for tt in range(nb_spindle-1):
-                # merge spdls that are 200ms apart
-                if((All_Spindle['start time'][tt + 1] - All_Spindle['end time'][tt])<200):
-                    if((All_Spindle['Duration'][tt])<All_Spindle['Duration'][tt + 1]): #first spdl longer so remove/merge the second one
-                        All_Spindle.loc[tt + 1, 'start time'] = min(All_Spindle.loc[tt, 'start time'], All_Spindle.loc[tt + 1, 'start time'])
-                        All_Spindle.loc[tt + 1, 'end time'] = max(All_Spindle.loc[tt + 1, 'end time'], All_Spindle.loc[tt, 'end time'])
-                        listtodrop.append(tt)
-                    if((All_Spindle['Duration'][tt+1])<All_Spindle['Duration'][tt]): #second spdl longer so remove/merge the first one
-                        All_Spindle.loc[tt, 'start time'] = min(All_Spindle.loc[tt, 'start time'], All_Spindle.loc[tt + 1, 'start time'])
-                        All_Spindle.loc[tt, 'end time'] = max(All_Spindle.loc[tt + 1, 'end time'], All_Spindle.loc[tt, 'end time'])
-                        listtodrop.append(tt+1)
-
-            for tt in range(nb_spindle):
-                #Update duration because of the merging
-                All_Spindle.loc[tt, 'Duration'] = All_Spindle.loc[tt, 'end time'] - All_Spindle.loc[tt, 'start time']
-
-            for tt in range(nb_spindle): #All_Spindle.index:
-                #Remove Spdl that last less than 500ms
-                if (All_Spindle['Duration'][tt]<500):
-                    listtodrop.append(tt)        
-            
-            All_Spindle = All_Spindle.drop(listtodrop) 
-            All_Spindle = All_Spindle.reset_index(drop=True)
-            return All_Spindle
-
-        
-        All_SpindlePFC['CTX']='PFC'
-        All_SpindlePFC['StartingLoc']='PFC'
-        All_SpindlePFC = All_SpindlePFC.reset_index(drop=True)
-        NewPFClist=restriction_parameter(All_SpindlePFC)
-
-        All_SpindleS1['CTX']='S1'
-        All_SpindleS1['StartingLoc']='S1'
-        All_SpindleS1 = All_SpindleS1.reset_index(drop=True)
-        NewS1list=restriction_parameter(All_SpindleS1)
-
-        Spdllist=pd.concat([All_SpindlePFC,All_SpindleS1],ignore_index=False)  
-        Spdllist=pd.concat([NewPFClist,NewS1list],ignore_index=False)  
-
-        Spdllist['LocalGlobal']='Local'
-        Spdllist['DistanceClosestSpdl']=np.inf
-
-        Spdllist = Spdllist.sort_values(by='start time')
-        Spdllist = Spdllist.reset_index(drop=True)
-
-        liststarts=Spdllist["start time"]
-        listends=Spdllist["end time"]
-        NewSpdllist=Spdllist.copy()
-
-        for spdl1 in NewSpdllist.index : # range(len(Spdllist)) :
-            start1=liststarts[spdl1]
-            end1=listends[spdl1]
-            otherunit_range = [x for x in NewSpdllist.index  if x != spdl1]
-            #print(f'spdl1 n°{spdl1}')
-            if NewSpdllist.loc[spdl1,'toKeep'] != 'False':
-                for spdl2 in otherunit_range:
-                    if NewSpdllist.loc[spdl2,'toKeep'] != 'False':
-                        start2=liststarts[spdl2]
-                        end2=listends[spdl2]
-                        if NewSpdllist.loc[spdl1,'CTX']!= NewSpdllist.loc[spdl2,'CTX']: # Needs to be from 2 differents brain areas
-
-                            if start2>start1:
-                                NewSpdllist.loc[spdl1, 'DistanceClosestSpdl'] = start1-start2 if start2-start1<NewSpdllist.loc[spdl1, 'DistanceClosestSpdl'] else NewSpdllist.loc[spdl1, 'DistanceClosestSpdl']
-                                NewSpdllist.loc[spdl2, 'DistanceClosestSpdl'] = start2-start1 if start2-start1<NewSpdllist.loc[spdl2, 'DistanceClosestSpdl'] else NewSpdllist.loc[spdl2, 'DistanceClosestSpdl']
-                            else:
-                                NewSpdllist.loc[spdl1, 'DistanceClosestSpdl'] = start1-start2 if start1-start2<NewSpdllist.loc[spdl1, 'DistanceClosestSpdl'] else NewSpdllist.loc[spdl1, 'DistanceClosestSpdl']
-                                NewSpdllist.loc[spdl2, 'DistanceClosestSpdl'] = start2-start1 if start1-start2<NewSpdllist.loc[spdl2, 'DistanceClosestSpdl'] else NewSpdllist.loc[spdl2, 'DistanceClosestSpdl']
-
-                            if start1<=start2 and start2<=end1: # event n°2 begins after the start n°1               
-                                if (end1-start2)>=int(0.5*(end1-start1)): # overlapp > to 50% of the duration of the event n°1                                
-                                    NewSpdllist.loc[spdl1, 'LocalGlobal']='Global'
-                                    NewSpdllist.loc[spdl1, 'StartingLoc']=NewSpdllist.loc[spdl1,'CTX']
-                                    NewSpdllist.loc[spdl1, 'CTX']='S1PFC'
-                                    NewSpdllist.loc[spdl1, 'start time']=int((start1 + start2)/2)
-                                    NewSpdllist.loc[spdl1, 'end time']=max(end1, end2)
-                                    NewSpdllist.loc[spdl1, 'Duration']=max(end1, end2)-int((start1 + start2)/2)
-                                    NewSpdllist.loc[spdl2, 'toKeep']='False'
-                                    #print(f'Cdt n°1: Global, keep spdl n°{spdl1} {start1} instead of spdl n°{spdl2} {start2}')
-                                    break
-                            elif start1<=end2 and end2<=end1: # event n°2 ends before the end n°1 
-                                if (end2-start1)>=int(0.5*(end1-start1)): # overlapp > to 50% of the duration of the event n°1
-                                    NewSpdllist.loc[spdl2, 'LocalGlobal']='Global'
-                                    NewSpdllist.loc[spdl2, 'StartingLoc']=NewSpdllist.loc[spdl2,'CTX']
-                                    NewSpdllist.loc[spdl2, 'CTX']='S1PFC'
-                                    NewSpdllist.loc[spdl2, 'start time']=int((start1 + start2)/2)
-                                    NewSpdllist.loc[spdl2, 'end time']=max(end1, end2)
-                                    NewSpdllist.loc[spdl2, 'Duration']=max(end1, end2)-int((start1 + start2)/2)
-                                    NewSpdllist.loc[spdl1, 'toKeep']='False'
-                                    #print(f'Cdt n°2: Global, keep spdl n°{spdl2} {start2}, instead of spdl n°{spdl1} {start1}')
-                                    break
-        NewSpdllist = NewSpdllist[NewSpdllist['toKeep'].isin(['True', 'VRAI'])]
-        NewSpdllist = NewSpdllist.sort_values(by='start time')
-        NewSpdllist = NewSpdllist.reset_index(drop=True)
-        NewSpdllist['DistanceClosestSpdl'] = NewSpdllist['DistanceClosestSpdl'] *-1 # to have in positive the spdl that arrives after the onset and vice versa
-        NewSpdllist=restriction_parameter(NewSpdllist)
-
-        filenameOutput = folder_base / f'Spindleproperties_S1&PFC.csv' 
-        NewSpdllist.to_csv(filenameOutput, sep= ',')
+    
     else: 
-        print('already done')
+        print('Inital detection already performed')
+
+
+            
+    ########################################
+                # Merge Spdl #
+    ########################################
+
+    All_SpindleS1 = pd.read_csv(Path(f'{folder_base}\Spindleproperties_S1.csv'))
+    All_SpindlePFC = pd.read_csv(Path(f'{folder_base}\Spindleproperties_PFC.csv'))
+
+    def restriction_parameter(All_Spindle):
+        nb_spindle = All_Spindle.shape[0]
+        listtodrop = []
+        for tt in range(nb_spindle - 1):
+            # merge spindle that starts within a previous spindle
+            if All_Spindle.loc[tt, 'end time'] > All_Spindle.loc[tt + 1, 'start time']:
+                if All_Spindle.loc[tt, 'Duration'] < All_Spindle.loc[tt + 1, 'Duration']:
+                    if All_Spindle.loc[tt, 'start time'] < All_Spindle.loc[tt + 1, 'start time']:
+                        All_Spindle.loc[tt + 1, 'start time'] = All_Spindle.loc[tt, 'start time']
+                        listtodrop.append(tt)
+                    else:
+                        listtodrop.append(tt)
+                elif All_Spindle.loc[tt, 'Duration'] > All_Spindle.loc[tt + 1, 'Duration']:
+                    if All_Spindle.loc[tt, 'end time'] < All_Spindle.loc[tt + 1, 'end time']:
+                        All_Spindle.loc[tt, 'end time'] = All_Spindle.loc[tt + 1, 'end time']
+                        listtodrop.append(tt + 1)
+                    else:
+                        listtodrop.append(tt + 1)
+
+        for tt in range(nb_spindle-1):
+            # merge spdls that are 200ms apart
+            if((All_Spindle['start time'][tt + 1] - All_Spindle['end time'][tt])<200):
+                if((All_Spindle['Duration'][tt])<All_Spindle['Duration'][tt + 1]): #first spdl longer so remove/merge the second one
+                    All_Spindle.loc[tt + 1, 'start time'] = min(All_Spindle.loc[tt, 'start time'], All_Spindle.loc[tt + 1, 'start time'])
+                    All_Spindle.loc[tt + 1, 'end time'] = max(All_Spindle.loc[tt + 1, 'end time'], All_Spindle.loc[tt, 'end time'])
+                    listtodrop.append(tt)
+                if((All_Spindle['Duration'][tt+1])<All_Spindle['Duration'][tt]): #second spdl longer so remove/merge the first one
+                    All_Spindle.loc[tt, 'start time'] = min(All_Spindle.loc[tt, 'start time'], All_Spindle.loc[tt + 1, 'start time'])
+                    All_Spindle.loc[tt, 'end time'] = max(All_Spindle.loc[tt + 1, 'end time'], All_Spindle.loc[tt, 'end time'])
+                    listtodrop.append(tt+1)
+
+        for tt in range(nb_spindle):
+            #Update duration because of the merging
+            All_Spindle.loc[tt, 'Duration'] = All_Spindle.loc[tt, 'end time'] - All_Spindle.loc[tt, 'start time']
+
+        for tt in range(nb_spindle): #All_Spindle.index:
+            #Remove Spdl that last less than 500ms
+            if (All_Spindle['Duration'][tt]<500):
+                listtodrop.append(tt)        
+        
+        All_Spindle = All_Spindle.drop(listtodrop) 
+        All_Spindle = All_Spindle.reset_index(drop=True)
+        return All_Spindle
+
+    
+    All_SpindlePFC['CTX']='PFC'
+    All_SpindlePFC['toKeep']='True' if 'toKeep' not in All_SpindlePFC.columns else All_SpindlePFC['toKeep']
+    All_SpindlePFC['StartingLoc']='PFC'
+    All_SpindlePFC = All_SpindlePFC.reset_index(drop=True)
+    NewPFClist=restriction_parameter(All_SpindlePFC)
+
+    All_SpindleS1['CTX']='S1'
+    All_SpindleS1['toKeep']='True' if 'toKeep' not in All_SpindleS1.columns else All_SpindleS1['toKeep']
+    All_SpindleS1['StartingLoc']='S1'
+    All_SpindleS1 = All_SpindleS1.reset_index(drop=True)
+    NewS1list=restriction_parameter(All_SpindleS1)
+
+    Spdllist=pd.concat([All_SpindlePFC,All_SpindleS1],ignore_index=False)  
+    Spdllist=pd.concat([NewPFClist,NewS1list],ignore_index=False)  
+
+    Spdllist['LocalGlobal']='Local'
+    Spdllist['DistanceClosestSpdl']=np.inf
+
+    Spdllist = Spdllist.sort_values(by='start time')
+    Spdllist = Spdllist.reset_index(drop=True)
+
+    liststarts=Spdllist["start time"]
+    listends=Spdllist["end time"]
+    NewSpdllist=Spdllist.copy()
+    NewSpdllist['toKeep'] = NewSpdllist['toKeep'].astype(str)
+    
+    for spdl1 in NewSpdllist.index : # range(len(Spdllist)) :
+        start1=liststarts[spdl1]
+        end1=listends[spdl1]
+        otherunit_range = [x for x in NewSpdllist.index  if x != spdl1]
+        #print(f'spdl1 n°{spdl1}')
+        if NewSpdllist.loc[spdl1,'toKeep'] != 'False':
+            for spdl2 in otherunit_range:
+                if NewSpdllist.loc[spdl2,'toKeep'] != 'False':
+                    start2=liststarts[spdl2]
+                    end2=listends[spdl2]
+                    if NewSpdllist.loc[spdl1,'CTX']!= NewSpdllist.loc[spdl2,'CTX']: # Needs to be from 2 differents brain areas
+
+                        if start2>start1:
+                            NewSpdllist.loc[spdl1, 'DistanceClosestSpdl'] = start1-start2 if start2-start1<NewSpdllist.loc[spdl1, 'DistanceClosestSpdl'] else NewSpdllist.loc[spdl1, 'DistanceClosestSpdl']
+                            NewSpdllist.loc[spdl2, 'DistanceClosestSpdl'] = start2-start1 if start2-start1<NewSpdllist.loc[spdl2, 'DistanceClosestSpdl'] else NewSpdllist.loc[spdl2, 'DistanceClosestSpdl']
+                        else:
+                            NewSpdllist.loc[spdl1, 'DistanceClosestSpdl'] = start1-start2 if start1-start2<NewSpdllist.loc[spdl1, 'DistanceClosestSpdl'] else NewSpdllist.loc[spdl1, 'DistanceClosestSpdl']
+                            NewSpdllist.loc[spdl2, 'DistanceClosestSpdl'] = start2-start1 if start1-start2<NewSpdllist.loc[spdl2, 'DistanceClosestSpdl'] else NewSpdllist.loc[spdl2, 'DistanceClosestSpdl']
+
+                        if start1<=start2 and start2<=end1: # event n°2 begins after the start n°1               
+                            if (end1-start2)>=int(0.5*(end1-start1)): # overlapp > to 50% of the duration of the event n°1                                
+                                NewSpdllist.loc[spdl1, 'LocalGlobal']='Global'
+                                NewSpdllist.loc[spdl1, 'StartingLoc']=NewSpdllist.loc[spdl1,'StartingLoc']
+                                NewSpdllist.loc[spdl1, 'CTX']='S1PFC'
+                                NewSpdllist.loc[spdl1, 'start time']=int((start1 + start2)/2)
+                                NewSpdllist.loc[spdl1, 'end time']=max(end1, end2)
+                                NewSpdllist.loc[spdl1, 'Duration']=max(end1, end2)-int((start1 + start2)/2)
+                                NewSpdllist.loc[spdl2, 'toKeep']='False'
+                                #print(f'Cdt n°1: Global, keep spdl n°{spdl1} {start1} instead of spdl n°{spdl2} {start2}')
+                                break
+                        elif start1<=end2 and end2<=end1: # event n°2 ends before the end n°1 
+                            if (end2-start1)>=int(0.5*(end1-start1)): # overlapp > to 50% of the duration of the event n°1
+                                NewSpdllist.loc[spdl2, 'LocalGlobal']='Global'
+                                NewSpdllist.loc[spdl2, 'StartingLoc']=NewSpdllist.loc[spdl2,'StartingLoc']
+                                NewSpdllist.loc[spdl2, 'CTX']='S1PFC'
+                                NewSpdllist.loc[spdl2, 'start time']=int((start1 + start2)/2)
+                                NewSpdllist.loc[spdl2, 'end time']=max(end1, end2)
+                                NewSpdllist.loc[spdl2, 'Duration']=max(end1, end2)-int((start1 + start2)/2)
+                                NewSpdllist.loc[spdl1, 'toKeep']='False'
+                                #print(f'Cdt n°2: Global, keep spdl n°{spdl2} {start2}, instead of spdl n°{spdl1} {start1}')
+                                break
+    NewSpdllist = NewSpdllist[NewSpdllist['toKeep'].isin(['True', 'VRAI'])]
+    NewSpdllist = NewSpdllist.sort_values(by='start time')
+    NewSpdllist = NewSpdllist.reset_index(drop=True)
+    NewSpdllist['DistanceClosestSpdl'] = NewSpdllist['DistanceClosestSpdl'] *-1 # to have in positive the spdl that arrives after the onset and vice versa
+    NewSpdllist=restriction_parameter(NewSpdllist)
+
+    filenameOutput = folder_base / f'Spindleproperties_S1&PFC.csv' 
+    NewSpdllist.to_csv(filenameOutput, sep= ',')

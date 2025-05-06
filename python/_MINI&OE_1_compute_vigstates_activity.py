@@ -56,6 +56,18 @@ import matplotlib.pyplot as plt
 
 import warnings
 warnings.filterwarnings("ignore")
+import sys
+class Tee:
+    def __init__(self, *files):
+        self.files = files
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
+            f.flush()
+    def flush(self):
+        for f in self.files:
+            f.flush()
+
 
 minian_path = os.path.join(os.path.abspath('.'),'minian')
 print("The folder used for minian procedures is : {}".format(minian_path))
@@ -220,6 +232,10 @@ FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":",
 destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_CGP_analysis/VigSt_{FolderNameSave}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_baseline_analysis/VigSt_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
+
+logfile = open(f"{destination_folder}/output_log.txt", 'w')
+sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
+
 
 # Copy the script file to the destination folder
 source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayLabAnalysis/python/_MINI&OE_1_compute_vigstates_activity.py"
@@ -882,3 +898,6 @@ if saveexcel:
     writer = pd.ExcelWriter(filenameOut)
     CellAssembly_GlobalResults.to_excel(writer)
     writer.close()
+
+sys.stdout = sys.__stdout__
+logfile.close()

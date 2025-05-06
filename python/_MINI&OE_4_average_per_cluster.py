@@ -47,6 +47,18 @@ from collections import defaultdict
 import warnings
 warnings.filterwarnings("ignore")
 
+import sys
+class Tee:
+    def __init__(self, *files):
+        self.files = files
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
+            f.flush()
+    def flush(self):
+        for f in self.files:
+            f.flush()
+            
 def extract_micename(index_value):
     match = re.match(r"([a-zA-Z]+)", index_value)
     return match.group(1) if match else index_value
@@ -74,6 +86,9 @@ FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":",
 destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_global_analysis/AVG_VigSt_{FolderNameSave}{AnalysisID}" if Local else f"/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_global_analysis/AVG_VigSt_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
+
+logfile = open(f"{destination_folder}/output_log.txt", 'w')
+sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
 
 # Copy the script file to the destination folder
 source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayLabAnalysis/python/_MINI&OE_4_average_per_cluster.py" if Local else "/python/_MINI&OE_4_average_per_cluster.py" 
@@ -799,3 +814,6 @@ AllTotDurationVigStates=pd.concat([AllTotDurationVigStates, TotDurationVigStates
 AllDurationVigStates.to_excel(writer, sheet_name=f'MeanEpisodeDurations')
 AllTotDurationVigStates.to_excel(writer, sheet_name=f'TotalEpisodeDurations')
 writer.close()
+
+sys.stdout = sys.__stdout__
+logfile.close()
