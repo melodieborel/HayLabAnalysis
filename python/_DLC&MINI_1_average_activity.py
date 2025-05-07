@@ -180,8 +180,8 @@ def runPatterns(actmat, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 
         significance = []
         #return
     if significance.nassemblies<1:
-        print('WARNING 1!')
-        print('    no assembly detecded!')
+        #print('WARNING 1!')
+        #print('    no assembly detected!')
         patterns = []
         zactmat = []
         significance = []
@@ -200,8 +200,8 @@ def runPatterns(actmat, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 
 
 def computeAssemblyActivity(patterns,zactmat,zerodiag = True):
     if len(patterns) == 0:
-        print('WARNING 2!')
-        print('    no assembly detecded!')
+        #print('WARNING 2!')
+        #print('    no assembly detecded!')
         assemblyAct = []
     else:
         nassemblies = len(patterns)
@@ -225,7 +225,7 @@ all_expe_types=['Training']
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Clementine/Neuron_analysis/VigSt_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Clementine/Neuron_analysis/{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -239,17 +239,15 @@ shutil.copy(source_script, destination_file_path)
 
 data = {}
 counter=0
-NeuronActivity_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType', 'SessionType', 'TrialType', 'Session_Date', 'Trial_Time', 
-                                                          'Unique_Unit','UnitNumber','UnitValue', 'UnitLocation',
-                                                            'AUC_calcium', 'DeconvSpikeMeanActivity','SpikeActivityHz'])
+NeuronActivity_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType', 'SessionType', 'TrialType', 'Session_Date', 'Day#','Trial_Time','Trial#', 'Trial_Duration_in_sec',
+                                                          'Unit#_in_crossreg','Unit#_in_session','UnitLocation',
+                                                            'NormalizedAUC_calcium', 'DeconvSpikeMeanActivity','SpikeActivityHz'])
 counter2=0
 
-CellAssembly_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','SessionType', 'TrialType', 'Session_Date', 'Trial_Time', 
+CellAssembly_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType', 'SessionType', 'TrialType', 'Session_Date', 'Day#', 'Trial_Time','Trial#', 'Trial_Duration_in_sec',
                                                         'Assembly_ID', 'Assembly_size', 'Cells_in_Assembly',
                                                             'Avg_Activity', 'EventFreq', 'EventTime' ])
 
-day=1
-trial=1
 previousmice=0
 previous_session_time=0
 
@@ -270,14 +268,17 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
     print(f"####################################################################################")
 
     if saveexcel: 
-        filenameOut = folder_to_save / f'VigSt_RawCaTraces_{mice}.xlsx'
+        filenameOut = folder_to_save / f'RawCaTraces_{mice}.xlsx'
         excel_writerRawCa = pd.ExcelWriter(filenameOut)        
-        filenameOut = folder_to_save / f'VigSt_RawSpTraces_{mice}.xlsx'
+        filenameOut = folder_to_save / f'RawSpTraces_{mice}.xlsx'
         excel_writerRawSp = pd.ExcelWriter(filenameOut)
 
-    nb_minian_total=0
+    nb_minian_total=0    
+    day=0
+    trial=0  
+    prevsession_date=''
+    prevtrial_type=''
 
-    assembly_nb=0
 
     minian_folders = [f for f in dpath.parents[0].rglob('minian') if f.is_dir()]
 
@@ -291,6 +292,21 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
             session_type=minianpath.parents[4].name
             print(minianpath)
 
+            if prevsession_date == session_date:
+                if prevtrial_type == trial_type:
+                    trial+=1
+                else: 
+                    trial=1
+            else: 
+                day+=1
+                trial=1
+            
+            prevsession_date = session_date
+            prevtrial_type = trial_type
+
+
+            assembly_nb=0
+
         
             minian_ds = open_minian(minianpath)
             C = minian_ds['C'] # calcium traces 
@@ -301,12 +317,12 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                     unit_to_drop = json.load(f)
             except:
                 unit_to_drop = []
-                print(f"!!!!!! Need to define unit to drop. By default, all units are kept in this session!!!!!!!")
+                print(f"!!!!!! Need to define unit to drop. By default, all units are kept in this session !!!!!!!")
 
             nb_minian_total+=1
 
             #######################################################################################
-            # Distribute Ca2+ intensity & spikes to vigilance states for each sessions #
+            # Distribute Ca2+ intensity & spikes for each sessions #
             #######################################################################################
 
             minian_freq=30
@@ -345,7 +361,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
             # Define cell assemblies
             patterns,significance,zactmat= runPatterns(Carray.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)
             if len(patterns)>0:
-                thresh = np.mean(patterns)+3*np.std(patterns)
+                thresh = np.mean(patterns)+2*np.std(patterns)
                 patterns_th=patterns.copy()
                 patterns_th[patterns_th<thresh]=np.nan
                 for ass in np.arange(np.shape(patterns)[0]):
@@ -374,7 +390,11 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         CellAssembly_GlobalResults.loc[counter2, 'SessionType'] =  session_type                        
                         CellAssembly_GlobalResults.loc[counter2, 'TrialType'] = trial_type
                         CellAssembly_GlobalResults.loc[counter2, 'Session_Date'] = session_date 
-                        CellAssembly_GlobalResults.loc[counter2, 'Trial_Time'] = trial_time                    
+                        CellAssembly_GlobalResults.loc[counter2, 'Day#'] = day 
+                        
+                        CellAssembly_GlobalResults.loc[counter2, 'Trial_Time'] = trial_time 
+                        CellAssembly_GlobalResults.loc[counter2, 'Trial#'] = trial                    
+                        CellAssembly_GlobalResults.loc[counter2, 'Trial_Duration_in_sec'] = len(Carray)/minian_freq                    
 
                         CellAssembly_GlobalResults.loc[counter2, 'Assembly_ID'] = assembly_ID
                         CellAssembly_GlobalResults.loc[counter2, 'Assembly_size'] = len(non_nan_indices)
@@ -402,16 +422,18 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                     NeuronActivity_GlobalResults.loc[counter, 'SessionType'] =  session_type                        
                     NeuronActivity_GlobalResults.loc[counter, 'TrialType'] = trial_type
                     NeuronActivity_GlobalResults.loc[counter, 'Session_Date'] = session_date 
+                    NeuronActivity_GlobalResults.loc[counter, 'Day#'] = day 
                     NeuronActivity_GlobalResults.loc[counter, 'Trial_Time'] = trial_time  
-                    
-                    NeuronActivity_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
-                    NeuronActivity_GlobalResults.loc[counter, 'UnitNumber'] = unit
-                    NeuronActivity_GlobalResults.loc[counter, 'UnitValue'] = Calcium.index[unit]
+                    NeuronActivity_GlobalResults.loc[counter, 'Trial#'] = trial
+                    NeuronActivity_GlobalResults.loc[counter, 'Trial_Duration_in_sec'] = len(Carray)/minian_freq  
+                    indexMapp = np.where(indexMappList == Calcium.index[unit])[0]
+                    NeuronActivity_GlobalResults.loc[counter, 'Unit#_in_crossreg'] = f"{mice}{str(indexMapp).replace('[','').replace(']','')}"
+                    NeuronActivity_GlobalResults.loc[counter, 'Unit#_in_session'] = Calcium.index[unit]
 
                     centroids_sess=centroids[centroids['session']==trial_time]
                     NeuronActivity_GlobalResults.loc[counter, 'UnitLocation'] = [centroids_sess[centroids_sess['unit_id']==Calcium.index[unit]]['height'].tolist(), centroids_sess[centroids_sess['unit_id']==Calcium.index[unit]]['width'].tolist()] 
 
-                    NeuronActivity_GlobalResults.loc[counter, 'NormaizedAUC_calcium'] = np.trapz(Carray_unit,np.arange(0,len(Carray_unit),1))/len(Carray_unit)
+                    NeuronActivity_GlobalResults.loc[counter, 'NormalizedAUC_calcium'] = np.trapz(Carray_unit,np.arange(0,len(Carray_unit),1))/len(Carray_unit)
                     NeuronActivity_GlobalResults.loc[counter, 'DeconvSpikeMeanActivity'] = Darray_unit.mean()
                     NeuronActivity_GlobalResults.loc[counter, 'SpikeActivityHz'] = Sarray_unit.sum()/(len(Sarray_unit)/minian_freq)
                     
