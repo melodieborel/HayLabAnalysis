@@ -11,7 +11,7 @@ saveexcel=1
 AHmethod=0 # 0 if using the method of Aurelie Hay (2025) / 1 if using the method of Audrey Hay (2025)
 
 AnalysisID='_likeAH' if AHmethod else '_pynapple' # '_pynapple' if using the method of Aurelie Hay (2025) / '_minian' if using the method of Audrey Hay (2025)
-suffix=''
+suffix='no_overlapping_Osc'
 
 CTX=['S1', 'PFC', 'S1PFC']
 Coupling=['', 'UnCoupled', 'Coupled']
@@ -290,7 +290,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 if InitialStartTime==0:
                     InitialStartTime=StartTime    
                     firstframe=0
-                    StartTimeMiniscope=0 # start time of miniscope rec of that subsesssions relative to the start of the mniscope recording
+                    StartTimeMiniscope=0 # start time of miniscope rec of that subsesssions relative to the start of the miniscope recording
                 else:
                     if StartTime == InitialStartTime: # just a subsession
                         StartTime = previousEndTime + 1/minian_freq #  +1 frame in seconds
@@ -334,7 +334,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
                 rec_dur_sec= (LastFrame_msec - StartFrame_msec)/1000
                 
-                nb_of_previousframe=firstframe
+                nb_of_previousframe=firstframe 
 
                 firstframe+=rec_dur
 
@@ -417,7 +417,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             endPreviousSpi=SpipropTrunc.loc[prevspin, "end time"] if prevspin else startSpi-durationSpdl*1000 #line and not index cause sometimes, index are not ordered    
                             prevspin=Pspin
 
-                            if 1==1:# startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
+                            if startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
 
                                 TooEarlySpdl=startSpi-durationSpdl*1000<StartFrame_msec # too close to the begining of the recording
                                 TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
@@ -565,7 +565,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             endPreviousSwr=SWRpropTrunc.loc[prevSWR, "end time"] if prevSWR else startSwr-durationSWR*1000                             
                             prevSWR=Pswr
 
-                            if 1==1:#startSwr - endPreviousSwr >= durationSWR*1000 : # if the spindle is not too close from the end of previous one 
+                            if startSwr - endPreviousSwr >= durationSWR*1000 : # if the spindle is not too close from the end of previous one 
                                 
                                 TooEarlySWR=startSwr-durationSWR*1000<StartFrame_msec # too close to the begining of the recording
                                 TooLateSWR=startSwr+durationSWR*1000>LastFrame_msec # too close to the end of the recording
