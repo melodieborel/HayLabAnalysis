@@ -87,7 +87,7 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
     isSWRfile=list(Path(folder_base).glob('**/SWRproperties.csv'))
     isSpdlfile=list(Path(folder_base).glob('**/Spindleproperties_S1.csv'))
 
-    if  len(isSpdlfile)==0 : #len(isSWRfile)==0 and
+    if 1==1 : #len(isSpdlfile)==0 : #len(isSWRfile)==0 and
                 
         #Load signals
 
@@ -180,7 +180,7 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
         ripple_freq_index = np.logical_and(freqs > 120, freqs < 200)
         ripple_power = np.mean(np.abs(mwt_RUN[:, ripple_freq_index]), 1)
         smoothed_ripple_power = ripple_power.smooth(0.01) #in seconds 0.005 
-        threshold_ripple_power = smoothed_ripple_power.threshold(.15) #.25 only very pretty SWRs // .1 too much for TBC
+        threshold_ripple_power = smoothed_ripple_power.threshold(.2) if mouse == 'ThreeBlueCrosses' else smoothed_ripple_power.threshold(.1) # .15 ok, but few for L1 // .25 only very pretty SWRs // .1 too much for TBC
         rip_ep = threshold_ripple_power.time_support
         rip_ep['dur_ms']=np.round((rip_ep['end']-rip_ep['start'])*1000)
         rip_ep=rip_ep[rip_ep['dur_ms']>10] #5ms
@@ -211,7 +211,7 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
         spdl_freq_index = np.logical_and(freqs > 11, freqs < 17)
         spdl_power = np.mean(np.abs(mwt_RUN[:, spdl_freq_index]), 1)
         smoothed_spdl_power = spdl_power.smooth(0.1) #in seconds 0.005 
-        threshold_spdl_power = smoothed_spdl_power.threshold(.4)
+        threshold_spdl_power = smoothed_spdl_power.threshold(.35) #.4 is great
         spdl_ep = threshold_spdl_power.time_support
         spdl_ep['dur_ms']=np.round((spdl_ep['end']-spdl_ep['start'])*1000)
         #spdl_ep=spdl_ep[spdl_ep['dur_ms']>500]
@@ -226,7 +226,7 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
         filename = folder_base / f'SpindlesPFC_detection.csv'
         All_SpindlePFC.to_csv(filename)
 
-        print(len(All_SpindlePFC), 'Spdl detected in PFC')
+        #print(len(All_SpindlePFC), 'Spdl detected in PFC')
 
         #####################################
                 ##         S1         ##
@@ -237,7 +237,7 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
         spdl_freq_index = np.logical_and(freqs > 11, freqs < 17)
         spdl_power = np.mean(np.abs(mwt_RUN[:, spdl_freq_index]), 1)
         smoothed_spdl_power = spdl_power.smooth(0.1) #in seconds 0.005 
-        threshold_spdl_power = smoothed_spdl_power.threshold(.4)
+        threshold_spdl_power = smoothed_spdl_power.threshold(.35) #.4 is great
         spdl_ep = threshold_spdl_power.time_support
         spdl_ep['dur_ms']=np.round((spdl_ep['end']-spdl_ep['start'])*1000)
         #spdl_ep=spdl_ep[spdl_ep['dur_ms']>500]
@@ -252,7 +252,7 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
         filename = folder_base / f'SpindlesS1_detection.csv'
         All_SpindleS1.to_csv(filename)
         
-        print(len(All_SpindleS1), 'Spdl detected in S1')
+        #print(len(All_SpindleS1), 'Spdl detected in S1')
 
     else: 
         print('SWR & Spdl already detected')
@@ -334,6 +334,10 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
     NewSpdllist = NewSpdllist.reset_index(drop=True)
     NewSpdllist['DistanceClosestSpdl'] = NewSpdllist['DistanceClosestSpdl'] *-1 # to have in positive the spdl that arrives after the onset and vice versa
     NewSpdllist=restriction_parameter(NewSpdllist)
+
+    print(len(NewSpdllist[NewSpdllist['CTX']=='S1']), 'Spdl detected in S1')
+    print(len(NewSpdllist[NewSpdllist['CTX']=='PFC']), 'Spdl detected in PFC')
+    print(len(NewSpdllist[NewSpdllist['CTX']=='S1PFC']), 'Spdl detected in S1PFC')
 
     filenameOutput = folder_base / f'SpindlesS1&PFC_detection.csv' 
     NewSpdllist.to_csv(filenameOutput, sep= ',')
