@@ -4,9 +4,9 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=1 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
+DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID='' 
+AnalysisID='CellAssemblyOnly' 
 
 saveexcel=0
 
@@ -469,10 +469,11 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
             # Define cell assemblies
             patterns,significance,zactmat= runPatterns(Carray.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)
             if len(patterns)>0:
-                thresh = np.mean(patterns)+2*np.std(patterns)
                 patterns_th=patterns.copy()
-                patterns_th[patterns_th<thresh]=np.nan
                 for ass in np.arange(np.shape(patterns)[0]):
+                    thresh = np.mean(patterns_th[ass])+1.5*np.std(patterns_th[ass])
+                    #thresh = np.mean(patterns)+1.5*np.std(patterns)
+                    patterns_th[ass][abs(patterns_th[ass])<thresh]=np.nan
                     non_nan_indices = np.where(~np.isnan(patterns_th[ass]))[0] 
                     if len(non_nan_indices)>1:
                         indexMappList=mapping_sess[session]
@@ -519,6 +520,8 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             CellAssembly_GlobalResults.loc[counter2, 'EventTime'] = str(np.round(peaks/minian_freq+StartTime, 2))
 
                             counter2+=1
+
+            """               
             for m in mapp:
 
                 # Correlation between each neurons according to vigilance states 
@@ -884,7 +887,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 filenameOut = folder_to_save / f'VigStates_Global.pkl'
 with open(filenameOut, 'wb') as pickle_file:
     pickle.dump(VigilanceState_GlobalResults, pickle_file)
-
+"""
 filenameOut = folder_to_save / f'CellAssembly_Global.pkl'
 with open(filenameOut, 'wb') as pickle_file:
     pickle.dump(CellAssembly_GlobalResults, pickle_file)
