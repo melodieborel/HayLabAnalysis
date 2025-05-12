@@ -417,7 +417,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             endPreviousSpi=SpipropTrunc.loc[prevspin, "end time"] if prevspin else startSpi-durationSpdl*1000 #line and not index cause sometimes, index are not ordered    
                             prevspin=Pspin
 
-                            if 1==1: #startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
+                            if startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
 
                                 TooEarlySpdl=startSpi-durationSpdl*1000<StartFrame_msec # too close to the begining of the recording
                                 TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
@@ -565,7 +565,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             endPreviousSwr=SWRpropTrunc.loc[prevSWR, "end time"] if prevSWR else startSwr-durationSWR*1000                             
                             prevSWR=Pswr
 
-                            if 1==1: #startSwr - endPreviousSwr >= durationSWR*1000 : # if the spindle is not too close from the end of previous one 
+                            if startSwr - endPreviousSwr >= durationSWR*1000 : # if the spindle is not too close from the end of previous one 
                                 
                                 TooEarlySWR=startSwr-durationSWR*1000<StartFrame_msec # too close to the begining of the recording
                                 TooLateSWR=startSwr+durationSWR*1000>LastFrame_msec # too close to the end of the recording

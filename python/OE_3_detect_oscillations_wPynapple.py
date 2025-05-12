@@ -87,7 +87,7 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
     isSWRfile=list(Path(folder_base).glob('**/SWRproperties.csv'))
     isSpdlfile=list(Path(folder_base).glob('**/Spindleproperties_S1.csv'))
 
-    if 1==1 : #len(isSpdlfile)==0 : #len(isSWRfile)==0 and
+    if len(isSpdlfile)==0 : #len(isSWRfile)==0 and
                 
         #Load signals
 
@@ -192,6 +192,18 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
         All_SWR['Duration']=rip_ep['dur_ms']
         All_SWR['toKeep']= 'True'
 
+        mingap=1 #in seconds
+        prevSwr=[]
+        for swr in All_SWR.index :
+            start=All_SWR.loc[swr, "start time"]
+            previousend=All_SWR.loc[prevSwr, "end time"] if prevSwr else start-mingap*1000                             
+            prevSwr=swr      
+
+            if start - previousend >= mingap*1000:
+                All_SWR.loc[swr, "Overlapping_Baseline"] = 'False'
+            else:
+                All_SWR.loc[swr, "Overlapping_Baseline"] = 'True'
+
         # Store the results in All_SWR_prop pd dataframe and save as pkl/csv for post processing.
         filename = folder_base / f'SWR_detection.csv'
         All_SWR.to_csv(filename)
@@ -260,7 +272,7 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
     ########################################
                 # Merge Spdl #
     ########################################
-    
+
     All_SpindleS1 = pd.read_csv(Path(f'{folder_base}\SpindlesS1_detection.csv'))
     All_SpindlePFC = pd.read_csv(Path(f'{folder_base}\SpindlesPFC_detection.csv'))
 
@@ -339,5 +351,23 @@ for dpath in Path(dir).glob('**/DataFrame_rawdataDS.pkl'):
     print(len(NewSpdllist[NewSpdllist['CTX']=='PFC']), 'Spdl detected in PFC')
     print(len(NewSpdllist[NewSpdllist['CTX']=='S1PFC']), 'Spdl detected in S1PFC')
 
+    mingap=1 #in seconds
+    prevSpdl=[]
+    for spdl in NewSpdllist.index :
+        start=NewSpdllist.loc[spdl, "start time"]
+        previousend=NewSpdllist.loc[prevSpdl, "end time"] if prevSpdl else start-mingap*1000                             
+        prevSpdl=spdl       
+
+        if start - previousend >= mingap*1000:
+            NewSpdllist.loc[spdl, "Overlapping_Baseline"] = 'False'
+        else:
+            NewSpdllist.loc[spdl, "Overlapping_Baseline"] = 'True'
+
     filenameOutput = folder_base / f'SpindlesS1&PFC_detection.csv' 
     NewSpdllist.to_csv(filenameOutput, sep= ',')
+    
+
+
+
+
+
