@@ -6,7 +6,7 @@
 
 DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID='CellAssemblyOnly' 
+AnalysisID='CellAssemblyOnly_bin' 
 
 saveexcel=0
 
@@ -467,7 +467,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
 
             # Define cell assemblies
-            patterns,significance,zactmat= runPatterns(Carray.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)
+            patterns,significance,zactmat= runPatterns(Carray.T, method='ica', nullhyp = 'bin', nshu = 1000, percentile = 99, tracywidom = False)
             if len(patterns)>0:
                 patterns_th=patterns.copy()
                 for ass in np.arange(np.shape(patterns)[0]):

@@ -11,11 +11,10 @@ saveexcel=1
 AHmethod=0 # 0 if using the method of Aurelie B (2025) / 1 if using the method of Audrey Hay (2025)
 
 AnalysisID='_likeAH' if AHmethod else '_pynapple' # '_pynapple' if using the method of Aurelie Hay (2025) / '_minian' if using the method of Audrey Hay (2025)
-suffix='_ovlap'
+suffix='_PrePostCoupled'
 
 CTX=['S1', 'PFC', 'S1PFC']
-Coupling=['', 'UnCoupled', 'Coupled']
-
+Coupling=['', 'UnCoupled', 'PreCoupled', 'PostCoupled', 'PrePostCoupled']
 dir = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
 
 before = 500 # Max distance in ms between a SWR and a spindle to be considered as Precoupled
@@ -205,13 +204,12 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
             for ctx in CTX:            
                 locals()[f'dict_All_ActivityCa_{coup}SPDL{ctx}_{drug}']={}
                 locals()[f'dict_All_ActivitySp_{coup}SPDL{ctx}_{drug}']={}
-                if coup=='Coupled':
-                    locals()[f'dict_All_ActivityCa_{coup}SWR{ctx}_{drug}']={}
-                    locals()[f'dict_All_ActivitySp_{coup}SWR{ctx}_{drug}']={}
-                else: 
+                if coup=='UnCoupled' or coup == '':                     
                     locals()[f'dict_All_ActivityCa_{coup}SWR_{drug}']={}
                     locals()[f'dict_All_ActivitySp_{coup}SWR_{drug}']={}
-    
+                else: 
+                    locals()[f'dict_All_ActivityCa_{coup}SWR{ctx}_{drug}']={}
+                    locals()[f'dict_All_ActivitySp_{coup}SWR{ctx}_{drug}']={}
 
     previousEndTime=0
     InitialStartTime=0
@@ -225,13 +223,17 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
             start = time.time()
 
-            cCoupled=0
+            cPreCoupled=0
+            cPostCoupled=0
+            cPrePostCoupled=0
             cUnCoupled=0
             cGlobal=0
             cLocalS1=0
             cLocalPFC=0
 
-            cCoupledSWR=0
+            cPreCoupledSWR=0
+            cPostCoupledSWR=0
+            cPrePostCoupledSWR=0
             cUnCoupledSWR=0   
             
             session=minianpath.parents[0].name if len(minianpath.parts)==12 else minianpath.parents[1].name.split("_")[-1]
@@ -417,11 +419,12 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             endPreviousSpi=SpipropTrunc.loc[prevspin, "end time"] if prevspin else startSpi-durationSpdl*1000 #line and not index cause sometimes, index are not ordered    
                             prevspin=Pspin
 
-                            if startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
+                            if 1==1: #startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
 
                                 TooEarlySpdl=startSpi-durationSpdl*1000<StartFrame_msec # too close to the begining of the recording
                                 TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
-                        
+                                
+                            
                                 if TooEarlySpdl or TooLateSpdl:
                                     print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None            
                                 else:
@@ -450,21 +453,36 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                     Spdl_statut=[]
                                     startSWRList = list(pd.Series(SWRpropTrunc["start time"]))
                                     delaiSWRSpdl=None
-                                    if len(startSWRList)>0:
-                                        startClosest_SWR_idx = (np.abs(startSWRList - startSpi)).argmin()
-                                        startClosest_SWR = startSWRList[startClosest_SWR_idx]
-                                        distance = abs(startClosest_SWR - startSpi)
-                                        IsTrue=is_between(startSWRList,startSpi, endSpi)
-                                        if (distance < before) or IsTrue:
-                                            Spdl_statut = 'Coupled'
-                                            cCoupled+=1 if unit_count==1 else 0   
-                                            delaiSWRSpdl=startClosest_SWR - startSpi                           
-                                        else:
-                                            Spdl_statut= 'UnCoupled'
-                                            cUnCoupled+=1 if unit_count==1 else 0
-                                    else:
-                                        Spdl_statut= 'UnCoupled'
-                                        cUnCoupled+=1 if unit_count==1 else 0
+                                    Spdl_statut= 'UnCoupled'
+                                    cUnCoupled+=1 if unit_count==1 else 0
+                                    if len(startSWRList)>0:                                        
+                                        # if there is a SWR during the Spdl
+                                        startClosest_SWR_idx= next((i for i, x in enumerate((startSWRList - startSpi)) if x >= 0), -1) #(np.abs(startSpiList - startSwr)).argmin()
+                                        if startClosest_SWR_idx != -1:
+                                            startClosest_SWR = startSWRList[startClosest_SWR_idx]
+                                            IsTrue = is_between(startSWRList, startSpi, endSpi)
+                                            if IsTrue: 
+                                                Spdl_statut = 'PostCoupled'
+                                                cPostCoupled+=1 if unit_count==1 else 0  
+                                                cUnCoupled-=1 if unit_count==1 else 0 
+                                                delaiSWRSpdl = startClosest_SWR - startSpi 
+
+                                        # if there is a SWR before the Spdl
+                                        startClosest_SWR_idx= next((i for i in range(len((startSWRList - startSpi)) - 1, -1, -1) if (startSWRList - startSpi)[i] < 0), -1)
+                                        if startClosest_SWR_idx != -1:
+                                            startClosest_SWR = startSWRList[startClosest_SWR_idx]
+                                            distance = abs(startClosest_SWR - startSpi)
+                                            if (distance < before): 
+                                                if Spdl_statut == 'PostCoupled':
+                                                    Spdl_statut = 'PrePostCoupled'
+                                                    cPrePostCoupled+=1 if unit_count==1 else 0
+                                                    cPostCoupled-=1 if unit_count==1 else 0   
+                                                    delaiSWRSpdl = startClosest_SWR - startSpi      
+                                                else:   
+                                                    Spdl_statut = 'PreCoupled'
+                                                    cPreCoupled+=1 if unit_count==1 else 0   
+                                                    cUnCoupled-=1 if unit_count==1 else 0 
+                                                    delaiSWRSpdl = startClosest_SWR - startSpi    
 
                                     ActivityCa_SpinCp=locals()[f'ActivityCa_{Spdl_statut}Spin{ctxSpi}']
                                     ActivitySp_SpinCp=locals()[f'ActivitySp_{Spdl_statut}Spin{ctxSpi}']
@@ -546,12 +564,12 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         
                         for coup in Coupling:
                             for ctx in CTX:   
-                                if coup =='Coupled':     
-                                    locals()[f'ActivityCa_{coup}swr{ctx}']=[] #For each unit 
-                                    locals()[f'ActivitySp_{coup}swr{ctx}']=[] #For each unit  
-                                else:
+                                if coup =='UnCoupled' or coup == '':      
                                     locals()[f'ActivityCa_{coup}swr']=[] #For each unit 
                                     locals()[f'ActivitySp_{coup}swr']=[] #For each unit  
+                                else:                                     
+                                    locals()[f'ActivityCa_{coup}swr{ctx}']=[] #For each unit 
+                                    locals()[f'ActivitySp_{coup}swr{ctx}']=[] #For each unit 
 
                         start5 = time.time()
 
@@ -565,7 +583,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             endPreviousSwr=SWRpropTrunc.loc[prevSWR, "end time"] if prevSWR else startSwr-durationSWR*1000                             
                             prevSWR=Pswr
 
-                            if startSwr - endPreviousSwr >= durationSWR*1000 : # if the spindle is not too close from the end of previous one 
+                            if 1==1: #startSwr - endPreviousSwr >= durationSWR*1000 : # if the spindle is not too close from the end of previous one 
                                 
                                 TooEarlySWR=startSwr-durationSWR*1000<StartFrame_msec # too close to the begining of the recording
                                 TooLateSWR=startSwr+durationSWR*1000>LastFrame_msec # too close to the end of the recording
@@ -593,25 +611,41 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                     endSpiList = list(pd.Series(SpipropTrunc["end time"]))
                                     ctxSpiList = list(pd.Series(SpipropTrunc["CTX"]))
                                     delaiSWRSpdl=None
+                                    SWR_statut= 'UnCoupled'
+                                    cUnCoupledSWR+=1 if unit_count==1 else 0
+                                    ctxSpi=''
                                     if len(startSpiList)>0:
-                                        startClosest_Spdl_idx = (np.abs(startSpiList - startSwr)).argmin()
-                                        startClosest_Spi = startSpiList[startClosest_Spdl_idx]
-                                        endClosest_Spi=endSpiList[startClosest_Spdl_idx]
-                                        ctxSpi=ctxSpiList[startClosest_Spdl_idx]
-                                        distance = abs(startClosest_Spi - startSwr) #  + StartTimeIndexSpi]  
-                                        IsTrue = startSwr>startClosest_Spi and startSwr<endClosest_Spi #SWR inside the Spindle
-                                        if distance<before or IsTrue:
-                                            SWR_statut = 'Coupled'
-                                            cCoupledSWR+=1 if unit_count==1 else 0
-                                            delaiSWRSpdl=startClosest_Spi - startSwr                           
-                                        else:
-                                            SWR_statut= 'UnCoupled'
-                                            cUnCoupledSWR+=1 if unit_count==1 else 0
-                                            ctxSpi=''
-                                    else: 
-                                        SWR_statut= 'UnCoupled'
-                                        cUnCoupledSWR+=1 if unit_count==1 else 0
-                                        ctxSpi=''
+                                        # if there is a spindle start before the SWR
+                                        startClosest_Spdl_idx= next((i for i in range(len((startSpiList - startSwr)) - 1, -1, -1) if (startSpiList - startSwr)[i] < 0), -1)
+                                        if startClosest_Spdl_idx != -1: 
+                                            startClosest_Spi = startSpiList[startClosest_Spdl_idx]
+                                            endClosest_Spi=endSpiList[startClosest_Spdl_idx]
+                                            IsTrue = startSwr>startClosest_Spi and startSwr<endClosest_Spi #SWR inside the Spindle
+                                            if IsTrue: 
+                                                ctxSpi=ctxSpiList[startClosest_Spdl_idx]
+                                                SWR_statut = 'PostCoupled'
+                                                cPostCoupledSWR+=1 if unit_count==1 else 0
+                                                cUnCoupledSWR-=1 if unit_count==1 else 0
+                                                delaiSWRSpdl= startClosest_Spi - startSwr 
+                                        
+                                        # if there is a spindle after the SWR
+                                        startClosest_Spdl_idx= next((i for i, x in enumerate((startSpiList - startSwr)) if x >= 0), -1) 
+                                        if startClosest_Spdl_idx != -1: 
+                                            startClosest_Spi = startSpiList[startClosest_Spdl_idx]
+                                            endClosest_Spi=endSpiList[startClosest_Spdl_idx]
+                                            distance = startClosest_Spi - startSwr 
+                                            if distance<before: 
+                                                ctxSpi=ctxSpiList[startClosest_Spdl_idx]
+                                                if SWR_statut == 'PostCoupled':
+                                                    SWR_statut = 'PrePostCoupled'
+                                                    cPrePostCoupledSWR+=1 if unit_count==1 else 0
+                                                    cPostCoupledSWR-=1 if unit_count==1 else 0
+                                                    delaiSWRSpdl= distance
+                                                else:
+                                                    SWR_statut = 'PreCoupled'
+                                                    cPreCoupledSWR+=1 if unit_count==1 else 0
+                                                    cUnCoupledSWR-=1 if unit_count==1 else 0
+                                                    delaiSWRSpdl=distance                                         
 
                                     ActivityCa_swrCp=locals()[f'ActivityCa_{SWR_statut}swr{ctxSpi}']
                                     ActivitySp_swrCp=locals()[f'ActivitySp_{SWR_statut}swr{ctxSpi}']
@@ -648,18 +682,17 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         start6 = time.time()
                         for ctx in CTX: 
                             for coup in Coupling: 
-                                if coup=='Coupled':
-                                    # All Ca traces for each spindles per Unique unit (according to cross-registration)
-                                    ActivityCa = locals()[f'ActivityCa_{coup}swr{ctx}']
-                                    dict_All_ActivityCa = locals()[f'dict_All_ActivityCa_{coup}SWR{ctx}_{drug}']
-                                    ActivitySp = locals()[f'ActivitySp_{coup}swr{ctx}']
-                                    dict_All_ActivitySp = locals()[f'dict_All_ActivitySp_{coup}SWR{ctx}_{drug}']
-                                else:    
+                                if coup=='UnCoupled' or coup == '':                                      
                                     # All Ca traces for each spindles per Unique unit (according to cross-registration)
                                     ActivityCa = locals()[f'ActivityCa_{coup}swr']
                                     dict_All_ActivityCa = locals()[f'dict_All_ActivityCa_{coup}SWR_{drug}']
                                     ActivitySp = locals()[f'ActivitySp_{coup}swr']
                                     dict_All_ActivitySp = locals()[f'dict_All_ActivitySp_{coup}SWR_{drug}']
+                                else: 
+                                    ActivityCa = locals()[f'ActivityCa_{coup}swr{ctx}']
+                                    dict_All_ActivityCa = locals()[f'dict_All_ActivityCa_{coup}SWR{ctx}_{drug}']
+                                    ActivitySp = locals()[f'ActivitySp_{coup}swr{ctx}']
+                                    dict_All_ActivitySp = locals()[f'dict_All_ActivitySp_{coup}SWR{ctx}_{drug}']
                                 if len(indexMapp) > 0: #not empty --> cause some units are not in the cross registration..! Need to know why 
                                     if len(ActivityCa)>0 :                                  
                                         if np.shape(np.array(ActivityCa))[1] == int(norm_freq*durationSWR*2):   #normalize traces to the same frequency rate    
@@ -693,7 +726,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
                 print(f"... The {unit_count} units of {session} analyzed in {time.time() - start2:.2f} seconds")
 
-                sentence2=f"... {cCoupled+cUnCoupled}/{nb_spindle} spindles kept ({cCoupled} Coupled & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global, {cLocalS1} LocalS1 & {cLocalPFC} LocalPFC) and {cCoupledSWR+cUnCoupledSWR}/{nb_swr} SWR kept ({cCoupledSWR} Coupled & {cUnCoupledSWR} Uncoupled SWR)"
+                sentence2=f"... {cPreCoupled+cPostCoupled+cPrePostCoupled+cUnCoupled}/{nb_spindle} spindles kept ({cPreCoupled} PreCoupled & {cPostCoupled} PostCoupled & {cPrePostCoupled} PrePostCoupled & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global, {cLocalS1} LocalS1 & {cLocalPFC} LocalPFC) and {cPreCoupledSWR+cPostCoupledSWR+cPrePostCoupledSWR+cUnCoupledSWR}/{nb_swr} SWR kept ({cPreCoupledSWR} PreCoupled & {cPostCoupledSWR} PostCoupled & {cPrePostCoupledSWR} PrePostcoupled & {cUnCoupledSWR} Uncoupled SWR)"
                 print(sentence2) 
             else:
                 print(f'/!\ {session} not taken into account cause minian frequency = {minian_freq}')
@@ -713,14 +746,14 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                     filenameOut = folder_to_save / f'Spdl_{data}PSTH_{coup}{ctx}{drug}_{mice}.pkl' #keep each responses of each cells for all rec Spdl
                     with open(filenameOut, 'wb') as pickle_file:
                         pickle.dump(dict_All_Activity, pickle_file)
-                    if coup=='Coupled' : 
-                        dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR{ctx}_{drug}']
-                        filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{ctx}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
-                        with open(filenameOut, 'wb') as pickle_file:
-                            pickle.dump(dict_All_Activity, pickle_file)
-                    else:
+                    if coup=='UnCoupled' or coup == '': 
                         dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR_{drug}']
                         filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
+                        with open(filenameOut, 'wb') as pickle_file:
+                            pickle.dump(dict_All_Activity, pickle_file)
+                    else: 
+                        dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR{ctx}_{drug}']
+                        filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{ctx}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
                         with open(filenameOut, 'wb') as pickle_file:
                             pickle.dump(dict_All_Activity, pickle_file)
 
