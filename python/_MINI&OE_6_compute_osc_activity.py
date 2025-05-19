@@ -11,7 +11,7 @@ saveexcel=1
 AHmethod=0 # 0 if using the method of Aurelie B (2025) / 1 if using the method of Audrey Hay (2025)
 
 AnalysisID='_likeAH' if AHmethod else '_pynapple' # '_pynapple' if using the method of Aurelie Hay (2025) / '_minian' if using the method of Audrey Hay (2025)
-suffix='_PrePostCoupled'
+suffix='_PrePostCoupled_overlap'
 
 CTX=['S1', 'PFC', 'S1PFC']
 Coupling=['', 'UnCoupled', 'PreCoupled', 'PostCoupled', 'PrePostCoupled']
@@ -201,13 +201,12 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
     for drug in drugs: 
         for coup in Coupling:
+            locals()[f'dict_All_ActivityCa_{coup}SWR_{drug}']={}
+            locals()[f'dict_All_ActivitySp_{coup}SWR_{drug}']={}
             for ctx in CTX:            
                 locals()[f'dict_All_ActivityCa_{coup}SPDL{ctx}_{drug}']={}
-                locals()[f'dict_All_ActivitySp_{coup}SPDL{ctx}_{drug}']={}
-                if coup=='UnCoupled' or coup == '':                     
-                    locals()[f'dict_All_ActivityCa_{coup}SWR_{drug}']={}
-                    locals()[f'dict_All_ActivitySp_{coup}SWR_{drug}']={}
-                else: 
+                locals()[f'dict_All_ActivitySp_{coup}SPDL{ctx}_{drug}']={}  
+                if coup=='PreCoupled' or coup == 'PostCoupled' or coup == 'PrePostCoupled': 
                     locals()[f'dict_All_ActivityCa_{coup}SWR{ctx}_{drug}']={}
                     locals()[f'dict_All_ActivitySp_{coup}SWR{ctx}_{drug}']={}
 
@@ -419,7 +418,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             endPreviousSpi=SpipropTrunc.loc[prevspin, "end time"] if prevspin else startSpi-durationSpdl*1000 #line and not index cause sometimes, index are not ordered    
                             prevspin=Pspin
 
-                            if 1==1: #startSpi - endPreviousSpi >= durationSpdl*1000 : # if the spindle is not too close from the end of previous one 
+                            if 1==1: # startSpi - endPreviousSpi >= durationSpdl*500 : # if the spindle is not too close from the end of previous one 
 
                                 TooEarlySpdl=startSpi-durationSpdl*1000<StartFrame_msec # too close to the begining of the recording
                                 TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
@@ -563,11 +562,10 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         #######################################################################################
                         
                         for coup in Coupling:
-                            for ctx in CTX:   
-                                if coup =='UnCoupled' or coup == '':      
-                                    locals()[f'ActivityCa_{coup}swr']=[] #For each unit 
-                                    locals()[f'ActivitySp_{coup}swr']=[] #For each unit  
-                                else:                                     
+                            for ctx in CTX:                                     
+                                locals()[f'ActivityCa_{coup}swr']=[] #For each unit 
+                                locals()[f'ActivitySp_{coup}swr']=[] #For each unit  
+                                if coup=='PreCoupled' or coup == 'PostCoupled' or coup == 'PrePostCoupled':                                   
                                     locals()[f'ActivityCa_{coup}swr{ctx}']=[] #For each unit 
                                     locals()[f'ActivitySp_{coup}swr{ctx}']=[] #For each unit 
 
@@ -583,7 +581,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             endPreviousSwr=SWRpropTrunc.loc[prevSWR, "end time"] if prevSWR else startSwr-durationSWR*1000                             
                             prevSWR=Pswr
 
-                            if 1==1: #startSwr - endPreviousSwr >= durationSWR*1000 : # if the spindle is not too close from the end of previous one 
+                            if 1==1: #startSwr - endPreviousSwr >= durationSWR*500 : # if the spindle is not too close from the end of previous one 
                                 
                                 TooEarlySWR=startSwr-durationSWR*1000<StartFrame_msec # too close to the begining of the recording
                                 TooLateSWR=startSwr+durationSWR*1000>LastFrame_msec # too close to the end of the recording
@@ -651,6 +649,10 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                     ActivitySp_swrCp=locals()[f'ActivitySp_{SWR_statut}swr{ctxSpi}']
                                     ActivityCa_swrCp.append(CaTrace)
                                     ActivitySp_swrCp.append(SpTrace)
+                                    ActivityCa_swrCp=locals()[f'ActivityCa_{SWR_statut}swr']
+                                    ActivitySp_swrCp=locals()[f'ActivitySp_{SWR_statut}swr']
+                                    ActivityCa_swrCp.append(CaTrace)
+                                    ActivitySp_swrCp.append(SpTrace)
                                     
                                     # Fill the big summary table SWR_GlobalResults
 
@@ -679,48 +681,75 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             #    print("/!\ SWR too close to the end of the previous one,", session, ", SWR n°", Pswr, ", Start SWR =",  round(startSwr/1000,1), "s") if unit==0 else None
 
                         ## Peristimulus Time Histogram 
-                        start6 = time.time()
-                        for ctx in CTX: 
-                            for coup in Coupling: 
-                                if coup=='UnCoupled' or coup == '':                                      
-                                    # All Ca traces for each spindles per Unique unit (according to cross-registration)
-                                    ActivityCa = locals()[f'ActivityCa_{coup}swr']
-                                    dict_All_ActivityCa = locals()[f'dict_All_ActivityCa_{coup}SWR_{drug}']
-                                    ActivitySp = locals()[f'ActivitySp_{coup}swr']
-                                    dict_All_ActivitySp = locals()[f'dict_All_ActivitySp_{coup}SWR_{drug}']
-                                else: 
+                        start6 = time.time()                        
+                        for coup in Coupling:                                                                                              
+                            # All Ca traces for each spindles per Unique unit (according to cross-registration)
+                            ActivityCa = locals()[f'ActivityCa_{coup}swr']
+                            dict_All_ActivityCa = locals()[f'dict_All_ActivityCa_{coup}SWR_{drug}']
+                            ActivitySp = locals()[f'ActivitySp_{coup}swr']
+                            dict_All_ActivitySp = locals()[f'dict_All_ActivitySp_{coup}SWR_{drug}']
+                            if len(indexMapp) > 0: #not empty --> cause some units are not in the cross registration..! Need to know why 
+                                if len(ActivityCa)>0 :                                  
+                                    if np.shape(np.array(ActivityCa))[1] == int(norm_freq*durationSWR*2):   #normalize traces to the same frequency rate    
+                                        ActivityCa= np.reshape(np.array(ActivityCa), (-1, len(np.array(ActivityCa)))) if np.ndim(ActivityCa) == 1 else np.array(ActivityCa)    
+                                        ActivitySp= np.reshape(np.array(ActivitySp), (-1, len(np.array(ActivitySp)))) if np.ndim(ActivitySp) == 1 else np.array(ActivitySp)    
+                                        key=mice + str(indexMapp).replace('[','').replace(']','')
+                                        dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(ActivityCa), axis=0) if key in dict_All_ActivityCa else np.array(ActivityCa)
+                                        dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(ActivitySp), axis=0) if key in dict_All_ActivitySp else np.array(ActivitySp)
+                                    else:
+                                        dataO = np.array(ActivityCa)
+                                        data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
+                                        x_mesh, y_mesh = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
+                                        x_new_mesh, y_new_mesh = np.meshgrid(np.linspace(0, data.shape[1] - 1, int(norm_freq*durationSWR*2)), np.linspace(0, data.shape[0] - 1, np.shape(data)[0]))
+                                        resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='linear')
+                                        resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
+                                        resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
+                                        key=mice + str(indexMapp).replace('[','').replace(']','')
+                                        dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(resampled_data), axis=0) if key in dict_All_ActivityCa else np.array(resampled_data)
+                                        
+                                        dataO = np.array(ActivitySp)
+                                        data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
+                                        x_mesh, y_mesh = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
+                                        x_new_mesh, y_new_mesh = np.meshgrid(np.linspace(0, data.shape[1] - 1, int(norm_freq*durationSWR*2)), np.linspace(0, data.shape[0] - 1, np.shape(data)[0]))
+                                        resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='nearest')
+                                        resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
+                                        resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
+                                        key=mice + str(indexMapp).replace('[','').replace(']','')
+                                        dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
+                            for ctx in CTX:
+                                if coup=='PreCoupled' or coup == 'PostCoupled' or coup == 'PrePostCoupled':  
                                     ActivityCa = locals()[f'ActivityCa_{coup}swr{ctx}']
                                     dict_All_ActivityCa = locals()[f'dict_All_ActivityCa_{coup}SWR{ctx}_{drug}']
                                     ActivitySp = locals()[f'ActivitySp_{coup}swr{ctx}']
                                     dict_All_ActivitySp = locals()[f'dict_All_ActivitySp_{coup}SWR{ctx}_{drug}']
-                                if len(indexMapp) > 0: #not empty --> cause some units are not in the cross registration..! Need to know why 
-                                    if len(ActivityCa)>0 :                                  
-                                        if np.shape(np.array(ActivityCa))[1] == int(norm_freq*durationSWR*2):   #normalize traces to the same frequency rate    
-                                            ActivityCa= np.reshape(np.array(ActivityCa), (-1, len(np.array(ActivityCa)))) if np.ndim(ActivityCa) == 1 else np.array(ActivityCa)    
-                                            ActivitySp= np.reshape(np.array(ActivitySp), (-1, len(np.array(ActivitySp)))) if np.ndim(ActivitySp) == 1 else np.array(ActivitySp)    
-                                            key=mice + str(indexMapp).replace('[','').replace(']','')
-                                            dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(ActivityCa), axis=0) if key in dict_All_ActivityCa else np.array(ActivityCa)
-                                            dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(ActivitySp), axis=0) if key in dict_All_ActivitySp else np.array(ActivitySp)
-                                        else:
-                                            dataO = np.array(ActivityCa)
-                                            data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
-                                            x_mesh, y_mesh = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
-                                            x_new_mesh, y_new_mesh = np.meshgrid(np.linspace(0, data.shape[1] - 1, int(norm_freq*durationSWR*2)), np.linspace(0, data.shape[0] - 1, np.shape(data)[0]))
-                                            resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='linear')
-                                            resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
-                                            resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
-                                            key=mice + str(indexMapp).replace('[','').replace(']','')
-                                            dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(resampled_data), axis=0) if key in dict_All_ActivityCa else np.array(resampled_data)
-                                            
-                                            dataO = np.array(ActivitySp)
-                                            data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
-                                            x_mesh, y_mesh = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
-                                            x_new_mesh, y_new_mesh = np.meshgrid(np.linspace(0, data.shape[1] - 1, int(norm_freq*durationSWR*2)), np.linspace(0, data.shape[0] - 1, np.shape(data)[0]))
-                                            resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='nearest')
-                                            resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
-                                            resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
-                                            key=mice + str(indexMapp).replace('[','').replace(']','')
-                                            dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
+                                    if len(indexMapp) > 0: #not empty --> cause some units are not in the cross registration..! Need to know why 
+                                        if len(ActivityCa)>0 :                                  
+                                            if np.shape(np.array(ActivityCa))[1] == int(norm_freq*durationSWR*2):   #normalize traces to the same frequency rate    
+                                                ActivityCa= np.reshape(np.array(ActivityCa), (-1, len(np.array(ActivityCa)))) if np.ndim(ActivityCa) == 1 else np.array(ActivityCa)    
+                                                ActivitySp= np.reshape(np.array(ActivitySp), (-1, len(np.array(ActivitySp)))) if np.ndim(ActivitySp) == 1 else np.array(ActivitySp)    
+                                                key=mice + str(indexMapp).replace('[','').replace(']','')
+                                                dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(ActivityCa), axis=0) if key in dict_All_ActivityCa else np.array(ActivityCa)
+                                                dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(ActivitySp), axis=0) if key in dict_All_ActivitySp else np.array(ActivitySp)
+                                            else:
+                                                dataO = np.array(ActivityCa)
+                                                data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
+                                                x_mesh, y_mesh = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
+                                                x_new_mesh, y_new_mesh = np.meshgrid(np.linspace(0, data.shape[1] - 1, int(norm_freq*durationSWR*2)), np.linspace(0, data.shape[0] - 1, np.shape(data)[0]))
+                                                resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='linear')
+                                                resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
+                                                resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
+                                                key=mice + str(indexMapp).replace('[','').replace(']','')
+                                                dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(resampled_data), axis=0) if key in dict_All_ActivityCa else np.array(resampled_data)
+                                                
+                                                dataO = np.array(ActivitySp)
+                                                data= np.repeat(dataO, 2, axis=0) if dataO.shape[0] == 1 else dataO
+                                                x_mesh, y_mesh = np.meshgrid(np.arange(data.shape[1]), np.arange(data.shape[0]))
+                                                x_new_mesh, y_new_mesh = np.meshgrid(np.linspace(0, data.shape[1] - 1, int(norm_freq*durationSWR*2)), np.linspace(0, data.shape[0] - 1, np.shape(data)[0]))
+                                                resampled_dataO = griddata((x_mesh.flatten(), y_mesh.flatten()), data.flatten(), (x_new_mesh, y_new_mesh), method='nearest')
+                                                resampled_data= resampled_dataO[0,:] if dataO.shape[0] == 1 else resampled_dataO
+                                                resampled_data= np.reshape(resampled_data, (-1, len(resampled_data))) if np.ndim(resampled_data) == 1 else resampled_data
+                                                key=mice + str(indexMapp).replace('[','').replace(']','')
+                                                dict_All_ActivitySp[key] = np.append(dict_All_ActivitySp[key], np.array(resampled_data), axis=0) if key in dict_All_ActivitySp else np.array(resampled_data)
                         
                         print(f'... {len(SWRpropTrunc)} SWR processed in {time.time() - start5:.2f} seconds & PSTH done in {time.time() - start6:.2f} seconds for one cell') if unit_count==1 else None
 
@@ -746,12 +775,12 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                     filenameOut = folder_to_save / f'Spdl_{data}PSTH_{coup}{ctx}{drug}_{mice}.pkl' #keep each responses of each cells for all rec Spdl
                     with open(filenameOut, 'wb') as pickle_file:
                         pickle.dump(dict_All_Activity, pickle_file)
-                    if coup=='UnCoupled' or coup == '': 
-                        dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR_{drug}']
-                        filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
-                        with open(filenameOut, 'wb') as pickle_file:
-                            pickle.dump(dict_All_Activity, pickle_file)
-                    else: 
+                    
+                    dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR_{drug}']
+                    filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
+                    with open(filenameOut, 'wb') as pickle_file:
+                        pickle.dump(dict_All_Activity, pickle_file)
+                    if coup=='PreCoupled' or coup == 'PostCoupled' or coup == 'PrePostCoupled': 
                         dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR{ctx}_{drug}']
                         filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{ctx}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
                         with open(filenameOut, 'wb') as pickle_file:
