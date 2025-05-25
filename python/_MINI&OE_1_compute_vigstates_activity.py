@@ -4,9 +4,9 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
+DrugExperiment=1 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID='CellAssemblyOnly_bin' 
+AnalysisID='_CorrOkCGP' 
 
 saveexcel=0
 
@@ -53,7 +53,9 @@ import numpy as np
 import pickle
 import pandas as pd
 import matplotlib.pyplot as plt
-
+from scipy.signal import resample
+from scipy.signal import resample_poly
+from math import gcd
 import warnings
 warnings.filterwarnings("ignore")
 import sys
@@ -72,6 +74,18 @@ class Tee:
 minian_path = os.path.join(os.path.abspath('.'),'minian')
 print("The folder used for minian procedures is : {}".format(minian_path))
 sys.path.append(minian_path)
+
+
+def resample_matrix(data, orig_rate, target_rate, axis=0):
+    if orig_rate == target_rate:
+        return data.copy()
+    # Compute integer up/down factors using GCD
+    up = int(target_rate)
+    down = int(orig_rate)
+    factor = gcd(up, down)
+    up //= factor
+    down //= factor
+    return resample_poly(data, up=up, down=down, axis=axis)
 
 
 from minian.utilities import (
@@ -467,7 +481,9 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
 
             # Define cell assemblies
-            patterns,significance,zactmat= runPatterns(Carray.T, method='ica', nullhyp = 'bin', nshu = 1000, percentile = 99, tracywidom = False)
+
+            Carray20 = resample_matrix(Carray, orig_rate=minian_freq, target_rate=20)# 50 ms bins 
+            patterns,significance,zactmat= runPatterns(Carray20.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)
             if len(patterns)>0:
                 patterns_th=patterns.copy()
                 for ass in np.arange(np.shape(patterns)[0]):
@@ -521,7 +537,6 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
                             counter2+=1
 
-            """               
             for m in mapp:
 
                 # Correlation between each neurons according to vigilance states 
@@ -792,6 +807,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
             CaCorrVigStateMatrixName=f'CaCorr{mapp[m]}Matrix{d}'
             CaCorrVigStateMatrix = locals()[CaCorrVigStateMatrixName]
             if len(CaCorrVigStateMatrix)>0: # cause sometimes no Baseline conditions in CGP experiments
+                
                 combined_df = pd.concat(CaCorrVigStateMatrix, ignore_index=False)
                 IterationNb=combined_df.groupby(combined_df.index).count()
                 combined_df = combined_df.groupby(combined_df.index).sum() #mean
@@ -811,9 +827,10 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 combined_df = combined_df[~(combined_df.fillna(0) == 0).all(axis=1)]
                 combined_df = combined_df.loc[:, ~(combined_df.fillna(0) == 0).all(axis=0)]
                 if saveexcel: combined_df.to_excel(excel_writerCa, sheet_name=f'Z_{d}_{mapp[m]}', index=True, header=True)   
-                dataCaCorr[f'Z_{drug}_{mapp[m]}']=combined_df
+                dataCaCorr[f'Z_{d}_{mapp[m]}']=combined_df
                 if saveexcel: IterationNb.to_excel(excel_writerCa, sheet_name=f'{d}_{mapp[m]}_IterationNb', index=True, header=True) 
                 dataCaCorr[f'{d}_{mapp[m]}_IterationNb']=IterationNb
+                
 
                 SpCorrVigStateMatrixName=f'SpCorr{mapp[m]}Matrix{d}'
                 SpCorrVigStateMatrix = locals()[SpCorrVigStateMatrixName]
@@ -856,7 +873,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                     combined_df.index = [mice + str(idx) for idx in combined_df.index]
                     combined_df = combined_df.dropna(axis=0, how='all')
                     combined_df = combined_df.dropna(axis=1, how='all')
-                    combined_df.to_excel(excel_writerRawSp, sheet_name=f'{drug}_{mapp[m]}', index=False, header=True)   
+                    combined_df.to_excel(excel_writerRawSp, sheet_name=f'{d}_{mapp[m]}', index=False, header=True)   
         
     if saveexcel: 
         excel_writerCa.close() 
@@ -887,7 +904,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 filenameOut = folder_to_save / f'VigStates_Global.pkl'
 with open(filenameOut, 'wb') as pickle_file:
     pickle.dump(VigilanceState_GlobalResults, pickle_file)
-"""
+
 filenameOut = folder_to_save / f'CellAssembly_Global.pkl'
 with open(filenameOut, 'wb') as pickle_file:
     pickle.dump(CellAssembly_GlobalResults, pickle_file)

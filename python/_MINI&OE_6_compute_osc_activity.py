@@ -4,14 +4,13 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=0 # 0 if Baseline Experiment / 1 if CGP Experiment
+DrugExperiment=1 # 0 if Baseline Experiment / 1 if CGP Experiment
 
 saveexcel=1
-
 AHmethod=0 # 0 if using the method of Aurelie B (2025) / 1 if using the method of Audrey Hay (2025)
 
 AnalysisID='_likeAH' if AHmethod else '_pynapple' # '_pynapple' if using the method of Aurelie Hay (2025) / '_minian' if using the method of Audrey Hay (2025)
-suffix='_PrePostCoupled_overlap'
+suffix='_fineDetection'
 
 CTX=['S1', 'PFC', 'S1PFC']
 Coupling=['', 'UnCoupled', 'PreCoupled', 'PostCoupled', 'PrePostCoupled']
@@ -258,11 +257,11 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 dict_TodropFile[session]  = unit_to_drop
 
 
-            SWRlist= pd.read_csv(session_path / f'OpenEphys/SWRproperties.csv' ) if AHmethod else pd.read_csv(session_path / f'OpenEphys/SWR_detection.csv' ) 
+            SWRlist= pd.read_csv(session_path / f'OpenEphys/SWRproperties.csv' ) if AHmethod else pd.read_csv(session_path / f'OpenEphys/SWR_finedetection.csv' ) 
             SWRlist['toKeep'] = 'True' # SWRlist['toKeep'].astype(str)
             dict_SWRprop[session]  =SWRlist[SWRlist['toKeep'].isin(['VRAI', 'True'])]
 
-            Spdllist = pd.read_csv(session_path / f'OpenEphys/Spindleproperties_S1&PFC.csv') if AHmethod else pd.read_csv(session_path / f'OpenEphys/SpindlesS1&PFC_detection.csv' ) 
+            Spdllist = pd.read_csv(session_path / f'OpenEphys/Spindleproperties_S1&PFC.csv') if AHmethod else pd.read_csv(session_path / f'OpenEphys/SpindlesS1&PFC_finedetection.csv' ) 
             Spdllist['toKeep'] = 'True' # Spdllist['toKeep'].astype(str)
             dict_Spindleprop[session]  = Spdllist[Spdllist['toKeep'].isin(['VRAI', 'True'])]
 
