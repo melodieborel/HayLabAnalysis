@@ -10,7 +10,10 @@ saveexcel=1
 AHmethod=0 # 0 if using the method of Aurelie B (2025) / 1 if using the method of Audrey Hay (2025)
 
 AnalysisID='_likeAH' if AHmethod else '_pynapple' # '_pynapple' if using the method of Aurelie Hay (2025) / '_minian' if using the method of Audrey Hay (2025)
-suffix='_fineDetection'
+suffix='_new'
+
+permuted = 0 #2000 # 2 sec before the real start of the oscillations
+
 
 CTX=['S1', 'PFC', 'S1PFC']
 Coupling=['', 'UnCoupled', 'PreCoupled', 'PostCoupled', 'PrePostCoupled']
@@ -161,12 +164,11 @@ counter2=0
 norm_freq=20 # final miniscope frequency used for all recordings
 
 Spindles_GlobalResults= pd.DataFrame(data, columns=['Mice', 'NeuronType','Session','Session_Date', 'Session_Time','Unique_Unit','UnitNumber','UnitValue','ExpeType','Drug', 'SpdlStatut','SpdlStartLocation',
-                                                        'GlobalSpindle', 'SpdlNumber','SpdlDuration','SWR_inside_Spdl','DistanceSWR_Spdl','DistanceClosestSpdl','CalciumActivityPreference', 'CalciumActivityBefore',
-                                                        'CalciumActivityDuring','CalciumActivityAfter', 'AUC_calciumBaseline','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter',
-                                                        'SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
+                                                        'GlobalSpindle', 'SpdlNumber','SpdlDuration','SWR_inside_Spdl','DistanceSWR_Spdl','DistanceClosestSpdl','AUC_1stQuarter','AUC_2ndQuarter','AUC_3rdQuarter','AUC_4thQuarter',
+                                                        'FR_1stQuarter','FR_2ndQuarter','FR_3rdQuarter','FR_4thQuarter'])
 SWR_GlobalResults= pd.DataFrame(data, columns=['Mice', 'NeuronType','Session','Session_Date','Session_Time','Unique_Unit','UnitNumber','UnitValue','ExpeType','Drug','SWRStatut','SpdlLoc', 'SWRNumber','SWRDuration',
-                                                'SWR_inside_Spdl','DistanceSWR_Spdl','CalciumActivityPreference', 'CalciumActivityBefore','CalciumActivityDuring','CalciumActivityAfter',
-                                                'AUC_calciumBaseline','AUC_calciumBefore','AUC_calciumDuring','AUC_calciumAfter','SpikeActivityPreference','SpikeActivityBefore','SpikeActivityDuring','SpikeActivityAfter'])
+                                                'SWR_inside_Spdl','DistanceSWR_Spdl','AUC_1stQuarter','AUC_2ndQuarter','AUC_3rdQuarter','AUC_4thQuarter',
+                                                        'FR_1stQuarter','FR_2ndQuarter','FR_3rdQuarter','FR_4thQuarter',])
 
 for dpath in Path(dir).glob('**/mappingsAB.pkl'):
     
@@ -407,8 +409,8 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             
                             # Get the calcium and spike trace associated with the spdl
             
-                            startSpi=SpipropTrunc.loc[Pspin, "start time"]    
-                            endSpi=SpipropTrunc.loc[Pspin, "end time"]    
+                            startSpi=SpipropTrunc.loc[Pspin, "start time"] - permuted
+                            endSpi=SpipropTrunc.loc[Pspin, "end time"]  - permuted  
                             ctxSpi=SpipropTrunc.loc[Pspin, "CTX"]                
                             diffSpi=SpipropTrunc.loc[Pspin, "LocalGlobal"]                
                             StartLocSpi=SpipropTrunc.loc[Pspin, "StartingLoc"]   
@@ -511,7 +513,23 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                     Spindles_GlobalResults.loc[counter, 'SWR_inside_Spdl'] = IsTrue
                                     Spindles_GlobalResults.loc[counter, 'DistanceSWR_Spdl'] = delaiSWRSpdl 
                                     Spindles_GlobalResults.loc[counter, 'DistanceClosestSpdl'] = closestSpdl 
-                
+                                    
+                                    durOsc=round(durationSpdl*minian_freq)  
+                                    
+                                    Spindles_GlobalResults.loc[counter, 'AUC_1stQuarter'] = 2 * np.trapz(CaTrace[:round(durOsc/2)],np.arange(0,len(CaTrace[:round(durOsc/2)]),1)) # *2 cause to be per sec
+                                    Spindles_GlobalResults.loc[counter, 'AUC_2ndQuarter'] = 2 * np.trapz(CaTrace[round(durOsc/2):durOsc],np.arange(0,len(CaTrace[round(durOsc/2):durOsc]),1))
+                                    Spindles_GlobalResults.loc[counter, 'AUC_3rdQuarter'] = 2 * np.trapz(CaTrace[durOsc:durOsc+round(durOsc/2)],np.arange(0,len(CaTrace[durOsc:durOsc+round(durOsc/2)]),1))    
+                                    Spindles_GlobalResults.loc[counter, 'AUC_4thQuarter'] = 2 * np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
+                                    Spindles_GlobalResults.loc[counter, 'AUC_1stHalf'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))          
+                                    Spindles_GlobalResults.loc[counter, 'AUC_2ndHalf'] = np.trapz(CaTrace[durOsc:],np.arange(0,len(CaTrace[durOsc:]),1))          
+
+                                    Spindles_GlobalResults.loc[counter, 'FR_1stQuarter'] = 2 * np.mean(SpTrace[:round(durOsc/2)],0) # *2 cause to be in Hz
+                                    Spindles_GlobalResults.loc[counter, 'FR_2ndQuarter'] = 2 * np.mean(SpTrace[round(durOsc/2):durOsc],0)
+                                    Spindles_GlobalResults.loc[counter, 'FR_3rdQuarter'] = 2 * np.mean(SpTrace[durOsc:durOsc+round(durOsc/2)],0)          
+                                    Spindles_GlobalResults.loc[counter, 'FR_4thQuarter'] = 2 * np.mean(SpTrace[durOsc*2:durOsc*3],0)          
+                                    Spindles_GlobalResults.loc[counter, 'FR_1stHalf'] = np.mean(SpTrace[:durOsc],0)          
+                                    Spindles_GlobalResults.loc[counter, 'FR_2ndHalf'] = np.mean(SpTrace[durOsc:],0)                        
+                            
                                     counter+=1    
                             #else: 
                             #    print("/!\ Spindle too close to the end of the previous one,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None
@@ -574,8 +592,8 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         for Pswr in SWRpropTrunc.index: 
 
                             # Get the calcium and spike trace associated with the SWR
-                            startSwr=SWRpropTrunc.loc[Pswr, "start time"]
-                            endSwr=SWRpropTrunc.loc[Pswr, "end time"]
+                            startSwr=SWRpropTrunc.loc[Pswr, "start time"] - permuted
+                            endSwr=SWRpropTrunc.loc[Pswr, "end time"] - permuted
 
                             endPreviousSwr=SWRpropTrunc.loc[prevSWR, "end time"] if prevSWR else startSwr-durationSWR*1000                             
                             prevSWR=Pswr
@@ -675,6 +693,23 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                     SWR_GlobalResults.loc[counter2, 'SWRDuration'] = endSwr- startSwr
                                     SWR_GlobalResults.loc[counter2, 'SWR_inside_Spdl'] = IsTrue
                                     SWR_GlobalResults.loc[counter2, 'DistanceSWR_Spdl'] = delaiSWRSpdl 
+
+                                    durOsc=round(durationSpdl*minian_freq)  
+                                    
+                                    SWR_GlobalResults.loc[counter2, 'AUC_1stQuarter'] = 2 * np.trapz(CaTrace[:round(durOsc/2)],np.arange(0,len(CaTrace[:round(durOsc/2)]),1)) # *2 cause to be per sec
+                                    SWR_GlobalResults.loc[counter2, 'AUC_2ndQuarter'] = 2 * np.trapz(CaTrace[round(durOsc/2):durOsc],np.arange(0,len(CaTrace[round(durOsc/2):durOsc]),1))
+                                    SWR_GlobalResults.loc[counter2, 'AUC_3rdQuarter'] = 2 * np.trapz(CaTrace[durOsc:durOsc+round(durOsc/2)],np.arange(0,len(CaTrace[durOsc:durOsc+round(durOsc/2)]),1))    
+                                    SWR_GlobalResults.loc[counter2, 'AUC_4thQuarter'] = 2 * np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
+                                    SWR_GlobalResults.loc[counter2, 'AUC_1stHalf'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))          
+                                    SWR_GlobalResults.loc[counter2, 'AUC_2ndHalf'] = np.trapz(CaTrace[durOsc:],np.arange(0,len(CaTrace[durOsc:]),1))          
+
+                                    SWR_GlobalResults.loc[counter2, 'FR_1stQuarter'] = 2 * np.mean(SpTrace[:round(durOsc/2)],0) # *2 cause to be in Hz
+                                    SWR_GlobalResults.loc[counter2, 'FR_2ndQuarter'] = 2 * np.mean(SpTrace[round(durOsc/2):durOsc],0)
+                                    SWR_GlobalResults.loc[counter2, 'FR_3rdQuarter'] = 2 * np.mean(SpTrace[durOsc:durOsc+round(durOsc/2)],0)          
+                                    SWR_GlobalResults.loc[counter2, 'FR_4thQuarter'] = 2 * np.mean(SpTrace[durOsc*2:durOsc*3],0)          
+                                    SWR_GlobalResults.loc[counter2, 'FR_1stHalf'] = np.mean(SpTrace[:durOsc],0)          
+                                    SWR_GlobalResults.loc[counter2, 'FR_2ndHalf'] = np.mean(SpTrace[durOsc:],0)      
+ 
                                     counter2+=1  
                             #else: 
                             #    print("/!\ SWR too close to the end of the previous one,", session, ", SWR n°", Pswr, ", Start SWR =",  round(startSwr/1000,1), "s") if unit==0 else None

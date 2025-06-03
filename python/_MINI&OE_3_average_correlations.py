@@ -4,14 +4,14 @@
                             # Define Experiment type #
 #######################################################################################
 
-AnalysisID='_CGP' #to identify this analysis from another
-DrugExperiment=1 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
+AnalysisID='_baseline' #to identify this analysis from another
+DrugExperiment=0 # 0 if Baseline, 1 if CGP, 2 if Baseline & CGP
 
 saveexcel=0
 Local=1
 
 choosed_folder1='VigSt_2025-05-03_10_01_32' # for Baseline Expe
-choosed_folder2='VigSt_2025-05-21_15_47_42_CorrOkCGP' # for CGP Expe
+choosed_folder2='VigSt_2025-05-21_15_47_42_CGP' # for CGP Expe
 
 desired_order = ['AW','QW', 'NREM', 'IS', 'REM', 'undefined']   
 
