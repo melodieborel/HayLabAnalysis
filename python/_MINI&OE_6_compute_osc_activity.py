@@ -10,10 +10,9 @@ saveexcel=1
 AHmethod=0 # 0 if using the method of Aurelie B (2025) / 1 if using the method of Audrey Hay (2025)
 
 AnalysisID='_likeAH' if AHmethod else '_pynapple' # '_pynapple' if using the method of Aurelie Hay (2025) / '_minian' if using the method of Audrey Hay (2025)
-suffix='_new'
+suffix='_byQuarter'
 
-permuted = 0 #2000 # 2 sec before the real start of the oscillations
-
+permuted = 0 # 0 if not permuted / 1 if permuted
 
 CTX=['S1', 'PFC', 'S1PFC']
 Coupling=['', 'UnCoupled', 'PreCoupled', 'PostCoupled', 'PrePostCoupled']
@@ -23,6 +22,7 @@ before = 500 # Max distance in ms between a SWR and a spindle to be considered a
 after = 1000 # Max distance in ms between a spindle and a SWR to be considered as Postcoupled
 durationSpdl = 1 # number of sec before and after the Spdl onset taken into acount
 durationSWR = 1 # number of sec before and after the SWR onset taken into acount
+
 
 drugs=['baseline', 'CGP'] if DrugExperiment else ['baseline']
 
@@ -54,6 +54,7 @@ from bisect import bisect_left
 from ast import literal_eval
 from scipy import interpolate
 import time
+import random
 
 from itertools import groupby
 from ephyviewer import mkQApp, MainViewer, TraceViewer
@@ -408,9 +409,10 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         for Pspin in SpipropTrunc.index: 
                             
                             # Get the calcium and spike trace associated with the spdl
-            
-                            startSpi=SpipropTrunc.loc[Pspin, "start time"] - permuted
-                            endSpi=SpipropTrunc.loc[Pspin, "end time"]  - permuted  
+                            lag = random.randint(-15*1000, -5*1000) if permuted else 0
+    
+                            startSpi=SpipropTrunc.loc[Pspin, "start time"] - lag
+                            endSpi=SpipropTrunc.loc[Pspin, "end time"]  - lag  
                             ctxSpi=SpipropTrunc.loc[Pspin, "CTX"]                
                             diffSpi=SpipropTrunc.loc[Pspin, "LocalGlobal"]                
                             StartLocSpi=SpipropTrunc.loc[Pspin, "StartingLoc"]   
@@ -592,8 +594,10 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         for Pswr in SWRpropTrunc.index: 
 
                             # Get the calcium and spike trace associated with the SWR
-                            startSwr=SWRpropTrunc.loc[Pswr, "start time"] - permuted
-                            endSwr=SWRpropTrunc.loc[Pswr, "end time"] - permuted
+                            lag = random.randint(-15*1000, -5*1000) if permuted else 0
+
+                            startSwr=SWRpropTrunc.loc[Pswr, "start time"] - lag
+                            endSwr=SWRpropTrunc.loc[Pswr, "end time"] - lag
 
                             endPreviousSwr=SWRpropTrunc.loc[prevSWR, "end time"] if prevSWR else startSwr-durationSWR*1000                             
                             prevSWR=Pswr
