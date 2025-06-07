@@ -10,13 +10,14 @@ saveexcel=1
 AHmethod=0 # 0 if using the method of Aurelie B (2025) / 1 if using the method of Audrey Hay (2025)
 
 AnalysisID='_likeAH' if AHmethod else '_pynapple' # '_pynapple' if using the method of Aurelie Hay (2025) / '_minian' if using the method of Audrey Hay (2025)
-suffix='_byQuarter'
+suffix='byQuarter_Shuffle_TCD'
 
 permuted = 0 # 0 if not permuted / 1 if permuted
 
 CTX=['S1', 'PFC', 'S1PFC']
 Coupling=['', 'UnCoupled', 'PreCoupled', 'PostCoupled', 'PrePostCoupled']
-dir = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
+
+dir = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L2_3_mice/ThreeColDots/"
 
 before = 500 # Max distance in ms between a SWR and a spindle to be considered as Precoupled
 after = 1000 # Max distance in ms between a spindle and a SWR to be considered as Postcoupled
@@ -518,19 +519,25 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                     
                                     durOsc=round(durationSpdl*minian_freq)  
                                     
+                                    
+                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumBaseline'] = np.trapz(CaTrace[:round(durOsc/2)],np.arange(0,len(CaTrace[:round(durOsc/2)]),1))*2 # *2 cause 2 times shorter in lenght than the other
+                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumBefore'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))
+                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumDuring'] = np.trapz(CaTrace[durOsc:durOsc*2],np.arange(0,len(CaTrace[durOsc:durOsc*2]),1))          
+                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumAfter'] = np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
+
                                     Spindles_GlobalResults.loc[counter, 'AUC_1stQuarter'] = 2 * np.trapz(CaTrace[:round(durOsc/2)],np.arange(0,len(CaTrace[:round(durOsc/2)]),1)) # *2 cause to be per sec
                                     Spindles_GlobalResults.loc[counter, 'AUC_2ndQuarter'] = 2 * np.trapz(CaTrace[round(durOsc/2):durOsc],np.arange(0,len(CaTrace[round(durOsc/2):durOsc]),1))
                                     Spindles_GlobalResults.loc[counter, 'AUC_3rdQuarter'] = 2 * np.trapz(CaTrace[durOsc:durOsc+round(durOsc/2)],np.arange(0,len(CaTrace[durOsc:durOsc+round(durOsc/2)]),1))    
-                                    Spindles_GlobalResults.loc[counter, 'AUC_4thQuarter'] = 2 * np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
+                                    Spindles_GlobalResults.loc[counter, 'AUC_4thQuarter'] = 2 * np.trapz(CaTrace[durOsc+round(durOsc/2):],np.arange(0,len(CaTrace[durOsc+round(durOsc/2):]),1))          
                                     Spindles_GlobalResults.loc[counter, 'AUC_1stHalf'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))          
                                     Spindles_GlobalResults.loc[counter, 'AUC_2ndHalf'] = np.trapz(CaTrace[durOsc:],np.arange(0,len(CaTrace[durOsc:]),1))          
 
-                                    Spindles_GlobalResults.loc[counter, 'FR_1stQuarter'] = 2 * np.mean(SpTrace[:round(durOsc/2)],0) # *2 cause to be in Hz
-                                    Spindles_GlobalResults.loc[counter, 'FR_2ndQuarter'] = 2 * np.mean(SpTrace[round(durOsc/2):durOsc],0)
-                                    Spindles_GlobalResults.loc[counter, 'FR_3rdQuarter'] = 2 * np.mean(SpTrace[durOsc:durOsc+round(durOsc/2)],0)          
-                                    Spindles_GlobalResults.loc[counter, 'FR_4thQuarter'] = 2 * np.mean(SpTrace[durOsc*2:durOsc*3],0)          
-                                    Spindles_GlobalResults.loc[counter, 'FR_1stHalf'] = np.mean(SpTrace[:durOsc],0)          
-                                    Spindles_GlobalResults.loc[counter, 'FR_2ndHalf'] = np.mean(SpTrace[durOsc:],0)                        
+                                    Spindles_GlobalResults.loc[counter, 'FR_1stQuarter'] = 2 * np.sum(SpTrace[:round(durOsc/2)]) # *2 cause to be in Hz
+                                    Spindles_GlobalResults.loc[counter, 'FR_2ndQuarter'] = 2 * np.sum(SpTrace[round(durOsc/2):durOsc])
+                                    Spindles_GlobalResults.loc[counter, 'FR_3rdQuarter'] = 2 * np.sum(SpTrace[durOsc:durOsc+round(durOsc/2)])          
+                                    Spindles_GlobalResults.loc[counter, 'FR_4thQuarter'] = 2 * np.sum(SpTrace[durOsc+round(durOsc/2):])          
+                                    Spindles_GlobalResults.loc[counter, 'FR_1stHalf'] = np.sum(SpTrace[:durOsc])          
+                                    Spindles_GlobalResults.loc[counter, 'FR_2ndHalf'] = np.sum(SpTrace[durOsc:])                        
                             
                                     counter+=1    
                             #else: 
@@ -703,16 +710,16 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                                     SWR_GlobalResults.loc[counter2, 'AUC_1stQuarter'] = 2 * np.trapz(CaTrace[:round(durOsc/2)],np.arange(0,len(CaTrace[:round(durOsc/2)]),1)) # *2 cause to be per sec
                                     SWR_GlobalResults.loc[counter2, 'AUC_2ndQuarter'] = 2 * np.trapz(CaTrace[round(durOsc/2):durOsc],np.arange(0,len(CaTrace[round(durOsc/2):durOsc]),1))
                                     SWR_GlobalResults.loc[counter2, 'AUC_3rdQuarter'] = 2 * np.trapz(CaTrace[durOsc:durOsc+round(durOsc/2)],np.arange(0,len(CaTrace[durOsc:durOsc+round(durOsc/2)]),1))    
-                                    SWR_GlobalResults.loc[counter2, 'AUC_4thQuarter'] = 2 * np.trapz(CaTrace[durOsc*2:durOsc*3],np.arange(0,len(CaTrace[durOsc*2:durOsc*3]),1))          
+                                    SWR_GlobalResults.loc[counter2, 'AUC_4thQuarter'] = 2 * np.trapz(CaTrace[durOsc+round(durOsc/2):],np.arange(0,len(CaTrace[durOsc+round(durOsc/2):]),1))          
                                     SWR_GlobalResults.loc[counter2, 'AUC_1stHalf'] = np.trapz(CaTrace[:durOsc],np.arange(0,len(CaTrace[:durOsc]),1))          
                                     SWR_GlobalResults.loc[counter2, 'AUC_2ndHalf'] = np.trapz(CaTrace[durOsc:],np.arange(0,len(CaTrace[durOsc:]),1))          
 
-                                    SWR_GlobalResults.loc[counter2, 'FR_1stQuarter'] = 2 * np.mean(SpTrace[:round(durOsc/2)],0) # *2 cause to be in Hz
-                                    SWR_GlobalResults.loc[counter2, 'FR_2ndQuarter'] = 2 * np.mean(SpTrace[round(durOsc/2):durOsc],0)
-                                    SWR_GlobalResults.loc[counter2, 'FR_3rdQuarter'] = 2 * np.mean(SpTrace[durOsc:durOsc+round(durOsc/2)],0)          
-                                    SWR_GlobalResults.loc[counter2, 'FR_4thQuarter'] = 2 * np.mean(SpTrace[durOsc*2:durOsc*3],0)          
-                                    SWR_GlobalResults.loc[counter2, 'FR_1stHalf'] = np.mean(SpTrace[:durOsc],0)          
-                                    SWR_GlobalResults.loc[counter2, 'FR_2ndHalf'] = np.mean(SpTrace[durOsc:],0)      
+                                    SWR_GlobalResults.loc[counter2, 'FR_1stQuarter'] = 2 * np.sum(SpTrace[:round(durOsc/2)]) # *2 cause to be in Hz
+                                    SWR_GlobalResults.loc[counter2, 'FR_2ndQuarter'] = 2 * np.sum(SpTrace[round(durOsc/2):durOsc])
+                                    SWR_GlobalResults.loc[counter2, 'FR_3rdQuarter'] = 2 * np.sum(SpTrace[durOsc:durOsc+round(durOsc/2)])          
+                                    SWR_GlobalResults.loc[counter2, 'FR_4thQuarter'] = 2 * np.sum(SpTrace[durOsc+round(durOsc/2):])          
+                                    SWR_GlobalResults.loc[counter2, 'FR_1stHalf'] = np.sum(SpTrace[:durOsc])          
+                                    SWR_GlobalResults.loc[counter2, 'FR_2ndHalf'] = np.sum(SpTrace[durOsc:])      
  
                                     counter2+=1  
                             #else: 
@@ -824,29 +831,28 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         with open(filenameOut, 'wb') as pickle_file:
                             pickle.dump(dict_All_Activity, pickle_file)
 
+    start8 = time.time()
+    if saveexcel: 
+        # Save the big summary table Spindles_GlobalResults
+        writer = pd.ExcelWriter(folder_to_save / f'Spdl_Global_{mice}.xlsx')
+        Spindles_GlobalResults.to_excel(writer)
+        writer.close()
+
+        # Save the big summary table SWR_GlobalResults
+        writer = pd.ExcelWriter(folder_to_save / f'SWR_Global_{mice}.xlsx')
+        SWR_GlobalResults.to_excel(writer)
+        writer.close()
+
+    with open(folder_to_save / f'Spdl_Global_{mice}.pkl', 'wb') as pickle_file:
+        pickle.dump(Spindles_GlobalResults, pickle_file)   
+
+    with open(folder_to_save / f'SWR_Global_{mice}.pkl', 'wb') as pickle_file:
+        pickle.dump(SWR_GlobalResults, pickle_file)
+
+    print(f"Global matrix saved in {time.time() - start8:.2f} seconds")
+
     sentence3=f"{mice} data saved in {time.time() - start2:.2f} seconds"
-    print(sentence3)   
-
-
-start8 = time.time()
-if saveexcel: 
-    # Save the big summary table Spindles_GlobalResults
-    writer = pd.ExcelWriter(folder_to_save / f'Spdl_Global.xlsx')
-    Spindles_GlobalResults.to_excel(writer)
-    writer.close()
-
-    # Save the big summary table SWR_GlobalResults
-    writer = pd.ExcelWriter(folder_to_save / f'SWR_Global.xlsx')
-    SWR_GlobalResults.to_excel(writer)
-    writer.close()
-
-with open(folder_to_save / f'Spdl_Global.pkl', 'wb') as pickle_file:
-    pickle.dump(Spindles_GlobalResults, pickle_file)   
-
-with open(folder_to_save / f'SWR_Global.pkl', 'wb') as pickle_file:
-    pickle.dump(SWR_GlobalResults, pickle_file)
-
-print(f"Global matrix saved in {time.time() - start8:.2f} seconds")
+    print(sentence3) 
 
 sys.stdout = sys.__stdout__
 logfile.close()
