@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Activate "minian" environement before
+# Activate "dlc" environement before
 # cd in /HayLabAnalysis/bash
-#(minian) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_minian.sh
+#(dlc) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_dlc.sh
 
 # Define the starting directory
-#START_DIR="/crnldata/forgetting/Clementine/CheeseboardExperiment/DAQ_data/ClementineR/Training/GL/Cheesboard/2025_03_31/12_22_47/"
-START_DIR="/crnldata/forgetting/Clementine/CheeseboardExperiment/DAQ_data/ClementineR/Habituation/YL/Cheesboard/2025_03_26/13_31_34/"
+START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
+START_DIR="/crnldata/forgetting/Clementine/CheeseboardExperiment/Juin/RL/Cheeseboard/2025_06_06/12_19_54/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -16,37 +16,25 @@ IFS=$'\n'
 # Loop through all the folders containing .avi files 
 for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \; | sort -u); do
     
-    if [[ "$pathtofolder" == *"V4_Miniscope"* && ! -d "$pathtofolder/minian" ]]; then #only process miniscope movies that were not already processed
-    # if [[ "$pathtofolder" == *"V4_Miniscope"* ]]; then  # process all miniscope movies 
+    #if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* && ! -d "$pathtofolder/plot-poses" ]]; then #only process cheeseboard movies that were not already processed
+    if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* ]]; then  #only process cheeseboard movies 
 
         echo "Found folder: $pathtofolder"
+
+        rm -rf /mnt/data/AurelieB_dlc/* #empty mnt data
+        cp -r "${pathtofolder}/"* /mnt/data/AurelieB_dlc/ #copy crnldata to mnt data 
         
-        rm -rf /mnt/data/ClemR_minian/* #empty mnt data
- 
-        # Use '/' as a delimiter to split the path and count the parts
-        pathtofolder_len=$(echo "$pathtofolder" | awk -F'/' '{print NF}')
-
-        mouse_name=$(echo "$pathtofolder" | awk -F'/' '{print $9}')
-        session_name=$(echo "$pathtofolder" | awk -F'/' '{print $12}')
-
-        echo "$mouse_name"
-        echo "$session_name"
-
-        mkdir -p "/mnt/data/ClemR_minian/$mouse_name/$session_name/"
-
-        cp -r "${pathtofolder}/"* /mnt/data/ClemR_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
+        #srun --mem=50G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_2_analyze_videos.py
+        srun --partition=GPU --mem=20G --cpus-per-task=4 --gres=gpu:1g.20gb:1 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_2_analyze_videos.py
         
-        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py
-        srun --mem=90G --cpus-per-task=40 python /home/clementine.robein/HayLabAnalysis/python/MINI_1_run_minian_pipeline.py #&>/dev/null
-
         # Check the exit status of srun
         if [ $? -ne 0 ]; then
             echo "Error: srun failed for $pathtofolder. Skipping..."
             continue #break
         fi
 
-        cp -r /mnt/data/ClemR_minian/$mouse_name/$session_name/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
-        rm -rf /mnt/data/ClemR_minian/* #empty mnt data
+        cp -r /mnt/data/AurelieB_dlc/* "${pathtofolder}/" #copy dlc folder of mnt data to crnldata 
+        rm -rf /mnt/data/AurelieB_dlc/* #empty mnt data
     fi
 done
 

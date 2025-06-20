@@ -22,9 +22,9 @@ st = time.time()
         # PARAMETERS #
 ##################################
 # Set up Initial Basic Parameters#
-minian_path = "/home/clementine.robein/minian"
+minian_path = "/home/aurelie.brecier/minian"
 
-dpath='/mnt/data/ClemR_minian/'
+dpath='/mnt/data/ManonSe_minian/'
 mouse_name = [f for f in os.listdir(dpath) if os.path.isdir(os.path.join(dpath, f))]
 mouse_name = mouse_name[0]
 path_mouse = os.path.join(dpath, mouse_name)
@@ -64,7 +64,7 @@ param_seeds_init = {
     "wnd_size": 100, # 100, #Default minian = 1000
     "method": "rolling",
     "stp_size": 50, #50, #Default minian =500
-    "max_wnd": 20, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian = 15 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    "max_wnd": 18, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian = 15 !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     "diff_thres": 3, #3
 }
 param_pnr_refine = {"noise_freq": 0.06, "thres": 1}
@@ -76,8 +76,8 @@ param_init_merge = {"thres_corr": 0.8}
 # CNMF Parameters#
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
-    "dl_wnd": 20, #15, #Default minian = 10 #the window size of the morphological dilation operation
-    "sparse_penal": 0.0015, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    "dl_wnd": 15, #15, #Default minian = 10 #the window size of the morphological dilation operation
+    "sparse_penal": 0.006, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     "size_thres": (25, None), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted
 }
 param_first_temporal = {
@@ -427,7 +427,7 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     cluster.close()
     
     # Copy the script file to the destination folder
-    source_script = "/mnt/data/home/clementine.robein/HayLabAnalysis/python/MINI_1_detect_units_pipeline.py"
+    source_script = "/mnt/data/home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_pipeline.py"
     destination_file_path = f"{minian_ds_path}/MINI_1_detect_units_pipeline.txt"
     shutil.copy(source_script, destination_file_path)
 
