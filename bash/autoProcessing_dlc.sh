@@ -6,7 +6,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/AB/Training/Lou/Cheeseboard/2024_12_04/test/"
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/RL/PlaceCells_experiment/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
