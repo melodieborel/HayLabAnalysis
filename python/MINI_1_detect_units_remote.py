@@ -52,7 +52,7 @@ param_load_videos = {
     "downsample": dict(frame=1, height=1, width=1),
     "downsample_strategy": "subset",
 }
-param_denoise = {"method": "median", "ksize": 5} #Default minian ={"method": "median", "ksize": 7}
+param_denoise = {"method": "median", "ksize": 5} #5 #Default minian ={"method": "median", "ksize": 7}
 param_background_removal = {"method": "tophat", "wnd": 15}
 
 # Motion Correction Parameters#
@@ -64,8 +64,8 @@ param_seeds_init = {
     "wnd_size": 100, # 100, #Default minian = 1000
     "method": "rolling",
     "stp_size": 50, #50, #Default minian =500
-    "max_wnd": 20, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15
-    "diff_thres": 3, #3
+    "max_wnd": 10, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15
+    "diff_thres": 7, #3
 }
 param_pnr_refine = {"noise_freq": 0.06, "thres": 1}
 param_ks_refine = {"sig": 0.05}
@@ -76,9 +76,9 @@ param_init_merge = {"thres_corr": 0.8}
 # CNMF Parameters#
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
-    "dl_wnd": 20, #15, #Default minian = 10 #the window size of the morphological dilation operation
-    "sparse_penal": 0.0008, #0.012, #Default minian =0.01 #☻ the bigger, the smaller the ROI
-    "size_thres": (25, None), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted
+    "dl_wnd": 10, #15, #Default minian = 10 #the window size of the morphological dilation operation
+    "sparse_penal": 0.005, #0.012, #Default minian =0.01 #☻ the bigger, the smaller the ROI
+    "size_thres": (75, 750), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None),
 }
 param_first_temporal = {
     "noise_freq": 0.06,

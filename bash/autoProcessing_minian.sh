@@ -6,7 +6,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L1NDNF_mice/RedLines/preCGP/"
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/YL/LongTermMemory_experiment/Habituation/2025_03_21/Cheeseboard/11-19-27_11-25-26/11_19_32"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -26,13 +26,15 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
         # Use '/' as a delimiter to split the path and count the parts
         pathtofolder_len=$(echo "$pathtofolder" | awk -F'/' '{print NF}')
 
-        mouse_name=$(echo "$pathtofolder" | awk -F'/' '{print $8}')
-        if [ "$pathtofolder_len" -eq 12 ]; then           
-            session_name=$(echo "$pathtofolder" | awk -F'/' '{print $12}')     
-        elif [ "$pathtofolder_len" -eq 11 ]; then
-            text=$(echo "$pathtofolder" | awk -F'/' '{print $10}')
-            session_name="${text##*_}"      
-        fi        
+        mouse_name=$(echo "$pathtofolder" | awk -F'/' '{print $7}')
+        session_name=$(echo "$pathtofolder" | awk -F'/' '{print $13}')
+
+        #if [ "$pathtofolder_len" -eq 12 ]; then          
+        #    session_name=$(echo "$pathtofolder" | awk -F'/' '{print $11}')
+        #elif [ "$pathtofolder_len" -eq 11 ]; then
+        #    text=$(echo "$pathtofolder" | awk -F'/' '{print $10}')
+        #    session_name="${text##*_}"      
+        #fi        
 
         echo "$mouse_name"
         echo "$session_name"
