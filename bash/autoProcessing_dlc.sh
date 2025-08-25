@@ -6,7 +6,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/RL/PlaceCells_experiment/"
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -17,14 +17,15 @@ IFS=$'\n'
 for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \; | sort -u); do
     
     #if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* && ! -d "$pathtofolder/plot-poses" ]]; then #only process cheeseboard movies that were not already processed
-    if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* ]]; then  #only process cheeseboard movies 
+    #if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* ]]; then  #only process cheeseboard movies 
+    if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/MemoryTest/"* && "$pathtofolder" == *"/Cheeseboard/"* && ! -d "$pathtofolder/plot-poses" ]]; then #only process cheeseboard movies that were not already processed
 
         echo "Found folder: $pathtofolder"
 
         rm -rf /mnt/data/AurelieB_dlc/* #empty mnt data
         cp -r "${pathtofolder}/"* /mnt/data/AurelieB_dlc/ #copy crnldata to mnt data 
         
-        srun --mem=50G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_2_analyze_videos.py
+        srun --mem=90G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_2_analyze_videos.py
         #srun --partition=GPU --mem=20G --cpus-per-task=4 --gres=gpu:1g.20gb:1 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_2_analyze_videos.py
         
         # Check the exit status of srun
