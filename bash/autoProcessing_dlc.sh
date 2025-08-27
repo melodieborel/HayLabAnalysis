@@ -15,7 +15,6 @@ IFS=$'\n'
 
 # Loop through all the folders containing .avi files 
 for pathtofolder in $(find "$START_DIR" -type f -name "*.mp4" -exec dirname {} \; | sort -u); do
-    echo "Found folder: $pathtofolder"
 
     #if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* && ! -d "$pathtofolder/plot-poses" ]]; then #only process cheeseboard movies that were not already processed
     if [[ "$pathtofolder" == *"Cheeseboard"* ]]; then  #only process cheeseboard movies 
@@ -27,6 +26,7 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.mp4" -exec dirname {} \
         cp -r "${pathtofolder}/"* /mnt/data/DLC_Carla/ #copy crnldata to mnt data 
         
         srun --mem=90G --cpus-per-task=20 python /home/carla.burnet-merlin/HayLabAnalysis/python/DLC_2_analyze_videos.py
+        #srun --mem=250G --cpus-per-task=40 python /home/carla.burnet-merlin/HayLabAnalysis/python/DLC_2_analyze_videos.py
         #srun --partition=GPU --mem=20G --cpus-per-task=4 --gres=gpu:1g.20gb:1 python /home/aurelie.brecier/HayLabAnalysis/python/DLC_2_analyze_videos.py
         
         # Check the exit status of srun
