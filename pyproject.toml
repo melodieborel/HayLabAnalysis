@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ePhyTools"
+version = "0.0.5"
+authors = [
+  { name="Melodie Borel", email="melodieborel@syntuitio.com" },
+]
+description = "A package with all tools to analyse ePhys dependencies data acquired in A. Hay lab"
+readme = "README.md"
+requires-python = "==3.11"
+keywords = ["ePhy", "calcium imaging"]
+dependencies = [
+    "ipyfilechooser",
+    "jupyter_bokeh",
+    "ipykernel",
+    "ephyviewer @ git+https://github.com/melodieborel/ephyviewer.git",
+    "PySide6",
+    "pyqtgraph == 0.13.3",
+    "numpy",
+    "scipy",
+    "matplotlib",
+    "Neo",
+    "pandas",
+    "spikeinterface",
+    "dask",
+    "xarray",
+    "quantities",
+    "pickleshare",
+    "open-ephys-python-tools",
+    "ipympl",
+    "openpyxl",
+    "minian @ git+https://github.com/melodieborel/minian.git@python311"
+]
