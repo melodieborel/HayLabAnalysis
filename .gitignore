@@ -9,9 +9,11 @@ session5
 npx
 minian
 
+**/__pycache__
+
 ephyviewer
 
-.DS_Store
+**/.DS_Store
 python/.ipynb_checkpoints
 python/dask-worker-space
 
