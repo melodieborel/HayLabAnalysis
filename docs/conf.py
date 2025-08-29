@@ -18,7 +18,7 @@ extensions = []
 language = 'en'
 master_doc = 'index'
 pygments_style = 'sphinx'
-source_suffix = '.rst'
+source_suffix = '.md'
 templates_path = ['_templates']
 
 # -- Options for HTML output ----------------------------------------------
