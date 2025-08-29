@@ -3,7 +3,7 @@ requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ePhyTools"
+name = "HayLabAnalysis"
 version = "0.0.5"
 authors = [
   { name="Melodie Borel", email="melodieborel@syntuitio.com" },
