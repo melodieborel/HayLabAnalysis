@@ -21,6 +21,5 @@ formats: all
 # declare the Python requirements required to build your documentation
 # See https://docs.readthedocs.io/en/stable/guides/reproducible-builds.html
 python:
-   version: "3.13"
    install:
    - requirements: docs/requirements.txt
