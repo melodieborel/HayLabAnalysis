@@ -3,8 +3,8 @@
 
 project = 'HayLabAnalysis'
 copyright = '2000-2042, The Test Project Authors'
-author = 'The Authors'
-version = release = '4.16'
+author = 'Melodie Borel'
+version = release = '0.0.1'
 
 # -- General configuration ------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -24,5 +24,5 @@ templates_path = ['_templates']
 # -- Options for HTML output ----------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
-html_theme = 'alabaster'
+html_theme = 'nature'
 html_static_path = ['_static']
