@@ -2,7 +2,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/"
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/RL/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -12,8 +12,8 @@ IFS=$'\n'
 # Loop through all the folders containing .avi files 
 for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \; | sort -u); do
     
-    if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* && ! -d "$pathtofolder/plot-poses" ]]; then #only process cheeseboard movies that were not already processed
-    #if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"Cheeseboard"* ]]; then  #only process cheeseboard movies 
+    #if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* && ! -d "$pathtofolder/plot-poses" ]]; then #only process cheeseboard movies that were not already processed
+    if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"Cheeseboard"* ]]; then  #only process cheeseboard movies 
         count=$(find "$pathtofolder" -maxdepth 1 -type f -name "*.avi" | wc -l)
         if [ "$count" -gt 1 ]; then
             echo "Folder $pathtofolder has $count .avi files"
