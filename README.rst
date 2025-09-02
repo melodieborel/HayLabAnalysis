@@ -41,7 +41,9 @@ For non-coders, the easiest way to use the notebooks is to install the package d
     #. (Optional) Select "Recreate" if you want to recreate the environment.
     #. (Optional) Select "Python 3.11" as the Python version.
 #. Open a terminal in vscode (``Ctrl+Shift+<``)
-#. Install the package using the command: `pip install git+https://github.com/melodieborel/HayLabAnalysis.git`
+#. Install the package using the command: 
+    .. code-block:: bash
+        pip install git+https://github.com/melodieborel/HayLabAnalysis.git
 
 
 With github
@@ -56,8 +58,9 @@ Clone the repository
 #. Open vscode and install the Python extension if you haven't already.
 #. From the explorer view (``Cmd+Shift+E`` or ``Ctrl+Shift+E``), click on "Clone Repository" (or from the command palette ``Cmd+Shift+P`` or ``Ctrl+Shift+P`` and type "Git: Clone").
 #. Select "Clone from GitHub" (you might be asked to sign in to github).
-#. Enter the repository URL: `git@github.com:melodieborel/HayLabAnalysis.git`
-
+#. Enter the repository URL: 
+    .. code-block:: bash
+       git@github.com:melodieborel/HayLabAnalysis.git
 
 This will download all codes into the local folder of your choice.
 
@@ -102,7 +105,9 @@ Keep up to date
 
 With pip
 ^^^^^^^^^
-To ensure you have the latest version of the package, you can run the following command in the terminal:    `pip install --upgrade git+https://github.com/melodieborel/HayLabAnalysis.git`
+To ensure you have the latest version of the package, you can run the following command in the terminal:
+    .. code-block:: bash
+       pip install --upgrade git+https://github.com/melodieborel/HayLabAnalysis.git
 
 With github
 ^^^^^^^^^^^
