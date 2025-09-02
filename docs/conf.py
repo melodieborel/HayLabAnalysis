@@ -34,6 +34,7 @@ extensions = [
     "sphinx_automodapi.automodapi",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
+    'sphinx_copybutton',
 ]
 
 intersphinx_mapping = {

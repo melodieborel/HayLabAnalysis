@@ -41,8 +41,11 @@ sphinx==5.0.2
     # via
     #   -r docs/requirements.in
     #   sphinx-automodapi
+    #   sphinx-copybutton
     #   sphinx-rtd-theme
 sphinx-automodapi==0.20.0
+    # via -r docs/requirements.in
+sphinx-copybutton==0.5.2
     # via -r docs/requirements.in
 sphinx-rtd-theme==1.0.0
     # via -r docs/requirements.in

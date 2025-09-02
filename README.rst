@@ -40,7 +40,7 @@ For non-coders, the easiest way to use the notebooks is to install the package d
     #. Select "venv" as the environment type.
     #. (Optional) Select "Recreate" if you want to recreate the environment.
     #. (Optional) Select "Python 3.11" as the Python version.
-#. Open a terminal in vscode (``Ctrl+` ``)
+#. Open a terminal in vscode (``Ctrl+Shift+<``)
 #. Install the package using the command: `pip install git+https://github.com/melodieborel/HayLabAnalysis.git`
 
 
