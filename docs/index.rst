@@ -1,3 +1,5 @@
+.. automodapi:: EoN
+    
 .. include:: ../README.rst
 
 
