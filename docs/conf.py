@@ -31,7 +31,7 @@ extensions = [
     "sphinx.ext.duration",
     "sphinx.ext.doctest",
     "sphinx.ext.autodoc",
-    "sphinx.ext.automodapi",
+    "sphinx_automodapi.automodapi",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
 ]
