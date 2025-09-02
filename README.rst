@@ -10,60 +10,76 @@ regrouping all types of acquired data and metadata, deals with all aspects of th
 .. _Miniscope pipeline Minian: https://github.com/melodieborel/minian
 .. _SpikeInterface: https://spikeinterface.readthedocs.io/en/latest/
 
-Requirements
-------------
 
-The package works with python 3.11. It has been tested on MacOS and Windows. Before continuing, make sure you have installed on your computer the following:
-
-* `python`_. 3.11 (installed with or without anaconda)
-* `vscode`_. or any other editor that supports jupyter notebooks.
-
-* Optionnally (if you wish to use version control or have collaborators rights) `git`_.
-
-.. _python: https://realpython.com/installing-python/
-.. _vscode: https://code.visualstudio.com/
-.. _git: https://git-scm.com/downloads
 
 
 Installation
 ------------
-For simplicity, the installation guidelines assume that you are using vscode to open and run the notebooks. If you are using another editor, please adapt the instructions accordingly.
+The package works with python 3.11. It has been tested on MacOS and Windows. 
+For simplicity, the installation guidelines assume that you are using `vscode`_. to open and run the notebooks.
+If you are using another editor, please adapt the instructions accordingly.
 
-With pip (recommended for non-coders, no version control)
+.. _python installer: https://www.python.org/ftp/python/3.11.0/python-3.11.0-amd64.exe
+.. _vscode: https://code.visualstudio.com/
+.. _git: https://git-scm.com/downloads
+.. _Anaconda: https://www.anaconda.com/products/distribution
+
+Read only mode (recommended for non-coders, no version control)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For non-coders, the easiest way to use the notebooks is to install the package directly from github using pip. This way you will always have the latest version of the package and all dependencies will be installed automatically.
 
-.. tabs::
+For non-coders, the easiest way to use the notebooks is to install the package directly using pip or conda.
+This way you will always have the latest version of the package and all dependencies will be installed automatically.
 
-   .. tab:: Apples
+#. Make sure python 3.11 is installed on your computer.
+    .. tabs::
+    .. tab:: Installer (windows)
+        * Download  and install the `python installer`_. version 3.11 for windows.
 
-      Apples are green, or sometimes red.
+        .. note:: Make sure to check the box that says "Add Python to PATH" during installation.
+        
+    .. tab:: Brew (macOS)
+        * Install Homebrew if you haven't already (https://brew.sh/).
+        * Install python 3.11 using the following command on a terminal:
+        .. code-block:: bash
+           brew install python@3.11
 
-   .. tab:: Pears
-
-      Pears are green.
-
-   .. tab:: Oranges
-
-      Oranges are orange.
+    .. tab:: Anaconda (any os)
+        * Download the installer from the official website `Anaconda`_.
+        * Follow the installation instructions for your operating system.
 
 #. Create a folder where you want to work and store your analysis.
 #. Open vscode and install the Python extension if you haven't already.
-#. Make sure to open the folder you created in vscode.
-#. Create a virtual environment:
+#. Make sure to open the folder you created in vscode from the explorer view (``Cmd+Shift+E`` or ``Ctrl+Shift+E``)
+#. Create a virtual environment and install the package:
+.. tabs::
+.. tab:: venv/pip
     #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
     #. Select "venv" as the environment type.
     #. (Optional) Select "Recreate" if you want to recreate the environment.
     #. (Optional) Select "Python 3.11" as the Python version.
-#. Open a terminal in vscode (``Ctrl+Shift+<``)
-#. Install the package using the command: 
+    #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using pip:
+        .. code-block:: bash
+           pip install git+https://github.com/melodieborel/HayLabAnalysis.git
+
+.. tab:: conda
+    #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
+    #. Select "conda" as the environment type.
+    #. In the "Packages" field, type "python=3.11" to ensure you are using the correct python version.
+    #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using conda:
     .. code-block:: bash
-        pip install git+https://github.com/melodieborel/HayLabAnalysis.git
+        conda install git+https://github.com/melodieborel/HayLabAnalysis.git
+
 
 
 With github (for source control)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-For coders or people who want to contribute to the development of the package, the best way to use the notebooks is to clone the repository from github. This way you will be able to push your changes and create pull requests.
+For coders or people who want to contribute to the development of the package, the best way to use the notebooks is to clone the repository from github.
+This way you will be able to push your changes and create pull requests.
+
+.. note::
+    Make sure to have `git`_. installed on your computer, a github account, and that you have set up your ssh keys with github.
+    If you haven't done that yet, please follow the instructions on the following link: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+
 
 Clone the repository
 """"""""""""""""""""
