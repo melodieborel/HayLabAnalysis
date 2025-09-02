@@ -13,14 +13,15 @@ regrouping all types of acquired data and metadata, deals with all aspects of th
 Requirements
 ------------
 
-For easiest use of the notebooks, make sure to have installed on your computer:
+The package works with python 3.11. It has been tested on MacOS and Windows. Before continuing, make sure you have installed on your computer the following:
 
-* `vscode`_.
-* `python`_. 3.11 (with or without anaconda)
+* `python`_. 3.11 (installed with or without anaconda)
+* `vscode`_. or any other editor that supports jupyter notebooks.
+
 * Optionnally (if you wish to use version control or have collaborators rights) `git`_.
 
+.. _python: https://realpython.com/installing-python/
 .. _vscode: https://code.visualstudio.com/
-.. _python: hhttps://realpython.com/installing-python/
 .. _git: https://git-scm.com/downloads
 
 
@@ -28,9 +29,23 @@ Installation
 ------------
 For simplicity, the installation guidelines assume that you are using vscode to open and run the notebooks. If you are using another editor, please adapt the instructions accordingly.
 
-With pip (recommended for non-coders; no version control)
+With pip (recommended for non-coders, no version control)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For non-coders, the easiest way to use the notebooks is to install the package directly from github using pip. This way you will always have the latest version of the package and all dependencies will be installed automatically.
+
+.. tabs::
+
+   .. tab:: Apples
+
+      Apples are green, or sometimes red.
+
+   .. tab:: Pears
+
+      Pears are green.
+
+   .. tab:: Oranges
+
+      Oranges are orange.
 
 #. Create a folder where you want to work and store your analysis.
 #. Open vscode and install the Python extension if you haven't already.
@@ -46,8 +61,8 @@ For non-coders, the easiest way to use the notebooks is to install the package d
         pip install git+https://github.com/melodieborel/HayLabAnalysis.git
 
 
-With github
-^^^^^^^^^^^
+With github (for source control)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 For coders or people who want to contribute to the development of the package, the best way to use the notebooks is to clone the repository from github. This way you will be able to push your changes and create pull requests.
 
 Clone the repository

@@ -3,3 +3,4 @@ sphinx_rtd_theme
 packaging>=25.0
 sphinx-automodapi
 sphinx-copybutton
+sphinx-tabs
