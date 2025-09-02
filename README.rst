@@ -32,42 +32,42 @@ This way you will always have the latest version of the package and all dependen
 
 #. Make sure python 3.11 is installed on your computer.
     .. tabs::
-    .. tab:: Installer (windows)
-        * Download  and install the `python installer`_. version 3.11 for windows.
+        .. tab:: Installer (windows)
+            * Download  and install the `python installer`_. version 3.11 for windows.
 
-        .. note:: Make sure to check the box that says "Add Python to PATH" during installation.
-        
-    .. tab:: Brew (macOS)
-        * Install Homebrew if you haven't already (https://brew.sh/).
-        * Install python 3.11 using the following command on a terminal:
-        .. code-block:: bash
-           brew install python@3.11
+            .. note:: Make sure to check the box that says "Add Python to PATH" during installation.
+            
+        .. tab:: Brew (macOS)
+            * Install Homebrew if you haven't already (https://brew.sh/).
+            * Install python 3.11 using the following command on a terminal:
+            .. code-block:: bash
+            brew install python@3.11
 
-    .. tab:: Anaconda (any os)
-        * Download the installer from the official website `Anaconda`_.
-        * Follow the installation instructions for your operating system.
+        .. tab:: Anaconda (any os)
+            * Download the installer from the official website `Anaconda`_.
+            * Follow the installation instructions for your operating system.
 
 #. Create a folder where you want to work and store your analysis.
 #. Open vscode and install the Python extension if you haven't already.
 #. Make sure to open the folder you created in vscode from the explorer view (``Cmd+Shift+E`` or ``Ctrl+Shift+E``)
 #. Create a virtual environment and install the package:
 .. tabs::
-.. tab:: venv/pip
-    #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
-    #. Select "venv" as the environment type.
-    #. (Optional) Select "Recreate" if you want to recreate the environment.
-    #. (Optional) Select "Python 3.11" as the Python version.
-    #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using pip:
-        .. code-block:: bash
-           pip install git+https://github.com/melodieborel/HayLabAnalysis.git
+    .. tab:: venv/pip
+        #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
+        #. Select "venv" as the environment type.
+        #. (Optional) Select "Recreate" if you want to recreate the environment.
+        #. (Optional) Select "Python 3.11" as the Python version.
+        #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using pip:
+            .. code-block:: bash
+            pip install git+https://github.com/melodieborel/HayLabAnalysis.git
 
-.. tab:: conda
-    #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
-    #. Select "conda" as the environment type.
-    #. In the "Packages" field, type "python=3.11" to ensure you are using the correct python version.
-    #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using conda:
-    .. code-block:: bash
-        conda install git+https://github.com/melodieborel/HayLabAnalysis.git
+    .. tab:: conda
+        #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
+        #. Select "conda" as the environment type.
+        #. In the "Packages" field, type "python=3.11" to ensure you are using the correct python version.
+        #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using conda:
+        .. code-block:: bash
+            conda install git+https://github.com/melodieborel/HayLabAnalysis.git
 
 
 
