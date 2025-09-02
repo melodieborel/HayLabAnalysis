@@ -1,90 +1,109 @@
 HayLabAnalysis
 ==============
 
-General info
-------------
+HayLabAnalysis contains everything someone in Hay Lab should need to easily analyze ePhys and calcium imaging data. It defines an experiment class
+regrouping all types of acquired data and metadata, deals with all aspects of the analysis workflow, and provides a series of jupyter notebooks.
 
-This repository contains jupyter notebooks to analyze ePhys and calcium imaging data. It uses the [Miniscope pipeline Minian](https://github.com/melodieborel/minian)
+* Calcium imaging analysis uses the `Miniscope pipeline Minian`_.
+* Spike sorting uses the `SpikeInterface`_.
 
+.. _Miniscope pipeline Minian: https://github.com/melodieborel/minian
+.. _SpikeInterface: https://spikeinterface.readthedocs.io/en/latest/
 
 Requirements
 ------------
 
 For easiest use of the notebooks, make sure to have installed on your computer:
 
-* `git`_.
-* vscode
-* python 3.11 (with or without anaconda)
+* `vscode`_.
+* `python`_. 3.11 (with or without anaconda)
+* Optionnally (if you wish to use version control or have collaborators rights) `git`_.
 
+.. _vscode: https://code.visualstudio.com/
+.. _python: hhttps://realpython.com/installing-python/
 .. _git: https://git-scm.com/downloads
+
 
 Installation
 ------------
+For simplicity, the installation guidelines assume that you are using vscode to open and run the notebooks. If you are using another editor, please adapt the instructions accordingly.
 
-To use the notebooks you can clone the repo github either manually from terminal:
+With pip (recommended for non-coders; no version control)
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+For non-coders, the easiest way to use the notebooks is to install the package directly from github using pip. This way you will always have the latest version of the package and all dependencies will be installed automatically.
 
-.. code-block:: bash
-    git clone git@github.com:melodieborel/HayLabAnalysis.git
+#. Create a folder where you want to work and store your analysis.
+#. Open vscode and install the Python extension if you haven't already.
+#. Make sure to open the folder you created in vscode.
+#. Create a virtual environment:
+    #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
+    #. Select "venv" as the environment type.
+    #. (Optional) Select "Recreate" if you want to recreate the environment.
+    #. (Optional) Select "Python 3.11" as the Python version.
+#. Open a terminal in vscode (``Ctrl+` ``)
+#. Install the package using the command: `pip install git+https://github.com/melodieborel/HayLabAnalysis.git`
 
 
-or [using VSCode](https://www.youtube.com/watch?v=bz1KauFlbQI): melodieborel/HayLabAnalysis
+With github
+^^^^^^^^^^^
+For coders or people who want to contribute to the development of the package, the best way to use the notebooks is to clone the repository from github. This way you will be able to push your changes and create pull requests.
+
+Clone the repository
+""""""""""""""""""""
+
+#. Make sure you have a github account and that you have access to the repository.
+#. Make sure you have git installed on your computer,  and that you have set up your ssh keys with github. If you haven't done that yet, please follow the instructions on the following link: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+#. Open vscode and install the Python extension if you haven't already.
+#. From the explorer view (``Cmd+Shift+E`` or ``Ctrl+Shift+E``), click on "Clone Repository" (or from the command palette ``Cmd+Shift+P`` or ``Ctrl+Shift+P`` and type "Git: Clone").
+#. Select "Clone from GitHub" (you might be asked to sign in to github).
+#. Enter the repository URL: `git@github.com:melodieborel/HayLabAnalysis.git`
 
 
-This will download all codes into the local folder of your choice. Best now is to create you own branch to not risk screwing up others work. To do so, click at the bottom left on the git button, + create a new branch..., you can give it your name so that everyone know its yours.
+This will download all codes into the local folder of your choice.
+
+
+Create your own branch
+""""""""""""""""""""""
+Best now is to create your own branch to not risk screwing up other's work.
 
 .. note::
-    If you will work closely with someone who already has a branch, it could make sens to create yours from their...
+    If you will work closely with someone who already has a branch, it could make sens to create yours from their... I
 
+#. Click on the branch name at the bottom left of the window (it probably says "main" or "master").
+#. Optional yet recommended: in the dropdown menu, select the branch that is likely to be the closest to your work. Click again on the branch name at the bottom left of the window (now it should say the name of the branch you just selected).
+#. In the dropdown menu, select "Create new branch".
+#. Give your branch a name (e.g. your username) and click "Create".
 
-In order to use the notebooks located in the python subfolder you will need to install a virtual python environment containing all the required dependencies. You can do that using venv or conda. If you don't know what it is or don't know what to choose, please use **venv** as it will make a few things easier...
+Create a virtual environment
+"""""""""""""""""""""""""""""
+#. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
+#. You can use venv or conda as the environment type.
+#. Make sure to select a python version ~= 3.11.
+#. Install the required packages by selecting the requirements.txt file provided in the repository.
 
-
-With venv (recommended)
-^^^^^^^^^^^^^^^^^^^^^^^
-
-On the top right, with a notebook open (for instance python/0_RawDATANumpyViewer.ipynb) you have to select a kernel > Python environments > create python environment > venv > (recreate >) python 3.11.*
-then select python/requirements.txt
-
-VSCode will create a subfolder .venv, download and install all packages that are needed to use the notebooks.
+VSCode will create a subfolder .venv, download and install all packages that are needed to use the notebooks. When you open a notebook, it should automatically use the interpreter from the virtual environment.
+If not, you can manually select it by clicking on the interpreter name at the top right of the notebook window.
 
 .. note::
     If you have an issue with creating the venv on a mac, please follow the procedure described on the last comment of the following [link](https://github.com/pyFFTW/pyFFTW/issues/314)
 
+Regularly push your modifications to the remote repository
+""""""""""""""""""""""""""""""""""""""""""""""""""""""""""
+.. important::
+    To take advantage of version control and to be able to contribute to the development of the package, you need to regularly push your modifications to the remote repository.
 
-With conda
-^^^^^^^^^^
+On the source control view (``Cmd+Shift+G`` or ``Ctrl+Shift+G``), you can see all the changes you made to the code since your last commit. From there, you can:
+#. Stage your changes: select the files you want to include in the commit
+#. Commit your changes: provide a commit message and confirm the commit
+#. Push your changes: synchronize your branch with the remote repository
 
-.. warning::
-   Hopefully, the folder downloaded will contain a directory name "minian". If this isn't the case, I have to figure out how subtrees work...
-    And you will have to manually add the subtree with the command:
-    
-    .. code-block:: bash
-        git subtree add --prefix minian git@github.com:melodieborel/minian.git python311 --squash
-    
-Once done, we create a fresh conda environment that won't screw up any other environment you might use. Make sure to use this command on the Anaconda terminal if conda isn't added to your path:
+Keep up to date
+---------------
 
-.. code-block:: bash
-    conda env create -n minian311 -f minian/environment.yml
+With pip
+^^^^^^^^^
+To ensure you have the latest version of the package, you can run the following command in the terminal:    `pip install --upgrade git+https://github.com/melodieborel/HayLabAnalysis.git`
 
-After the environment is created, you can activate it, install an extra package that wasn't included in the minian requirements, and export the environment to be used in jupyter:
-
-.. code-block:: bash
-    conda activate minian311
-    conda install conda-forge::ipyfilechooser
-    python -m ipykernel install --user --name=minian311
-
-
-
-Update
-------
-
-with conda
-^^^^^^^^^^
-
-We are not there yet, but it will probably involve commands such as :
-
-.. code-block:: bash
-    conda install --file requirements.txt
-    conda env update --file local.yml --prune
-
-
+With github
+^^^^^^^^^^^
+Make sure to regularly pull the latest changes from the main branch to your branch.
