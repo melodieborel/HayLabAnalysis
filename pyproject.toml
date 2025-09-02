@@ -1,10 +1,10 @@
 [build-system]
-requires = ["setuptools"]
+requires = ["setuptools", "setuptools-scm"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "HayLabAnalysis"
-version = "0.0.5"
+version = "0.0.5" #dynamic = ["version"]
 authors = [
   { name="Melodie Borel", email="melodieborel@syntuitio.com" },
 ]
@@ -34,3 +34,11 @@ dependencies = [
     "openpyxl",
     "minian @ git+https://github.com/melodieborel/minian.git@python311"
 ]
+
+[tool.setuptools.packages.find]
+where = ["."]  # list of folders that contain the packages (["."] by default)
+include = ["HayLabAnalysis"]  # package names should match these glob patterns (["*"] by default)
+exclude = []  # exclude packages matching these glob patterns (empty by default)
+namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
+
+[tool.setuptools_scm]

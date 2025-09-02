@@ -10,6 +10,8 @@ recording8
 session5
 npx
 minian
+dist
+*.egg-info
 
 **/__pycache__
 
