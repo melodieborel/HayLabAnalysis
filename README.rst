@@ -11,6 +11,7 @@ Requirements
 ------------
 
 For easiest use of the notebooks, make sure to have installed on your computer:
+
 * `git`_.
 * vscode
 * python 3.11 (with or without anaconda)

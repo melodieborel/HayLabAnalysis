@@ -4,6 +4,8 @@
 .. automodule:: HayLabAnalysis
    :members:
 
+.. autoclass:: HayLabAnalysis::experiment
+
 Requirements
 ------------
 
