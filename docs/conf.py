@@ -14,13 +14,14 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+from HayLabAnalysis import __version__
 
 # -- Project information -----------------------------------------------------
 
 project = 'HayLabAnalysis'
 copyright = '2022, Melodie Borel'
 author = 'Melodie Borel'
-version = release = '0.0.1'
+version = release = __version__
 
 
 # -- General configuration ---------------------------------------------------
@@ -30,7 +31,7 @@ extensions = [
     "sphinx.ext.duration",
     "sphinx.ext.doctest",
     "sphinx.ext.autodoc",
-    "sphinx_automodapi.automodapi",
+    "sphinx.ext.automodapi",
     "sphinx.ext.autosummary",
     "sphinx.ext.intersphinx",
 ]
