@@ -1,5 +1,5 @@
-.. automodapi:: EoN
-    
+.. automodapi:: HayLabAnalysis
+
 .. include:: ../README.rst
 
 

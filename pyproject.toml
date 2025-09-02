@@ -32,7 +32,6 @@ dependencies = [
     "open-ephys-python-tools",
     "ipympl",
     "openpyxl",
-    "sphinx-automodapi",
     "minian @ git+https://github.com/melodieborel/minian.git@python311"
 ]
 
