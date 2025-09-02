@@ -1,11 +1,8 @@
-Development installation
-========================
+.. include:: ../README.rst
 
-.. meta::
-   :description lang=en: Install a local development instance of Read the Docs with our step by step guide.
 
-These are development setup and :ref:`standards <install:Core team standards>` that are followed to by the core development team.
-If you are a contributor to Read the Docs, it might a be a good idea to follow these guidelines as well.
+.. automodule:: HayLabAnalysis
+   :members:
 
 Requirements
 ------------

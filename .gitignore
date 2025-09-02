@@ -22,7 +22,7 @@ python/.ipynb_checkpoints
 python/dask-worker-space
 
 Analysis
-python/localConfig.ini
+HayLabAnalysis/localConfig.ini
 python/tuto_logs
 python/si_logs
 python/kilosort4_output
