@@ -1,5 +1,6 @@
 .. include:: ../README.rst
 
+.. include:: ./installations.rst
 
 .. automodapi:: HayLabAnalysis
     :no-inheritance-diagram:
