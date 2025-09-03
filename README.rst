@@ -30,8 +30,8 @@ This way you will always have the latest version of the package and all dependen
         .. tab:: Brew (macOS)
             * Install `Homebrew`_. if you haven't already.
             * Install python 3.11 using the following command on a terminal:
-            .. code-block:: bash
-                brew install python@3.11
+                .. code-block:: bash
+                    brew install python@3.11
 
         .. tab:: Anaconda (any os)
             * Download the installer from the official website `Anaconda`_.
@@ -49,15 +49,15 @@ This way you will always have the latest version of the package and all dependen
             #. (Optional) Select "Python 3.11" as the Python version.
             #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using pip:
                 .. code-block:: bash
-                pip install git+https://github.com/melodieborel/HayLabAnalysis.git
+                    pip install git+https://github.com/melodieborel/HayLabAnalysis.git
 
         .. tab:: conda
             #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
             #. Select "conda" as the environment type.
             #. In the "Packages" field, type "python=3.11" to ensure you are using the correct python version.
             #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using conda:
-            .. code-block:: bash
-                conda install git+https://github.com/melodieborel/HayLabAnalysis.git
+                .. code-block:: bash
+                    conda install git+https://github.com/melodieborel/HayLabAnalysis.git
 #. Open one of the notebooks provided in the repository and make sure to select the interpreter from the virtual environment you just created (click on the interpreter name at the top right of the notebook window).
 
 
