@@ -7,22 +7,12 @@ regrouping all types of acquired data and metadata, deals with all aspects of th
 * Calcium imaging analysis uses the `Miniscope pipeline Minian`_.
 * Spike sorting uses the `SpikeInterface`_.
 
-.. _Miniscope pipeline Minian: https://github.com/melodieborel/minian
-.. _SpikeInterface: https://spikeinterface.readthedocs.io/en/latest/
-
-
-
 
 Installation
 ------------
 The package works with python 3.11. It has been tested on MacOS and Windows. 
 For simplicity, the installation guidelines assume that you are using `vscode`_. to open and run the notebooks.
 If you are using another editor, please adapt the instructions accordingly.
-
-.. _python installer: https://www.python.org/ftp/python/3.11.0/python-3.11.0-amd64.exe
-.. _vscode: https://code.visualstudio.com/
-.. _git: https://git-scm.com/downloads
-.. _Anaconda: https://www.anaconda.com/products/distribution
 
 Read only mode (recommended for non-coders, no version control)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -38,7 +28,7 @@ This way you will always have the latest version of the package and all dependen
             .. note:: Make sure to check the box that says "Add Python to PATH" during installation.
             
         .. tab:: Brew (macOS)
-            * Install Homebrew if you haven't already (https://brew.sh/).
+            * Install `Homebrew`_. if you haven't already.
             * Install python 3.11 using the following command on a terminal:
             .. code-block:: bash
             brew install python@3.11
@@ -78,14 +68,14 @@ This way you will be able to push your changes and create pull requests.
 
 .. note::
     Make sure to have `git`_. installed on your computer, a github account, and that you have set up your ssh keys with github.
-    If you haven't done that yet, please follow the instructions on the following link: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+    If you haven't done that yet, please follow the `instructions to set up ssh keys`_..
 
 
 Clone the repository
 """"""""""""""""""""
 
 #. Make sure you have a github account and that you have access to the repository.
-#. Make sure you have git installed on your computer,  and that you have set up your ssh keys with github. If you haven't done that yet, please follow the instructions on the following link: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+#. Make sure you have git installed on your computer,  and that you have set up your ssh keys with github. If you haven't done that yet, please follow the `instructions to set up ssh keys`_.
 #. Open vscode and install the Python extension if you haven't already.
 #. From the explorer view (``Cmd+Shift+E`` or ``Ctrl+Shift+E``), click on "Clone Repository" (or from the command palette ``Cmd+Shift+P`` or ``Ctrl+Shift+P`` and type "Git: Clone").
 #. Select "Clone from GitHub" (you might be asked to sign in to github).
@@ -119,7 +109,7 @@ VSCode will create a subfolder .venv, download and install all packages that are
 If not, you can manually select it by clicking on the interpreter name at the top right of the notebook window.
 
 .. note::
-    If you have an issue with creating the venv on a mac, please follow the procedure described on the last comment of the following [link](https://github.com/pyFFTW/pyFFTW/issues/314)
+    If you have an issue with creating the venv on a mac, please follow the `procedure described on the last comment of this link`_.
 
 Regularly push your modifications to the remote repository
 """"""""""""""""""""""""""""""""""""""""""""""""""""""""""
@@ -143,3 +133,14 @@ To ensure you have the latest version of the package, you can run the following 
 With github
 ^^^^^^^^^^^
 Make sure to regularly pull the latest changes from the main branch to your branch.
+
+
+.. _Miniscope pipeline Minian: https://github.com/melodieborel/minian
+.. _SpikeInterface: https://spikeinterface.readthedocs.io/en/latest/
+.. _python installer: https://www.python.org/ftp/python/3.11.0/python-3.11.0-amd64.exe
+.. _vscode: https://code.visualstudio.com/
+.. _git: https://git-scm.com/downloads
+.. _Anaconda: https://www.anaconda.com/products/distribution
+.. _Homebrew: https://brew.sh/
+.. _Instructions to set up ssh keys: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+.. _procedure described on the last comment of this link: https://github.com/pyFFTW/pyFFTW/issues/314
