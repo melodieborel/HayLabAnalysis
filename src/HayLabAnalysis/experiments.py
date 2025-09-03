@@ -141,7 +141,14 @@ class experiment():
 
 
    def analyseExpe_findData(self, fullSampling=False):
-      """findData: function that analyse the content of the raw data folder and detects component of the experiment to load all of them
+      """analyses the content of the raw data folder, detects component of the experiment and add them as entries of the data dictionary
+
+      This function will look for specific file patterns in the raw data folder, and initialize the corresponding data objects based on the data type
+      and its acquisition context. Each data object is then added to the data dictionary and contains specific methods for data manipulation and analysis.
+      All data objects are based on either ePhy (LFP, NPX) or Imaging (Miniscope, webcam) data types.
+
+      Args:
+          fullSampling (bool, optional): imports raw data at their original sampling rate regardless of the presence of downsampled data. Defaults to False.
       """
       from .ePhy.LFP import IntanLFP, NPX, LFP_DS
       from .ePhy.TTL import TTLin
