@@ -31,7 +31,7 @@ This way you will always have the latest version of the package and all dependen
             * Install `Homebrew`_. if you haven't already.
             * Install python 3.11 using the following command on a terminal:
             .. code-block:: bash
-            brew install python@3.11
+                brew install python@3.11
 
         .. tab:: Anaconda (any os)
             * Download the installer from the official website `Anaconda`_.
@@ -41,24 +41,24 @@ This way you will always have the latest version of the package and all dependen
 #. Open vscode and install the Python extension if you haven't already.
 #. Make sure to open the folder you created in vscode from the explorer view (``Cmd+Shift+E`` or ``Ctrl+Shift+E``)
 #. Create a virtual environment and install the package:
-.. tabs::
-    .. tab:: venv/pip
-        #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
-        #. Select "venv" as the environment type.
-        #. (Optional) Select "Recreate" if you want to recreate the environment.
-        #. (Optional) Select "Python 3.11" as the Python version.
-        #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using pip:
+    .. tabs::
+        .. tab:: venv/pip
+            #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
+            #. Select "venv" as the environment type.
+            #. (Optional) Select "Recreate" if you want to recreate the environment.
+            #. (Optional) Select "Python 3.11" as the Python version.
+            #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using pip:
+                .. code-block:: bash
+                pip install git+https://github.com/melodieborel/HayLabAnalysis.git
+
+        .. tab:: conda
+            #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
+            #. Select "conda" as the environment type.
+            #. In the "Packages" field, type "python=3.11" to ensure you are using the correct python version.
+            #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using conda:
             .. code-block:: bash
-            pip install git+https://github.com/melodieborel/HayLabAnalysis.git
-
-    .. tab:: conda
-        #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
-        #. Select "conda" as the environment type.
-        #. In the "Packages" field, type "python=3.11" to ensure you are using the correct python version.
-        #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using conda:
-        .. code-block:: bash
-            conda install git+https://github.com/melodieborel/HayLabAnalysis.git
-
+                conda install git+https://github.com/melodieborel/HayLabAnalysis.git
+#. Open one of the notebooks provided in the repository and make sure to select the interpreter from the virtual environment you just created (click on the interpreter name at the top right of the notebook window).
 
 
 With github (for source control)
@@ -75,13 +75,12 @@ Clone the repository
 """"""""""""""""""""
 
 #. Make sure you have a github account and that you have access to the repository.
-#. Make sure you have git installed on your computer,  and that you have set up your ssh keys with github. If you haven't done that yet, please follow the `instructions to set up ssh keys`_.
 #. Open vscode and install the Python extension if you haven't already.
 #. From the explorer view (``Cmd+Shift+E`` or ``Ctrl+Shift+E``), click on "Clone Repository" (or from the command palette ``Cmd+Shift+P`` or ``Ctrl+Shift+P`` and type "Git: Clone").
 #. Select "Clone from GitHub" (you might be asked to sign in to github).
 #. Enter the repository URL: 
-    .. code-block:: bash
-       git@github.com:melodieborel/HayLabAnalysis.git
+    .. code-block:: git
+        git@github.com:melodieborel/HayLabAnalysis.git
 
 This will download all codes into the local folder of your choice.
 
