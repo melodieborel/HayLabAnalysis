@@ -23,8 +23,8 @@ This way you will always have the latest version of the package and all dependen
             * Install `Homebrew`_. if you haven't already.
             * Install python 3.11 using the following command on a terminal:
 
-                .. code-block:: bash
-                    brew install python@3.11
+            .. code-block:: bash
+                brew install python@3.11
 
         .. tab:: Anaconda (any os)
             * Download the installer from the official website `Anaconda`_.
@@ -42,8 +42,8 @@ This way you will always have the latest version of the package and all dependen
             #. (Optional) Select "Python 3.11" as the Python version.
             #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using pip:
 
-                .. code-block:: bash
-                    pip install git+https://github.com/melodieborel/HayLabAnalysis.git
+            .. code-block:: bash
+                pip install git+https://github.com/melodieborel/HayLabAnalysis.git
 
         .. tab:: conda
             #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
@@ -51,8 +51,8 @@ This way you will always have the latest version of the package and all dependen
             #. In the "Packages" field, type "python=3.11" to ensure you are using the correct python version.
             #. Once the environment is created, open a terminal in vscode (``Ctrl+Shift+<``) and install the package using conda:
 
-                .. code-block:: bash
-                    conda install git+https://github.com/melodieborel/HayLabAnalysis.git
+            .. code-block:: bash
+                conda install git+https://github.com/melodieborel/HayLabAnalysis.git
 
 #. Open one of the notebooks provided in the repository and make sure to select the interpreter from the virtual environment you just created (click on the interpreter name at the top right of the notebook window).
 
@@ -77,8 +77,8 @@ Clone the repository
 #. Select "Clone from GitHub" (you might be asked to sign in to github).
 #. Enter the repository URL: 
 
-    .. code-block:: git
-        git@github.com:melodieborel/HayLabAnalysis.git
+.. code-block:: git
+    git@github.com:melodieborel/HayLabAnalysis.git
 
 This will download all codes into the local folder of your choice.
 
@@ -127,8 +127,9 @@ Keep up to date
 With pip
 ^^^^^^^^^
 To ensure you have the latest version of the package, you can run the following command in the terminal:
-    .. code-block:: bash
-       pip install --upgrade git+https://github.com/melodieborel/HayLabAnalysis.git
+
+.. code-block:: bash
+    pip install --upgrade git+https://github.com/melodieborel/HayLabAnalysis.git
 
 With github
 ^^^^^^^^^^^
