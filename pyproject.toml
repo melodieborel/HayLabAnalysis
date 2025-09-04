@@ -42,3 +42,8 @@ exclude = []  # exclude packages matching these glob patterns (empty by default)
 namespaces = false  # to disable scanning PEP 420 namespaces (true by default)
 
 [tool.setuptools_scm]
+
+[tool.pytest.ini_options]
+addopts = [
+    "--import-mode=importlib",
+]

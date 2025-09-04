@@ -4,6 +4,7 @@
 .venv-si
 .si-env
 .vscode
+.tox
 
 ExampleRedLines
 recording8
