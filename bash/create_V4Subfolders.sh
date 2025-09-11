@@ -5,8 +5,7 @@
 # Starting directory (default is the current directory)
 
 start_directory="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/"
-start_directory="/crnldata/forgetting/Aurelie/CGPExperiment/CGPinjection/"
-start_directory="/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
+start_directory="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/RC/PlaceCells_experiment/"
 
 echo "Searching for folders containing .avi files in '$start_directory'..."
 
@@ -28,13 +27,13 @@ for dir in "${!folder_count[@]}"; do
 
     # Check if the parent directory name is "V4miniscope"
     #if [[ "$dir" == *"/My_V4_Miniscope"* && "$count" -gt 15 ]]; then 
-    if [ "$count" -gt 30 ]; then
+    if [ "$count" -gt 15 ]; then
 
         echo "Directory '$dir' contains $count .avi files. Creating subfolders..."
 
         # Determine the name of the grandparent directory
         grandparent_dir=$(basename $(dirname "$dir"))
-        grandparent_dir="${grandparent_dir##*_}"
+        #grandparent_dir="${grandparent_dir##*_}"
 
         # Create subfolders and distribute .avi files
         avi_files_in_dir=( $(ls "$dir"/*.avi | sort -V) )  # Sort files in numeric order
@@ -52,8 +51,8 @@ for dir in "${!folder_count[@]}"; do
 
             file_count=$((file_count + 1))
 
-            # Switch to a new subfolder after 30 files
-            if [ "$file_count" -ge 30 ]; then
+            # Switch to a new subfolder after 15 files
+            if [ "$file_count" -ge 15 ]; then
                 subfolder_index=$((subfolder_index + 1))
                 file_count=0
             fi

@@ -22,7 +22,8 @@ st = time.time()
         # PARAMETERS #
 ##################################
 # Set up Initial Basic Parameters#
-minian_path = "."
+minian_path = "/home/aurelie.brecier/minian/"
+print(minian_path)
 
 dpath='/mnt/data/AurelieB_minian/'
 mouse_name = [f for f in os.listdir(dpath) if os.path.isdir(os.path.join(dpath, f))]
@@ -52,8 +53,8 @@ param_load_videos = {
     "downsample": dict(frame=1, height=1, width=1),
     "downsample_strategy": "subset",
 }
-param_denoise = {"method": "median", "ksize": 5} #5 #Default minian ={"method": "median", "ksize": 7}
-param_background_removal = {"method": "tophat", "wnd": 15}
+param_denoise = {"method": "median", "ksize": 7} #5 #Default minian ={"method": "median", "ksize": 7}
+param_background_removal = {"method": "tophat", "wnd": 25} #15 Default minian
 
 # Motion Correction Parameters#
 subset_mc = None
@@ -63,9 +64,9 @@ param_estimate_motion = {"dim": "frame"}
 param_seeds_init = {
     "wnd_size": 100, # 100, #Default minian = 1000
     "method": "rolling",
-    "stp_size": 50, #50, #Default minian =500
+    "stp_size": 50, #50, #Default minian = 500
     "max_wnd": 10, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15
-    "diff_thres": 7, #3
+    "diff_thres": 3, #3
 }
 param_pnr_refine = {"noise_freq": 0.06, "thres": 1}
 param_ks_refine = {"sig": 0.05}
@@ -78,7 +79,7 @@ param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
     "dl_wnd": 10, #15, #Default minian = 10 #the window size of the morphological dilation operation
     "sparse_penal": 0.005, #0.012, #Default minian =0.01 #☻ the bigger, the smaller the ROI
-    "size_thres": (75, 750), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None),
+    "size_thres": (75, 600), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None),
 }
 param_first_temporal = {
     "noise_freq": 0.06,
@@ -88,14 +89,12 @@ param_first_temporal = {
     "jac_thres": 0.2,
 }
 param_first_merge = {"thres_corr": 0.8}
-param_second_spatial = param_first_spatial
-param_second_temporal = param_first_temporal
-""""
+
 param_second_spatial = {
-    "dl_wnd": 20,
-    "sparse_penal": 0.002,
-    "size_thres": (25, None),
-}"
+    "dl_wnd": 10,
+    "sparse_penal": 0.001,
+    "size_thres": (75, 600),
+}
 
 param_second_temporal = {
     "noise_freq": 0.06,
@@ -104,7 +103,7 @@ param_second_temporal = {
     "add_lag": 20,
     "jac_thres": 0.4,
 }
-"""
+
 os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
@@ -162,8 +161,8 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     dpath = os.path.abspath(dpath)
     
     cluster = LocalCluster(
-        n_workers=int(os.getenv("MINIAN_NWORKERS", 40)), # /!\ max 40 or 64 CPUs per node in remote machine # /!\ 8 total cores in local machine 
-        memory_limit="6GB", #per worker, /!\ max 95 or 256 GB per node in remote machine # /!\ 32GB total RAM in local machine 
+        n_workers=int(os.getenv("MINIAN_NWORKERS", 10)), # /!\ max 40 or 64 CPUs per node in remote machine # /!\ 8 total cores in local machine 
+        memory_limit="8GB", #per worker, /!\ max 95 or 256 GB per node in remote machine # /!\ 32GB total RAM in local machine 
         resources={"MEM": 1}, #set to 1 before
         threads_per_worker=2,
         dashboard_address=None,
