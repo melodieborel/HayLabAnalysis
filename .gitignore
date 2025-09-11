@@ -5,6 +5,7 @@
 .si-env
 .vscode
 .tox
+.pytest_cache
 
 ExampleRedLines
 recording8
