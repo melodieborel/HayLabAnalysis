@@ -3,11 +3,15 @@
 .venv
 .venv-si
 .si-env
+.vscode
+
 ExampleRedLines
 recording8
 session5
 npx
 minian
+dist
+*.egg-info
 
 **/__pycache__
 
@@ -18,7 +22,7 @@ python/.ipynb_checkpoints
 python/dask-worker-space
 
 Analysis
-python/localConfig.ini
+HayLabAnalysis/localConfig.ini
 python/tuto_logs
 python/si_logs
 python/kilosort4_output
@@ -32,3 +36,5 @@ python/channelMaps
 python/preprocessing
 python/kilosort4_output_MB
 python/sorting_analyzer_training_MB
+
+LFPChannels_perMice.xlsx

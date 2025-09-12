@@ -1,0 +1,6 @@
+Sphinx>=5,<6
+sphinx_rtd_theme
+packaging>=25.0
+sphinx-automodapi
+sphinx-copybutton
+sphinx-tabs
