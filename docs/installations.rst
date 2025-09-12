@@ -45,7 +45,8 @@ This way you will always have the latest version of the package and all dependen
 
             .. code-block:: bash
 
-                pip install git+https://github.com/melodieborel/HayLabAnalysis.git
+                |ss| pip install git+https://github.com/melodieborel/HayLabAnalysis.git |se|
+                pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ HayLabAnalysis
 
         .. tab:: conda
             #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
@@ -141,8 +142,6 @@ With github
 Make sure to regularly pull the latest changes from the main branch to your branch.
 
 
-.. _Miniscope pipeline Minian: https://github.com/melodieborel/minian
-.. _SpikeInterface: https://spikeinterface.readthedocs.io/en/latest/
 .. _python installer: https://www.python.org/ftp/python/3.11.0/python-3.11.0-amd64.exe
 .. _vscode: https://code.visualstudio.com/
 .. _git: https://git-scm.com/downloads
@@ -150,3 +149,12 @@ Make sure to regularly pull the latest changes from the main branch to your bran
 .. _Homebrew: https://brew.sh/
 .. _Instructions to set up ssh keys: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
 .. _procedure described on the last comment of this link: https://github.com/pyFFTW/pyFFTW/issues/314
+
+
+.. |ss| raw:: html
+
+    <strike>
+
+.. |se| raw:: html
+
+    </strike>

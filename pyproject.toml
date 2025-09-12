@@ -9,14 +9,13 @@ authors = [
   { name="Melodie Borel", email="melodieborel@syntuitio.com" },
 ]
 description = "A package with all tools to analyse ePhys dependencies data acquired in A. Hay lab"
-readme = "README.rst"
+readme = {file = "README.rst", content-type = "text/x-rst"}
 requires-python = "~=3.11.0"
 keywords = ["ePhy", "calcium imaging"]
 dependencies = [
     "ipyfilechooser",
     "jupyter_bokeh",
     "ipykernel",
-    "ephyviewer @ git+https://github.com/melodieborel/ephyviewer.git",
     "PySide6",
     "pyqtgraph == 0.13.3",
     "numpy",
@@ -32,8 +31,11 @@ dependencies = [
     "open-ephys-python-tools",
     "ipympl",
     "openpyxl",
-    "minian @ git+https://github.com/melodieborel/minian.git@python311"
 ]
+
+
+[project.scripts]
+hla = "HayLabAnalysis.tools:loadExamples"
 
 [tool.setuptools.packages.find]
 where = ["src"]  # list of folders that contain the packages (["."] by default)

@@ -10,3 +10,5 @@ regrouping all types of acquired data and metadata, deals with all aspects of th
 Please refer to the `documentation`_. for more details on how to install and use the package.
 
 .. _documentation: https://haylabanalysis.readthedocs.io/
+.. _Miniscope pipeline Minian: https://github.com/melodieborel/minian
+.. _SpikeInterface: https://spikeinterface.readthedocs.io/en/latest/
