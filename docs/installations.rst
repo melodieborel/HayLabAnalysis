@@ -45,8 +45,13 @@ This way you will always have the latest version of the package and all dependen
 
             .. code-block:: bash
 
-                |ss| pip install git+https://github.com/melodieborel/HayLabAnalysis.git |se|
                 pip install -i https://test.pypi.org/simple/ --extra-index-url https://pypi.org/simple/ HayLabAnalysis
+
+            or (if you have issues with the command above, although it will be longer and take more space)
+            
+            .. code-block:: bash
+                
+                pip install git+https://github.com/melodieborel/HayLabAnalysis.git
 
         .. tab:: conda
             #. On the command palette (``Cmd+Shift+P`` or ``Ctrl+Shift+P``), type "Python: Create Environment" and select it.
@@ -149,12 +154,3 @@ Make sure to regularly pull the latest changes from the main branch to your bran
 .. _Homebrew: https://brew.sh/
 .. _Instructions to set up ssh keys: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
 .. _procedure described on the last comment of this link: https://github.com/pyFFTW/pyFFTW/issues/314
-
-
-.. |ss| raw:: html
-
-    <strike>
-
-.. |se| raw:: html
-
-    </strike>
