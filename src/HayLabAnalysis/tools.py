@@ -126,3 +126,32 @@ def getPathComponent(filename,project_type):
    expeInfo['recording_id'] = dirPathComponents[-1]
 
    return expeInfo
+
+def loadExamples():
+   """
+   load_examples loads example notebooks from the python folder
+   """
+   ## TDO: should make sure the following packages are installed
+   ##     "ephyviewer @ git+https://github.com/melodieborel/ephyviewer.git",
+   ##     "minian @ git+https://github.com/melodieborel/minian.git@python311"
+   try:
+      import ephyviewer
+   except:
+      import subprocess
+      print(f"{color.YELLOW}Some package are still missing, running installation script{color.END}")
+      ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+      #subprocess.call([os.path.join(ROOT_DIR, "finish_install.sh")])
+      subprocess.call("echo \"Virtual environment $VIRTUAL_ENV is active.\"", shell=True)
+      subprocess.call("pip install git+https://github.com/melodieborel/ephyviewer.git", shell=True)
+      print(f"{color.GREEN}Installation script finished{color.END}")
+   try:
+      import minian
+   except:
+      import subprocess
+      print(f"{color.YELLOW}Some package are still missing, running installation script{color.END}")
+      ROOT_DIR = os.path.dirname(os.path.abspath(__file__))
+      #subprocess.call([os.path.join(ROOT_DIR, "finish_install.sh")])
+      subprocess.call("echo \"Virtual environment $VIRTUAL_ENV is active.\"", shell=True)
+      subprocess.call("pip install git+https://github.com/melodieborel/minian.git@python311", shell=True)
+      print(f"{color.GREEN}Installation script finished{color.END}")
+   return
