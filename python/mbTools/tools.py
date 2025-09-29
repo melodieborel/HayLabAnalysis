@@ -126,3 +126,13 @@ def getPathComponent(filename,project_type):
    expeInfo['recording_id'] = dirPathComponents[-1]
 
    return expeInfo
+
+
+def replacePathComponent(original_path: Path,old_component,new_component):
+   path_parts =  list(Path(original_path).parts)
+   index = path_parts.index(old_component)
+   new_component = Path(new_component)
+   path_parts[index:index+len(new_component.parts)-1] = new_component.parts
+   new_path = Path().joinpath(*tuple(path_parts))
+   print(f"path {original_path} manipulated to {new_path}")
+   return new_path

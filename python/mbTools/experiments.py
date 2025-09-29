@@ -13,7 +13,7 @@ from ipyfilechooser import FileChooser
 import ipywidgets as widgets
 from IPython.display import display
 
-from .tools import getPathComponent
+from .tools import getPathComponent, replacePathComponent
 from .localConfigurations import localConf
 
 class experiment():
@@ -163,9 +163,15 @@ class experiment():
          self.data['LFP_DS'] = LFP_DS(self, matching_files, numChannels=self.num_lfp_channels)
          DSdata=True
 
-      if self.find_files_with_string(interim_analysis_folder,  f"{self.spindle_bn}_*.csv"): #NPX's Data
+      if self.find_files_with_string(interim_analysis_folder, f"{self.spindle_bn}_*.csv"): #Spindles
          print('********found some Spindles files********')
          matching_files = self.find_files_with_string(interim_analysis_folder, f"{self.spindle_bn}_*.csv")
+         All_Spindles = self.loadSpindles(matching_files,self.spindle_bn,self.suffix)
+         self.data['Spindles'] = All_Spindles
+
+      if self.find_files_with_string(raw_data_folder,  f"{self.spindle_bn}_*.csv"): #Sharp waves
+         print('********found some Sharp waves files********')
+         matching_files = self.find_files_with_string(raw_data_folder, f"{self.spindle_bn}_*.csv")
          All_Spindles = self.loadSpindles(matching_files,self.spindle_bn,self.suffix)
          self.data['Spindles'] = All_Spindles
 
@@ -187,17 +193,23 @@ class experiment():
          matching_files = self.find_files_with_string(raw_data_folder, "NP_spikes_*.raw")
          self.data['NPX'] = NPX(self, matching_files)
 
+      if self.find_files_with_string(replacePathComponent(raw_data_folder,'raw_data','analyzers_final/kilosort4'),  f"sorting/spikes.npy"): #Sorted spikes
+         print('********found some sorted units********')
+         matching_files = self.find_files_with_string(replacePathComponent(raw_data_folder,'raw_data','analyzers_final/kilosort4'),  f"sorting/spikes.npy")
+         sorted_units = self.loadUnits(matching_files)
+         self.data['spikes_sorted'] = sorted_units
+
       if self.find_files_with_string(raw_data_folder,  "_ttlin*.bin"): #NPX's Data
          print('********found some OE TTL in files********')
          matching_files = self.find_files_with_string(raw_data_folder, "_ttlin*.bin")
          self.data['ttl'] = TTLin(self, matching_files)
 
-      if self.find_files_with_string(raw_data_folder,  "_miniscope_*.avi"): #NPX's Data
+      if self.find_files_with_string(raw_data_folder,  "_miniscope_*.avi"): #miniscope's Data
          print('********found some Miniscope files********')
          matching_files = self.find_files_with_string(raw_data_folder, "_miniscope_*.avi")
          self.data['miniscope'] = Miniscope(self, matching_files)
 
-      if self.find_files_with_string(raw_data_folder,  "_webcam_*.avi"): #NPX's Data
+      if self.find_files_with_string(raw_data_folder,  "_webcam_*.avi"): #webcame's Data
          print('********found some webcam files********')
          matching_files = self.find_files_with_string(raw_data_folder, "_webcam_*.avi")
          self.data['webcam'] = Webcam(self, matching_files)
@@ -237,6 +249,19 @@ class experiment():
          except Exception as error:
             print(error)
       return All_Spindle
+   
+   def loadUnits(self,matching_files):
+      All_Spikes = dict()
+      spikes = np.load(matching_files[0], mmap_mode= 'r')
+      spikes = np.array(spikes.tolist())
+      All_Spikes['spikes']=spikes
+      All_Spikes['locations'] = np.load(Path(matching_files[0]).parent.parent.joinpath('extensions/unit_locations/unit_locations.npy'))
+
+      import spikeinterface as si
+      sorting_analyzer = si.load_sorting_analyzer(matching_files[0].parent.parent)
+      display(sorting_analyzer)
+      All_Spikes['sorter'] = sorting_analyzer
+      return All_Spikes
    
    def loadTimeStamp(self, file):
       import pandas as pd

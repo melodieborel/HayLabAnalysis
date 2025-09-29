@@ -19,7 +19,7 @@ class ePhy():
       self.offset = 0
       self.expe = parent
       self.start = 0
-      self.sampling_rate = 1000
+      self.sampling_rate = 20000
 
 
    def loadData(self):
@@ -56,6 +56,7 @@ class ePhy():
       if 'start' in self.__dict__:
          self.start = float(self.start)
       if 'freq' in self.__dict__:
+         print(f'found some defined acquisition freq for the expe')
          self.sampling_rate = float(self.freq)
       print("the mapping:", self.channelsMap)
       print("the offset: ", self.start)
