@@ -69,31 +69,38 @@ class IntanLFP(ePhy):
       for f in self.files_list:
          ts_bn = self.__dict__.get('ts_bn', "timestamps")
          print(f"timestamps basename in file name is {ts_bn}")
-         fTS=f.with_name(f.name.replace('data',ts_bn).replace('.bin','.csv'))
 
-         import pandas as pd
-         df = pd.read_csv(fTS, sep=',', header=None, names=['ts'])
-         df.ts = pd.to_datetime(df.ts, format='ISO8601')
-         if self.expe.refTime is None:
-            print('no ref time found for the expe so trying to get it from title')
-            seps=[m.start() for m in re.finditer('_',f.name)]
-            datestr = f.name[seps[2]+1:-4]
-            launch_start = datetime.strptime(datestr, '%Y-%m-%dT%H_%M_%S').astimezone()
-            print(f"the calculated launch start is {launch_start}")
-         else:
-            launch_start = self.expe.refTime
-         df['delays']=(df.ts-launch_start).dt.total_seconds()
-         times=df.delays.values
-         grid=np.linspace(self.bufferCount-1,0,self.bufferCount)
-         instFreq=self.bufferCount/np.diff(times,prepend=times[0]-self.bufferCount/self.sampling_rate)
-         times=np.concatenate([-grid/instFreq[i]+times[i] for i in range(times.shape[0])])
-         self.TS_times = times
+         try:
+            fTS = f.with_name(f.name.replace('32ch_data',ts_bn))
+            df =  np.fromfile(fTS, dtype=self.dtype)
+         
+         except Exception as e:
+            print(f"there was an error: {e}. Possibly, the timestamp file is named like {f.name.replace('data',ts_bn).replace('.bin','.csv')}")
+            fTS=f.with_name(f.name.replace('data',ts_bn).replace('.bin','.csv'))
 
-         self.TS_sampling_rate = self.TS_times.shape[0]/(self.TS_times[-1]-self.TS_times[0])         
-         #self.start = self.TS_times[0]
-         #self.times+=self.start
-         print(f"the calculated sampling rate is {self.TS_sampling_rate} Hz")
-         print(f"the recording took {self.TS_times[0]} s to start")
+            import pandas as pd
+            df = pd.read_csv(fTS, sep=',', header=None, names=['ts'])
+            df.ts = pd.to_datetime(df.ts, format='ISO8601')
+            if self.expe.refTime is None:
+               print('no ref time found for the expe so trying to get it from title')
+               seps=[m.start() for m in re.finditer('_',f.name)]
+               datestr = f.name[seps[2]+1:-4]
+               launch_start = datetime.strptime(datestr, '%Y-%m-%dT%H_%M_%S').astimezone()
+               print(f"the calculated launch start is {launch_start}")
+            else:
+               launch_start = self.expe.refTime
+            df['delays']=(df.ts-launch_start).dt.total_seconds()
+            times=df.delays.values
+            grid=np.linspace(self.bufferCount-1,0,self.bufferCount)
+            instFreq=self.bufferCount/np.diff(times,prepend=times[0]-self.bufferCount/self.sampling_rate)
+            times=np.concatenate([-grid/instFreq[i]+times[i] for i in range(times.shape[0])])
+            self.TS_times = times
+
+            self.TS_sampling_rate = self.TS_times.shape[0]/(self.TS_times[-1]-self.TS_times[0])         
+            #self.start = self.TS_times[0]
+            #self.times+=self.start
+            print(f"the calculated sampling rate is {self.TS_sampling_rate} Hz")
+            print(f"the recording took {self.TS_times[0]} s to start")
 
          return df
    

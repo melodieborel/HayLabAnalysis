@@ -23,7 +23,7 @@ class experiment():
       self.config = localConf()
       self.setInstanceVars()
 
-      currentFolder = self.remote_prefix / self.config.get('GENERAL','current_folder')
+      currentFolder = self.location_prefix / self.config.get('GENERAL','current_folder')
       self.loadCurrentFolder(currentFolder)
       
       try:
@@ -46,8 +46,14 @@ class experiment():
       self.expe_info = dict()
       self.num_lfp_channels = 32
       self.refTime = None
-      
+
+      self.work_remote = self.config.getboolean('GENERAL','work_remote')
       self.remote_prefix = Path(self.config.get('GENERAL','remote_prefix'))
+      if self.work_remote:
+         self.location_prefix=self.remote_prefix
+      else:
+         self.location_prefix=Path('C:/')
+      
 
       
       
@@ -68,16 +74,38 @@ class experiment():
          #TODO: soon remove next line, ,it is for compatibility only
          try:
             self.__dict__.update(ast.literal_eval(self.parser.get('ALL',"expe_info")))
-         except:
+         except Exception as error:
+            print('tere was an error here', error)
             pass
          self.updateExpeConfigFile()
          
-         self.expe_path = self.remote_prefix / self.interim_analysis_path
+         if currentFolder.is_relative_to(self.remote_prefix):
+            print(f'current folder is on the server, assuming work is remote')
+            self.work_remote=True
+            self.location_prefix = self.remote_prefix
+         else:
+            print('current folder seem local, assuming work is local')
+            self.location_prefix = Path('C:/')
+            print(self.location_prefix)
+            self.work_remote = False
+         
+         self.expe_path = self.location_prefix / self.interim_analysis_path
          self.config.set('GENERAL','current_folder', self.interim_analysis_path)
          self.config.updateConf()
       else:
          print(f'current folder {currentFolder} does not contain a config file, it must be the raw data folder')
-         self.raw_data_path = str(currentFolder.relative_to(self.remote_prefix))
+
+         if currentFolder.is_relative_to(self.remote_prefix):
+            print(f'current folder is on the server, assuming work is remote')
+            self.work_remote=True
+            self.location_prefix = self.remote_prefix
+         else:
+            print('current folder seem local, assuming work is local')
+            self.location_prefix = Path('C:/')
+            print(self.location_prefix)
+            self.work_remote = False
+         
+         self.raw_data_path = str(currentFolder.relative_to(self.location_prefix))
          
          self.project_type = self.config.get('ANALYSIS','project_type')
          self.__dict__.update(getPathComponent(currentFolder,self.project_type))
@@ -85,18 +113,18 @@ class experiment():
          if "iterim_location" in self.config['ANALYSIS']:
             print('a location for interim analysis was provided so using it')
             if self.project_type == 1:
-               self.expe_path = self.remote_prefix / self.config['ANALYSIS']['iterim_location'] / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / self.recording_id
+               self.expe_path = self.location_prefix / self.config['ANALYSIS']['iterim_location'] / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / self.recording_id
             else:
-               self.expe_path = self.remote_prefix / self.config['ANALYSIS']['iterim_location'] / self.config['ANALYSIS']['interim_path'] / self.animal_id / self.condition_id / self.recording_id
+               self.expe_path = self.location_prefix / self.config['ANALYSIS']['iterim_location'] / self.config['ANALYSIS']['interim_path'] / self.animal_id / self.condition_id / self.recording_id
          else:
             print('no location for interim analysis was provided so using default')
             if self.project_type == 1:
-               self.expe_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / self.recording_id
+               self.expe_path = self.location_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / self.recording_id
             else:
-               self.expe_path = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / self.condition_id / self.recording_id
+               self.expe_path = self.location_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / self.condition_id / self.recording_id
 
 
-         self.interim_analysis_path = str(self.expe_path.relative_to(self.remote_prefix))
+         self.interim_analysis_path = str(self.expe_path.relative_to(self.location_prefix))
          print(self.expe_path)
          print(self.interim_analysis_path)
          
@@ -109,9 +137,9 @@ class experiment():
 
 
    def updateExpeConfigFile(self):
-      if type(self.remote_prefix) == str:
-         self.remote_prefix = Path(self.remote_prefix)
-      configFN = self.remote_prefix / self.interim_analysis_path / self.parser_fn
+      if type(self.location_prefix) == str:
+         self.location_prefix = Path(self.location_prefix)
+      configFN = self.location_prefix / self.interim_analysis_path / self.parser_fn
       for item in self.__dict__.keys():
          self.parser.set('ALL',item,str(self.__dict__[item]))
       item_to_ignore = ["config","parser","data","expe_path","expe_info","channelsMap"]
@@ -121,6 +149,7 @@ class experiment():
       with open(configFN, 'w') as configfile:
          self.parser.write(configfile)
          print(f"{configFN} saved")
+
 
    def setnum_lfp_channels(self,num_lfp_channels):
       self.num_lfp_channels = num_lfp_channels
@@ -149,8 +178,8 @@ class experiment():
       self.loadAnimalInfo()
       DSdata=False
       
-      interim_analysis_folder = self.remote_prefix / self.interim_analysis_path
-      raw_data_folder = self.remote_prefix / self.raw_data_path
+      interim_analysis_folder = self.location_prefix / self.interim_analysis_path
+      raw_data_folder = self.location_prefix / self.raw_data_path
 
       if self.find_files_with_string(raw_data_folder,  "recTS*.csv"): # pre-analysed data
          print('********found recording start timestamp********')
@@ -221,9 +250,9 @@ class experiment():
       """
       animalConfBN='channelMaps.ini'
       if int(self.project_type) == 0:
-         animalConf = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / animalConfBN
+         animalConf = self.location_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.condition_id / self.animal_id / animalConfBN
       else:
-         animalConf = self.remote_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / animalConfBN
+         animalConf = self.location_prefix / self.analysis_path_root / self.project_id / self.sub_project_id / self.config['ANALYSIS']['interim_path'] / self.animal_id / animalConfBN
       try:
          animalParser = configparser.ConfigParser()
          animalParser.read(animalConf)

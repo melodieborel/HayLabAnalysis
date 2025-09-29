@@ -90,6 +90,7 @@ def getPathComponent(filename,project_type):
    dirPathComponents = filename.parts
    expeInfo = dict()
    remote_prefix = Path(filename.anchor)
+   print(remote_prefix)
    expeInfo['analysis_path_root'] = remote_prefix.joinpath(*dirPathComponents[:-5]).relative_to(remote_prefix)
    expeInfo['project_id'] = dirPathComponents[-5]
    expeInfo['sub_project_id'] = dirPathComponents[-4]
@@ -129,10 +130,14 @@ def getPathComponent(filename,project_type):
 
 
 def replacePathComponent(original_path: Path,old_component,new_component):
-   path_parts =  list(Path(original_path).parts)
-   index = path_parts.index(old_component)
-   new_component = Path(new_component)
-   path_parts[index:index+len(new_component.parts)-1] = new_component.parts
-   new_path = Path().joinpath(*tuple(path_parts))
-   print(f"path {original_path} manipulated to {new_path}")
-   return new_path
+   try:
+      path_parts =  list(Path(original_path).parts)
+      index = path_parts.index(old_component)
+      new_component = Path(new_component)
+      path_parts[index:index+len(new_component.parts)-1] = new_component.parts
+      new_path = Path().joinpath(*tuple(path_parts))
+      print(f"path {original_path} manipulated to {new_path}")
+      return new_path
+   except ValueError as e:
+      print(f"component {old_component} not found in path {original_path}. Error: {e}")
+      return original_path
