@@ -13,7 +13,12 @@ import xarray as xr
 ##################################
         # DEFINE PATH #
 ##################################
-DIR= Path("//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/L1NDNF_mice/BlueLines/preCGP/")
+
+local = False
+if local:
+    DIR= Path("//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/BC/PlaceCells_experiment/")
+else: 
+    DIR= Path("/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/BC/PlaceCells_experiment/")
 
 ##################################
     # CREATE SYNCHRO FILE #
@@ -36,26 +41,17 @@ for dpath in DIR.glob('**/*V4_Miniscope*/'):
                 file_path= f'{dir_path}/timeStamps.csv'
                 stamps_miniscope = pd.read_csv(file_path)
 
-            for file_path in folder.glob('**/*.npy'):
+            for file_path in folder.glob('**/LFP_timeStamps.npy'):
                 subfolder = file_path.parents[0].stem
-                if subfolder == 'TTL':
-                    file = file_path.stem
-                    print(file_path)
-                    stamps_OEmini = np.load(file_path)
-                    datalen = len(stamps_OEmini)
-                    coords = {
-                        'recordings' : np.array(['full_words', 'timestamps', 'channel_states', 'channels']),
-                        'duration_rec' : np.arange(datalen)
-                    }
-                    Allstamps = xr.DataArray(coords=coords, dims=['recordings', 'duration_rec'])
-
-            for file_path in folder.glob('**/*.npy'):
-                subfolder = file_path.parents[0].stem
-                if subfolder == 'TTL':
-                    file = file_path.stem
-                    stamps_OEmini = np.load(file_path)
-                    Allstamps.loc[file,:] = stamps_OEmini
-
+                file = file_path.stem
+                stamps_OEmini = np.load(file_path)
+                datalen = len(stamps_OEmini)
+                coords = {
+                    'recordings' : np.array(['full_words', 'timestamps', 'channel_states', 'channels']),
+                    'duration_rec' : np.arange(datalen)
+                }
+                Allstamps = xr.DataArray(coords=coords, dims=['recordings', 'duration_rec'])
+                Allstamps.loc[file,:] = stamps_OEmini                    
 
             time = range(datalen)
             fullwords = Allstamps.loc['full_words',:].values
