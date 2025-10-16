@@ -4,16 +4,20 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=1 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
+DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID='_CorrOkCGP' 
+AnalysisID='_goodCellAssID' 
 
 saveexcel=0
 
-dir = "//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/"
+local = True
+if local:
+    dir= "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+else: 
+    dir= "/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
 
 mapp = {1: 'AW',  2: 'QW', 3: 'NREM',  4: 'IS', 5: 'REM',  6: 'undefined'}
-drugs=['baseline', 'CGP']
+drugs=['baseline']
 
 #######################################################################################
                                 # Load packages #
@@ -71,7 +75,7 @@ class Tee:
             f.flush()
 
 
-minian_path = os.path.join(os.path.abspath('.'),'minian')
+minian_path = os.path.join(os.path.abspath('..'),'minian')
 print("The folder used for minian procedures is : {}".format(minian_path))
 sys.path.append(minian_path)
 
@@ -243,7 +247,7 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_CGP_analysis/VigSt_{FolderNameSave}{AnalysisID}" if DrugExperiment else f"//10.69.168.1/crnldata/waking/audrey_hay/L1imaging/Analysed2025_AB/_baseline_analysis/VigSt_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/VigSt_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/VigSt_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -252,33 +256,35 @@ sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
 
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/CodePythonAudrey/CodePythonAurelie/HayLabAnalysis/python/_MINI&OE_1_compute_vigstates_activity.py"
+source_script = "C:/Users/Manip2/SCRIPTS/HayLabAnalysis/python/_MINI&OE_1_compute_vigstates_activity.py" if local else "/home/aurelie.brecier/HayLabAnalysis/python/_MINI&OE_1_compute_vigstates_activity.py"
 destination_file_path = f"{destination_folder}/_MINI&OE_1_compute_vigstates_activity.txt"
 shutil.copy(source_script, destination_file_path)
 
 
 data = {}
 counter=0
-VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','Session', 'Session_Date', 'Session_Time', 'Unique_Unit','UnitNumber','UnitValue', 'UnitLocation',
-                                                        'ExpeType', 'Drug', 'Substate','SubstateNumber','DurationSubstate', 'CalciumActivity', 
-                                                        'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'DeconvSpikeMeanActivity', 
+VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','Session', 'Session_Date', 'Session_Time', 'Unique_Unit','UnitNumber','UnitValue','Unit_ID', 'UnitLocation',
+                                                        'ExpeType', 'Drug', 'Substate','Substate_ID','Session_ID','SubstateNumber','DurationSubstate', 'CalciumActivity', 
+                                                        'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'NormalizedAUC_calcium', 'DeconvSpikeMeanActivity', 
                                                         'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz', 'TotCaPopCoupling', 
                                                         'TotZ_CaPopCoupling', 'TotSpPopCoupling', 'TotZ_SpPopCoupling'])
 counter2=0
-CellAssembly_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','Session', 'Session_Date', 'Session_Time', 'Assembly_ID', 'Assembly_size', 'Cells_in_Assembly',
-                                                            'ExpeType', 'Drug', 'Substate', 'Avg_Activity', 'EventFreq', 'EventTime' ])
+CellAssembly_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','Session', 'Session_Date', 'Session_Time', 'Assembly_ID', 'Assembly_size', 
+                                                        'Cells_in_Assembly','ExpeType', 'Drug', 'Substate', 'SubstateDuration', 'Session_ID', 
+                                                        'Sum_Activity','Avg_Activity', 'EventFreq', 'EventTime' ])
 
-for dpath in Path(dir).glob('**/mappingsAB.pkl'):
+for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
 
     mappfile = open(dpath.parents[0]/ f'mappingsAB.pkl', 'rb')
     mapping = pickle.load(mappfile)
     mapping_sess = mapping['session']   
-        
-    centfile = open(dpath.parents[0]/ f'centsAB.pkl', 'rb')
-    centroids = pickle.load(centfile) 
 
-    mice = dpath.parents[0].parts[-1]
-    NeuronType = dpath.parents[1].parts[-1]
+    centroidfile = open(dpath.parents[0]/ f'centsAB.pkl', 'rb')
+    centroids = pickle.load(centroidfile)
+    centroids_sess = centroids['session']   
+
+    mice = dpath.parents[1].parts[-1]
+    NeuronType = dpath.parents[2].parts[-1]
     
     print(f"####################################################################################")
     print(f"################################### {mice} ####################################")
@@ -328,45 +334,72 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
     for minianpath in minian_folders: # for each minian folders found in this mouse 
 
-        if any(p in all_expe_types for p in minianpath.parts): # have to be to the expe_types
+        if 1==1: # any(p in all_expe_types for p in minianpath.parts): # have to be to the expe_types
 
-            session=minianpath.parents[0].name if len(minianpath.parts)==12 else minianpath.parents[1].name.split("_")[-1]
-            session_path=minianpath.parents[2] if len(minianpath.parts)==12 else minianpath.parents[1]
-            expe_type=minianpath.parents[3].name if len(minianpath.parts)==12 else minianpath.parents[2].name
+            if any(minianpath.parents[1].glob('*V4_Miniscope/timeStamps.csv')): 
+                session_path=minianpath.parents[1]        
+                tsmini= pd.read_csv(list(session_path.glob('*V4_Miniscope/timeStamps.csv'))[0])['Time Stamp (ms)']
+                V4subfolder=False               
+                if any(session_path.parent.rglob('OpenEphys/EphyViewer_ManualScor5s_6Stages.csv')):
+                    session_type=minianpath.parents[3].name
+                    session_date=minianpath.parents[4].name
+                    session_time=minianpath.parents[1].name
+                else:
+                    session_type=minianpath.parents[2].name
+                    session_date=minianpath.parents[3].name
+                    session_time=minianpath.parents[1].name
+                session=session_time        
+            elif any(minianpath.parents[2].glob('*V4_Miniscope/timeStamps.csv')):
+                session_path=minianpath.parents[2]      
+                tsmini= pd.read_csv(list(session_path.glob('*V4_Miniscope/timeStamps.csv'))[0])['Time Stamp (ms)']                      
+                V4subfolder=True
+                session_type=minianpath.parents[4].name
+                session_date=minianpath.parents[5].name
+                session_time=minianpath.parents[0].name
+                session=session_time
+            print(f"Processing {session_type} session: {session} on the {session_date}, subfolders = {V4subfolder}")
 
-            session_date= minianpath.parents[2].name.split("_")[0] if len(minianpath.parts)==12 else minianpath.parents[1].name.split("_")[0]
-            session_time= minianpath.parents[2].name.split("_")[1] if len(minianpath.parts)==12 else minianpath.parents[1].name.split("_")[1]
-
-            drug='CGP' if expe_type == 'postCGP' else 'baseline'
-            dict_Path[session] = session_path
-        
             minian_ds = open_minian(minianpath)
             dict_Calcium[session] = minian_ds['C'] # calcium traces 
             dict_Deconv[session] = minian_ds['S'] # estimated spikes deconvolved activity
+            
+            try: 
+                try: 
+                    with open(minianpath.parent / f'TodropFileAB.json', 'r') as f:
+                        unit_to_drop = json.load(f)
+                        dict_TodropFile[session]  = unit_to_drop
+                except: 
+                    with open(minianpath/ f'TodropFileAB.json', 'r') as f:
+                        unit_to_drop = json.load(f)
+                        dict_TodropFile[session]  = unit_to_drop
+                nb_minian_total+=1
+            except:
+                print(' !!!! Minian session not validated !!!!')
+                continue
+            print(session_path)
 
-            dict_Scoring[session]  = pd.read_csv(session_path/ f'OpenEphys/Sleep_Scoring_6Stages_5sEpoch.csv')
-            dict_Stamps[session]  = pd.read_excel(session_path/ f'SynchroFileCorrect.xlsx')
+            
+            # Start time & freq miniscope
+            
             dict_StampsMiniscope[session]  = pd.read_csv(list(session_path.glob('*V4_Miniscope/timeStamps.csv'))[0])
+            tsmini=dict_StampsMiniscope[session]['Time Stamp (ms)']
+            minian_freq=round(1/np.mean(np.diff(np.array(tsmini)/1000)))  
 
-            with open(minianpath / f'TodropFileAB.json', 'r') as f:
-                unit_to_drop = json.load(f)
-                dict_TodropFile[session]  = unit_to_drop
-
+            freqLFP=1000    
+            numbdropfr= 0         
+            
             nb_minian_total+=1
 
             #######################################################################################
             # Distribute Ca2+ intensity & spikes to vigilance states for each sessions #
             #######################################################################################
-
-            # Start time & freq miniscope
-
-            StartTime = list(dict_Stamps[session][0])[0]
-            tsmini=dict_StampsMiniscope[session]['Time Stamp (ms)']
-            minian_freq=round(1/np.mean(np.diff(np.array(tsmini)/1000)))
-
-            freqLFP=1000
-            
+                
             # Adjust the StartTime if subsessions
+
+            dict_Stamps[session]  = pd.read_excel(session_path/ f'SynchroFile.xlsx')     
+            StartTime = list(dict_Stamps[session][0])[0] 
+            if math.isnan(StartTime):   
+                StartTime = 0 # No OpenEphys file found, so Miniscope start relative to OpenEphys start equal 0
 
             if InitialStartTime==0:
                 InitialStartTime=StartTime    
@@ -379,8 +412,8 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 else:  
                     InitialStartTime=StartTime # this is a new session
                     firstframe=0
-                    StartTimeMiniscope=0   
-
+                    StartTimeMiniscope=0 
+                    
 
             # Remove bad units from recordings
 
@@ -405,6 +438,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 print(f'no cells kept in the session: {session}')
                 continue  # next iteration
             
+
             # Realigned the traces to the recorded timestamps 
 
             timestamps =  np.array(tsmini[firstframe:firstframe+len(CalciumSub.T)])/freqLFP
@@ -432,53 +466,52 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
             firstframe+=len(CalciumSub.T)
             rec_dur=len(CalciumSub.T)
-            rec_dur_sec= timestamps[-1]- timestamps[0]            
-
-
-            # Deal with dropped frames (failure to acquire miniscope images) IGNORE CAUSE TIMESTAMPS TAKEN INTO ACCOUNT
-
-            list_droppedframes = literal_eval(dict_Stamps[session][0][3])    
-            numbdropfr= 0   
-            droppedframes_inrec=[]
-            for item in list_droppedframes: 
-                if item < (round(StartTimeMiniscope*minian_freq) + rec_dur_sec) and item > round(StartTimeMiniscope*minian_freq):
-                    numbdropfr+=1                        
-
+            rec_dur_sec= timestamps[-1]- timestamps[0] 
             EndTime = StartTime + rec_dur_sec # (upd_rec_dur/minian_freq) # in seconds
             previousEndTime=EndTime 
 
-            print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(rec_dur_sec,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, 'Hz, experiment type = ', expe_type, ')...') 
-            sentence1= f"... kept values = {kept_uniq_unit_List}"
-            print(sentence1)
+            if any(session_path.parent.rglob('OpenEphys/EphyViewer_ManualScor5s_6Stages.csv')):
+                dict_Scoring[session]  = pd.read_csv(session_path.parent/ f'OpenEphys/EphyViewer_ManualScor5s_6Stages.csv')
+                               
+                # Upscale scoring to miniscope frequency
+                SleepScored=dict_Scoring[session]
+                Bool= np.sum(SleepScored['duration'])/len(SleepScored) == 5
+
+                if not Bool:
+                    print('/!\ Scoring freq=', np.sum(SleepScored['duration'])/len(SleepScored), 'Hz !!!!')
+                    continue 
+
+                SleepScored['label']= SleepScored['label'].str.extract(r'(\d+)', expand=False)
+                SleepScoredTS=np.array(SleepScored['label'])
+
+                scale_factor=minian_freq/0.2  #cause scoring was done in 5 seconds bin, ie 0.2 Hz              
+                SleepScoredTS_upscaled = np.repeat(SleepScoredTS, scale_factor, axis=0)
+                StartTime_frame=round(StartTime*minian_freq)
+                SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled[StartTime_frame:StartTime_frame+rec_dur]
+                #SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == '2'] = '1'
+
+                # Determine each substate identity and duration
+                SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled_ministart.astype(int)
+                substates_duration = [len(list(group)) for key, group in groupby(SleepScoredTS_upscaled_ministart)]
+                substates_identity = [key for key, _ in groupby(SleepScoredTS_upscaled_ministart)]
+                substates_end = np.array(substates_duration).cumsum()        
+                substates_start =np.append([0],substates_end[:-1]) #substates_start =np.append([1],substates_end+1) create 1 second gap
+                substates_identity = [mapp[num] for num in substates_identity]
+                substates = pd.DataFrame(list(zip(substates_identity, substates_duration, substates_start, substates_end)), columns=['Identity', 'Duration', 'Start','End'])
+    
+            else:
+                if session_type == 'Cheeseboard':
+                    print(f"No scoring file found, assuming it's all Wake cause it's a Cheeseboard session")
+                    substates = pd.DataFrame(data={'Identity': ['AW'], 'Duration': [Carray.shape[0]], 'Start': [StartTime], 'End': [Carray.shape[0]]})
+                    SleepScoredTS_upscaled_ministart = np.ones(Carray.shape[0]).astype(int) # all awake
+                else: 
+                    print(f'!!!! No scoring file found in a {session_type} session !!!!')
+                    continue
         
 
-            # Upscale scoring to miniscope frequency
-
-            SleepScored=dict_Scoring[session]
-            Bool= np.sum(SleepScored['duration'])/len(SleepScored) == 5
-
-            if not Bool:
-                print('/!\ Scoring freq=', np.sum(SleepScored['duration'])/len(SleepScored), 'Hz !!!!')
-                continue 
-
-            SleepScored['label']= SleepScored['label'].str.extract(r'(\d+)', expand=False)
-            SleepScoredTS=np.array(SleepScored['label'])
-
-            scale_factor=minian_freq/0.2  #cause scoring was done in 5 seconds bin, ie 0.2 Hz              
-            SleepScoredTS_upscaled = np.repeat(SleepScoredTS, scale_factor, axis=0)
-            StartTime_frame=round(StartTime*minian_freq)
-            SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled[StartTime_frame:StartTime_frame+rec_dur]
-            #SleepScoredTS_upscaled_ministart[SleepScoredTS_upscaled_ministart == '2'] = '1'
-
-            # Determine each substate identity and duration
-            SleepScoredTS_upscaled_ministart=SleepScoredTS_upscaled_ministart.astype(int)
-            substates_duration = [len(list(group)) for key, group in groupby(SleepScoredTS_upscaled_ministart)]
-            substates_identity = [key for key, _ in groupby(SleepScoredTS_upscaled_ministart)]
-            substates_end = np.array(substates_duration).cumsum()        
-            substates_start =np.append([0],substates_end[:-1]) #substates_start =np.append([1],substates_end+1) create 1 second gap
-            substates_identity = [mapp[num] for num in substates_identity]
-            substates = pd.DataFrame(list(zip(substates_identity, substates_duration, substates_start, substates_end)), columns=['Identity', 'Duration', 'Start','End'])
-
+            print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(rec_dur_sec,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, 'Hz, experiment type = ', session_type, ')...') 
+            sentence1= f"... kept values = {kept_uniq_unit_List}"
+            print(sentence1)
 
             # Define cell assemblies
 
@@ -498,10 +531,15 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             indexMapp = np.where(indexMappList == Calcium.index[unit])[0]
                             if len(indexMapp)>0:
                                 cells_in_assembly.append(f"{mice}{str(indexMapp).replace('[','').replace(']','')}")
-                        assembly_activity = zscore(Calcium.iloc[non_nan_indices].values.astype(float).T).mean(axis=1)
-                        assembly_nb+=1
-                        assembly_ID=f'Assembly_{mice}_{assembly_nb}'
+                        cells_in_assembly=np.sort(cells_in_assembly).tolist()
 
+                        if any(CellAssembly_GlobalResults['Cells_in_Assembly'].apply(lambda cell: np.array_equal(cell, cells_in_assembly))):
+                            assembly_ID = CellAssembly_GlobalResults[CellAssembly_GlobalResults['Cells_in_Assembly'].apply(lambda cell: np.array_equal(cell, cells_in_assembly))]['Assembly_ID'].iloc[0]
+                        else: 
+                            assembly_nb += 1
+                            assembly_ID = f'Assembly_{mice}_{assembly_nb}'
+
+                        assembly_activity = zscore(Calcium.iloc[non_nan_indices].values.astype(float).T).mean(axis=1)                       
                         mean = np.mean(assembly_activity)
                         std = np.std(assembly_activity)
                         prominence_threshold = mean + 2 * std
@@ -513,6 +551,8 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             assembly_activity_VigSpe[~Bool] = np.nan
                             sizeVigSt=len(assembly_activity_VigSpe[Bool])
                             mean_act_ass = np.nanmean(assembly_activity_VigSpe)
+                            sum_act_ass = np.nansum(assembly_activity_VigSpe)
+                            len_act_ass = len(assembly_activity_VigSpe)
                             
                             peaks, properties = find_peaks(assembly_activity_VigSpe, prominence=prominence_threshold)
 
@@ -527,10 +567,14 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                             CellAssembly_GlobalResults.loc[counter2, 'Assembly_size'] = len(non_nan_indices)
                             CellAssembly_GlobalResults.loc[counter2, 'Cells_in_Assembly'] = cells_in_assembly
                             
-                            CellAssembly_GlobalResults.loc[counter2, 'ExpeType'] =  expe_type
+                            CellAssembly_GlobalResults.loc[counter2, 'ExpeType'] =  session_type
                             CellAssembly_GlobalResults.loc[counter2, 'Drug'] =  drug
 
                             CellAssembly_GlobalResults.loc[counter2, 'Substate'] = mapp[m]
+                            CellAssembly_GlobalResults.loc[counter2, 'SubstateDuration'] = sizeVigSt/minian_freq
+                            CellAssembly_GlobalResults.loc[counter2, 'Session_ID'] = session_date + '_' + session_time
+
+                            CellAssembly_GlobalResults.loc[counter2, 'Sum_Activity'] = sum_act_ass
                             CellAssembly_GlobalResults.loc[counter2, 'Avg_Activity'] = mean_act_ass
                             CellAssembly_GlobalResults.loc[counter2, 'EventFreq'] = len(peaks)/(sizeVigSt/minian_freq) if sizeVigSt>0 else 0
                             CellAssembly_GlobalResults.loc[counter2, 'EventTime'] = str(np.round(peaks/minian_freq+StartTime, 2))
@@ -664,15 +708,18 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
                         VigilanceState_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
                         VigilanceState_GlobalResults.loc[counter, 'UnitNumber'] = unit
-                        VigilanceState_GlobalResults.loc[counter, 'UnitValue'] = Calcium.index[unit]
-
+                        VigilanceState_GlobalResults.loc[counter, 'UnitValue'] = Calcium.index[unit]                      
+                        VigilanceState_GlobalResults.loc[counter, 'Unit_ID'] = mice  + indexMapp
+                        
                         centroids_sess=centroids[centroids['session']==session]
                         VigilanceState_GlobalResults.loc[counter, 'UnitLocation'] = [centroids_sess[centroids_sess['unit_id']==Calcium.index[unit]]['height'].tolist(), centroids_sess[centroids_sess['unit_id']==Calcium.index[unit]]['width'].tolist()] 
 
-                        VigilanceState_GlobalResults.loc[counter, 'ExpeType'] =  expe_type
+                        VigilanceState_GlobalResults.loc[counter, 'ExpeType'] =  session_type
                         VigilanceState_GlobalResults.loc[counter, 'Drug'] =  drug
 
                         VigilanceState_GlobalResults.loc[counter, 'Substate'] = substates.Identity[index]
+                        VigilanceState_GlobalResults.loc[counter, 'Substate_ID'] = mice + session + str(substates.Identity[index]) + str(substates.index[index])
+                        VigilanceState_GlobalResults.loc[counter, 'Session_ID'] = session_date + '_' + session_time
                         VigilanceState_GlobalResults.loc[counter, 'SubstateNumber'] = substates.index[index]
                         VigilanceState_GlobalResults.loc[counter, 'DurationSubstate'] = (substates.Duration[index]/minian_freq)
 
@@ -681,6 +728,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
                         VigilanceState_GlobalResults.loc[counter, 'AUC_calcium'] = np.trapz(ca_input_sub,np.arange(0,len(ca_input_sub),1))
                         VigilanceState_GlobalResults.loc[counter, 'Avg_AUC_calcium'] = np.trapz(Carray_unit,np.arange(0,len(Carray_unit),1))
+                        VigilanceState_GlobalResults.loc[counter, 'NormalizedAUC_calcium'] = np.trapz(ca_input_sub,np.arange(0,len(ca_input_sub),1))/ (substates.Duration[index]/minian_freq)
 
                         VigilanceState_GlobalResults.loc[counter, 'DeconvSpikeMeanActivity'] = ds_input_sub.mean()
                         VigilanceState_GlobalResults.loc[counter, 'Avg_DeconvSpikeActivity'] = Darray_unit.mean()
@@ -897,7 +945,15 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
     filenameOut = folder_to_save / f'StatesCaCorr_{mice}.pkl'
     with open(filenameOut, 'wb') as pickle_file:
-        pickle.dump(dataStatesCaCorr, pickle_file)
+        pickle.dump(dataStatesCaCorr, pickle_file)    
+    
+    filenameOut = folder_to_save / f'VigStates_Global_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(VigilanceState_GlobalResults, pickle_file)
+
+    filenameOut = folder_to_save / f'CellAssembly_Global_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(CellAssembly_GlobalResults, pickle_file)
 
 
 
