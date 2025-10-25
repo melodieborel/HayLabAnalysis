@@ -6,7 +6,7 @@
 
 DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID='_goodCellAssID' 
+AnalysisID='_ReactivationStrength' 
 
 saveexcel=0
 
@@ -61,6 +61,9 @@ from scipy.signal import resample
 from scipy.signal import resample_poly
 from math import gcd
 import warnings
+import numpy as np
+from scipy.stats import zscore
+
 warnings.filterwarnings("ignore")
 import sys
 class Tee:
@@ -79,6 +82,16 @@ minian_path = os.path.join(os.path.abspath('..'),'minian')
 print("The folder used for minian procedures is : {}".format(minian_path))
 sys.path.append(minian_path)
 
+from minian.utilities import (
+    TaskAnnotation,
+    get_optimal_chk,
+    load_videos,
+    open_minian,
+    save_minian,
+)
+#######################################################################################
+                                # Define functions #
+#######################################################################################
 
 def resample_matrix(data, orig_rate, target_rate, axis=0):
     if orig_rate == target_rate:
@@ -92,16 +105,26 @@ def resample_matrix(data, orig_rate, target_rate, axis=0):
     return resample_poly(data, up=up, down=down, axis=axis)
 
 
-from minian.utilities import (
-    TaskAnnotation,
-    get_optimal_chk,
-    load_videos,
-    open_minian,
-    save_minian,
-)
-#######################################################################################
-                                # Define functions #
-#######################################################################################
+def bin_sum_fractional(x, Fs1, Fs2):
+    N = len(x)
+    bin_width = Fs1 / Fs2
+    y = []
+    start = 0
+    while start < N:
+        end = start + bin_width
+        i_start = int(np.floor(start))
+        i_end = int(np.floor(end))
+        if i_end >= N:
+            i_end = N - 1
+        total = 0.0
+        total += x[i_start] * (1 - (start - i_start))
+        for i in range(i_start + 1, i_end):
+            total += x[i]
+        if i_end > i_start:
+            total += x[i_end] * (end - i_end)
+        y.append(total)
+        start = end
+    return np.array(y)
 
 def Convert(string):
             li = list(string.split(", "))
@@ -204,7 +227,7 @@ def runPatterns(actmat, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 
         #return
     if significance.nassemblies<1:
         print('WARNING 1!')
-        print('    no assembly detecded!')
+        print('    no assembly detected!')
         patterns = []
         zactmat = []
         significance = []
@@ -271,7 +294,7 @@ VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','S
 counter2=0
 CellAssembly_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','Session', 'Session_Date', 'Session_Time', 'Assembly_ID', 'Assembly_size', 
                                                         'Cells_in_Assembly','ExpeType', 'Drug', 'Substate', 'SubstateDuration', 'Session_ID', 
-                                                        'Sum_Activity','Avg_Activity', 'EventFreq', 'EventTime' ])
+                                                        'Avg_Activity', 'EventFreq', 'EventTime' ])
 
 for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
 
@@ -443,26 +466,27 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
 
             timestamps =  np.array(tsmini[firstframe:firstframe+len(CalciumSub.T)])/freqLFP
             new_timestamps= np.arange(timestamps[0], timestamps[-1], 1/minian_freq)
+            
             Calcium = pd.DataFrame(index=CalciumSub.index, columns=new_timestamps)
             for feature in CalciumSub.index:
                 interpolator = interpolate.interp1d(timestamps, CalciumSub.loc[feature], kind='linear')
                 Calcium.loc[feature] = interpolator(new_timestamps)
+            Carray=Calcium.values.T.astype(float) # Calcium activity
 
-            new_timestamps= np.arange(timestamps[0], timestamps[-1], 1/minian_freq)
             Deconv = pd.DataFrame(index=DeconvSub.index, columns=new_timestamps)
             for feature in DeconvSub.index:
                 interpolator = interpolate.interp1d(timestamps, DeconvSub.loc[feature], kind='linear')
                 Deconv.loc[feature] = interpolator(new_timestamps)
-
-            Carray=Calcium.values.T.astype(float) # Calcium activity
             Darray=Deconv.values.T.astype(float) # Deconvolved activity
+
             Sarray= np.zeros((np.shape(Darray)[0], np.shape(Darray)[1])) # Spike activity
             for i in np.arange(np.shape(Darray)[1]):
                 Darray_unit =Darray[:,i]
                 peaks, _ = find_peaks(Darray_unit)
                 Sarray_unit=np.zeros(len(Darray_unit))
                 Sarray_unit[peaks]=1   
-                Sarray[:,i]=Sarray_unit 
+                Sarray[:,i]=Sarray_unit
+            Spike= pd.DataFrame(Sarray.T, index=CalciumSub.index, columns=new_timestamps)
 
             firstframe+=len(CalciumSub.T)
             rec_dur=len(CalciumSub.T)
@@ -504,57 +528,63 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
                     print(f"No scoring file found, assuming it's all Wake cause it's a Cheeseboard session")
                     substates = pd.DataFrame(data={'Identity': ['AW'], 'Duration': [Carray.shape[0]], 'Start': [StartTime], 'End': [Carray.shape[0]]})
                     SleepScoredTS_upscaled_ministart = np.ones(Carray.shape[0]).astype(int) # all awake
+                    SleepScoredTS = np.ones(Carray.shape[0]*1.5).astype(int) # all awake
                 else: 
                     print(f'!!!! No scoring file found in a {session_type} session !!!!')
                     continue
-        
 
             print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(rec_dur_sec,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, 'Hz, experiment type = ', session_type, ')...') 
             sentence1= f"... kept values = {kept_uniq_unit_List}"
             print(sentence1)
 
             # Define cell assemblies
-
-            Carray20 = resample_matrix(Carray, orig_rate=minian_freq, target_rate=20)# 50 ms bins 
-            patterns,significance,zactmat= runPatterns(Carray20.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)
+            target_rate = 20 #Hz == 50ms bins
+            #Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
+            Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
+            patterns,significance,zactmat= runPatterns(Array_bin.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)       
+            dN = zscore(Array_bin)
             if len(patterns)>0:
-                patterns_th=patterns.copy()
+                patterns_th = patterns.copy()
                 for ass in np.arange(np.shape(patterns)[0]):
-                    thresh = np.mean(patterns_th[ass])+1.5*np.std(patterns_th[ass])
-                    #thresh = np.mean(patterns)+1.5*np.std(patterns)
+                    template = np.add.outer(abs(patterns[ass]),abs(patterns[ass]))         
+                    template = template - np.diag(np.diag(template))
+                    tmp = dN @ template 
+                    Reactivation_Strength= np.nansum(tmp * dN, axis=1) 
+                    Reactivation_Strength = zscore(Reactivation_Strength)
+
+                    thresh = np.mean(patterns_th[ass])+3*np.std(patterns_th[ass]) #thresh = np.mean(patterns)+1.5*np.std(patterns)
                     patterns_th[ass][abs(patterns_th[ass])<thresh]=np.nan
                     non_nan_indices = np.where(~np.isnan(patterns_th[ass]))[0] 
                     if len(non_nan_indices)>1:
                         indexMappList=mapping_sess[session]
                         cells_in_assembly=[]
                         for unit in non_nan_indices:
-                            indexMapp = np.where(indexMappList == Calcium.index[unit])[0]
+                            indexMapp = np.where(indexMappList == Spike.index[unit])[0]
                             if len(indexMapp)>0:
                                 cells_in_assembly.append(f"{mice}{str(indexMapp).replace('[','').replace(']','')}")
                         cells_in_assembly=np.sort(cells_in_assembly).tolist()
-
+                        
                         if any(CellAssembly_GlobalResults['Cells_in_Assembly'].apply(lambda cell: np.array_equal(cell, cells_in_assembly))):
                             assembly_ID = CellAssembly_GlobalResults[CellAssembly_GlobalResults['Cells_in_Assembly'].apply(lambda cell: np.array_equal(cell, cells_in_assembly))]['Assembly_ID'].iloc[0]
                         else: 
                             assembly_nb += 1
-                            assembly_ID = f'Assembly_{mice}_{assembly_nb}'
+                            assembly_ID = f'Assembly_{mice}_{assembly_nb}'                        
 
-                        assembly_activity = zscore(Calcium.iloc[non_nan_indices].values.astype(float).T).mean(axis=1)                       
-                        mean = np.mean(assembly_activity)
-                        std = np.std(assembly_activity)
-                        prominence_threshold = mean + 2 * std
+                        scale_factor=target_rate/0.2  #cause scoring was done in 5 seconds bin, ie 0.2 Hz   
+                        SleepScoredTS_binned = np.repeat(SleepScoredTS, scale_factor, axis=0)
+                        StartTime_binned=round(StartTime*target_rate)
+                        SleepScoredTS_binned=SleepScoredTS_binned[StartTime_binned:StartTime_binned+(rec_dur_sec*target_rate).astype(int)] 
+                        SleepScoredTS_binned=SleepScoredTS_binned.astype(int)           
 
                         for m in mapp:  
-                            Bool = (SleepScoredTS_upscaled_ministart == m)
-                            assembly_activity_VigSpe = assembly_activity.copy()
-                            assembly_activity_VigSpe = assembly_activity_VigSpe[0:np.shape(SleepScoredTS_upscaled_ministart)[0]] # if Calcium imaging longer than LFP rec
-                            assembly_activity_VigSpe[~Bool] = np.nan
-                            sizeVigSt=len(assembly_activity_VigSpe[Bool])
-                            mean_act_ass = np.nanmean(assembly_activity_VigSpe)
-                            sum_act_ass = np.nansum(assembly_activity_VigSpe)
-                            len_act_ass = len(assembly_activity_VigSpe)
+                            Bool = (SleepScoredTS_binned == m)
+                            Reactivation_Strength_VigSpe = Reactivation_Strength.copy()
+                            Reactivation_Strength_VigSpe = Reactivation_Strength_VigSpe[0:np.shape(SleepScoredTS_binned)[0]] # if Calcium imaging longer than LFP rec
+                            Reactivation_Strength_VigSpe[~Bool] = np.nan
+                            sizeVigSt=len(Reactivation_Strength_VigSpe[Bool])
+                            mean_act_ass = np.nanmean(Reactivation_Strength_VigSpe)
                             
-                            peaks, properties = find_peaks(assembly_activity_VigSpe, prominence=prominence_threshold)
+                            peaks, properties = find_peaks(Reactivation_Strength_VigSpe, prominence=2) # 2 standard deviations away from the mean
 
                             CellAssembly_GlobalResults.loc[counter2, 'Mice'] = mice
                             CellAssembly_GlobalResults.loc[counter2, 'NeuronType'] = NeuronType
@@ -574,13 +604,11 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
                             CellAssembly_GlobalResults.loc[counter2, 'SubstateDuration'] = sizeVigSt/minian_freq
                             CellAssembly_GlobalResults.loc[counter2, 'Session_ID'] = session_date + '_' + session_time
 
-                            CellAssembly_GlobalResults.loc[counter2, 'Sum_Activity'] = sum_act_ass
                             CellAssembly_GlobalResults.loc[counter2, 'Avg_Activity'] = mean_act_ass
                             CellAssembly_GlobalResults.loc[counter2, 'EventFreq'] = len(peaks)/(sizeVigSt/minian_freq) if sizeVigSt>0 else 0
                             CellAssembly_GlobalResults.loc[counter2, 'EventTime'] = str(np.round(peaks/minian_freq+StartTime, 2))
 
                             counter2+=1
-
             for m in mapp:
 
                 # Correlation between each neurons according to vigilance states 
