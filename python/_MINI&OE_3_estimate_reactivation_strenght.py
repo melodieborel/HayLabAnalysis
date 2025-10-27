@@ -4,20 +4,20 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
+DrugExperiment = 0 # = 1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID='_' 
+AnalysisID = '_spikes_200ms' 
 
-Cell_Assembly_folder= "CellAssemblies_2025-10-25_18_51_09"
+Cell_Assembly_folder = "CellAssemblies_2025-10-27_10_06_14_spikes_200ms"
 
 local = True
 if local:
-    dir= "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+    dir = "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
 else: 
-    dir= "/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+    dir = "/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
 
 mapp = {1: 'AW',  2: 'QW', 3: 'NREM',  4: 'IS', 5: 'REM',  6: 'undefined'}
-drugs=['baseline']
+drugs = ['baseline']
 
 #######################################################################################
                                 # Load packages #
@@ -135,7 +135,7 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/Reactivation_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/Reactivation_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/3_Reactivation_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/3_Reactivation_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -379,7 +379,8 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
             # Define cell assemblies
             target_rate = 20 #Hz == 50ms bins
             #Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
-            Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
+            Array_bin = resample_matrix(Darray, orig_rate=minian_freq, target_rate=target_rate)
+            #Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
             
             # Add missing cells from indexMapp
             dN_=  zscore(Array_bin)

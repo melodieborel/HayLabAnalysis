@@ -4,19 +4,19 @@
                             # Define Experiment type #
 #######################################################################################
 
-DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
+DrugExperiment = 0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID='_' 
+AnalysisID = '_spikes_200ms' 
 
-saveexcel=0
+saveexcel = 0
 
 local = True
 if local:
-    dir= "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+    dir = "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
 else: 
-    dir= "/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+    dir = "/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
 
-drugs=['baseline']
+drugs = ['baseline']
 
 #######################################################################################
                                 # Load packages #
@@ -264,7 +264,7 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/CellAssemblies_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/CellAssemblies_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/2_CellAssemblies_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/2_CellAssemblies_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -464,8 +464,9 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
 
                 # Define cell assemblies
             
-                target_rate = 20 #Hz == 50ms bins
+                target_rate = 5 #Hz == 50ms bins
                 #Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
+                #Array_bin = resample_matrix(Darray, orig_rate=minian_freq, target_rate=target_rate)
                 Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
                 patterns,significance,zactmat= runPatterns(Array_bin.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)       
                 all_patterns = pd.DataFrame({ass: patterns[ass].tolist() for ass in np.arange(np.shape(patterns)[0])}, index=kept_uniq_unit_List).add_prefix(f"{session_time}_CellAss")
@@ -474,7 +475,7 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
                 if len(patterns)>0:
                     patterns_th = patterns.copy()
                     for ass in np.arange(np.shape(patterns)[0]):
-                        thresh = np.mean(patterns_th[ass])+3*np.std(patterns_th[ass])
+                        thresh = np.mean(patterns_th[ass]) + 3 * np.std(patterns_th[ass])
                         patterns_th[ass][abs(patterns_th[ass])<thresh]=np.nan
                         non_nan_indices = np.where(~np.isnan(patterns_th[ass]))[0] 
                         assembly_ID = all_patterns.columns.tolist()[ass]
