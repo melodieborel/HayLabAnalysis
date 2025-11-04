@@ -1,0 +1,24 @@
+;MouseID;Genotype;Sex
+TraitRouge;AHAD02.01;APPPS1;Male
+TraitBleu;AHAD02.02;WT ;Male
+TraitViolet;AHAD02.03;APPPS1;Male
+TraitJaune;AHAD02.04;WT ;Male
+TraitVert;AHAD02.05;APPPS1;Male
+TraitOrange;AHAD02.06;APPPS1;Male
+RondRouge;AHAD01.37;APPPS1;Male
+RondOrange;AHAD01.38;APPPS1;Male
+RondJaune;AHAD01.39;WT ;Male
+RondViolet;AHAD01.40;APPPS1;Female
+RondVert;AHAD01.41;WT ;Female
+RondBleu;AHAD01.42;WT ;Female
+RondMarron;AHAD01.43;WT ;Female
+RondNoir;AHAD01.44;APPPS1;Female
+TriangleBlanc;AHAD11.60;WT ;Male
+TriangleViolet;AHAD11.66;WT ;Female
+TriangleJaune;AHAD11.67;APPPS1;Female
+TriangleOrange;AHAD11.68;APPPS1;Female
+TriangleVert;AHAD11.75;APPPS1;Female
+TriangleBleu;AHAD11.69;APPPS1;Male
+TriangleMarron;AHAD11.70;WT ;Male
+TriangleRouge;AHAD11.71;APPPS1;Male
+TriangleNoir;AHAD11.74;WT ;Male
