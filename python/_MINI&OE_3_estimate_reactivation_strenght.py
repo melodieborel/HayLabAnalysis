@@ -6,9 +6,9 @@
 
 DrugExperiment = 0 # = 1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID = '_spikes_200ms' 
+AnalysisID = '_spikes_nozscore' 
 
-Cell_Assembly_folder = "CellAssemblies_2025-10-27_10_06_14_spikes_200ms"
+Cell_Assembly_folder = "2_CellAssemblies_2025-10-25_18_51_09_spikes"
 
 local = True
 if local:
@@ -378,8 +378,8 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
 
             # Define cell assemblies
             target_rate = 20 #Hz == 50ms bins
-            #Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
-            Array_bin = resample_matrix(Darray, orig_rate=minian_freq, target_rate=target_rate)
+            Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
+            #Array_bin = resample_matrix(Darray, orig_rate=minian_freq, target_rate=target_rate)
             #Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
             
             # Add missing cells from indexMapp
@@ -403,7 +403,7 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
                     template = template - np.diag(np.diag(template))
                     tmp = dN @ template 
                     Reactivation_Strength= np.nansum(tmp * dN, axis=1) 
-                    Reactivation_Strength = zscore(Reactivation_Strength)
+                    #Reactivation_Strength = zscore(Reactivation_Strength)
 
                     scale_factor=target_rate/0.2  #cause scoring was done in 5 seconds bin, ie 0.2 Hz   
                     SleepScoredTS_binned = np.repeat(SleepScoredTS, scale_factor, axis=0)

@@ -464,10 +464,10 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
 
                 # Define cell assemblies
             
-                target_rate = 5 #Hz == 50ms bins
-                #Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
+                target_rate = 20 # 20 Hz == 50 ms bins
+                Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
                 #Array_bin = resample_matrix(Darray, orig_rate=minian_freq, target_rate=target_rate)
-                Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
+                #Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
                 patterns,significance,zactmat= runPatterns(Array_bin.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)       
                 all_patterns = pd.DataFrame({ass: patterns[ass].tolist() for ass in np.arange(np.shape(patterns)[0])}, index=kept_uniq_unit_List).add_prefix(f"{session_time}_CellAss")
                 CellAssembly_patterns = CellAssembly_patterns.join(all_patterns, how="outer") if not CellAssembly_patterns.empty else all_patterns
