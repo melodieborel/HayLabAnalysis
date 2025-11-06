@@ -6,9 +6,9 @@
 
 DrugExperiment = 0 # = 1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID = '_spikes_nozscore' 
+AnalysisID = '_calcium_nozscore' 
 
-Cell_Assembly_folder = "2_CellAssemblies_2025-10-25_18_51_09_spikes"
+Cell_Assembly_folder = "2_CellAssemblies_2025-10-25_22_07_22_calcium"
 
 local = True
 if local:
