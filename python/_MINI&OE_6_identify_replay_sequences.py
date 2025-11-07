@@ -6,7 +6,7 @@
 
 DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID='' 
+AnalysisID='_ReactivationStrength' 
 
 saveexcel=0
 
@@ -63,9 +63,20 @@ from math import gcd
 import warnings
 import numpy as np
 from scipy.stats import zscore
-import sys
 
 warnings.filterwarnings("ignore")
+import sys
+class Tee:
+    def __init__(self, *files):
+        self.files = files
+    def write(self, obj):
+        for f in self.files:
+            f.write(obj)
+            f.flush()
+    def flush(self):
+        for f in self.files:
+            f.flush()
+
 
 minian_path = os.path.join(os.path.abspath('..'),'minian')
 print("The folder used for minian procedures is : {}".format(minian_path))
@@ -81,16 +92,173 @@ from minian.utilities import (
 #######################################################################################
                                 # Define functions #
 #######################################################################################
-class Tee:
-    def __init__(self, *files):
-        self.files = files
-    def write(self, obj):
-        for f in self.files:
-            f.write(obj)
-            f.flush()
-    def flush(self):
-        for f in self.files:
-            f.flush()
+
+def resample_matrix(data, orig_rate, target_rate, axis=0):
+    if orig_rate == target_rate:
+        return data.copy()
+    # Compute integer up/down factors using GCD
+    up = int(target_rate)
+    down = int(orig_rate)
+    factor = gcd(up, down)
+    up //= factor
+    down //= factor
+    return resample_poly(data, up=up, down=down, axis=axis)
+
+
+def bin_sum_fractional(x, Fs1, Fs2):
+    N = len(x)
+    bin_width = Fs1 / Fs2
+    y = []
+    start = 0
+    while start < N:
+        end = start + bin_width
+        i_start = int(np.floor(start))
+        i_end = int(np.floor(end))
+        if i_end >= N:
+            i_end = N - 1
+        total = 0.0
+        total += x[i_start] * (1 - (start - i_start))
+        for i in range(i_start + 1, i_end):
+            total += x[i]
+        if i_end > i_start:
+            total += x[i_end] * (end - i_end)
+        y.append(total)
+        start = end
+    return np.array(y)
+
+def Convert(string):
+            li = list(string.split(", "))
+            li2 = len(li)
+            return li2
+
+def marcenkopastur(significance):
+    nbins = significance.nbins
+    nneurons = significance.nneurons
+    tracywidom = significance.tracywidom
+    q = float(nbins)/float(nneurons)
+    lambdaMax = pow((1+np.sqrt(1/q)),2)
+    lambdaMax += tracywidom*pow(nneurons,-2./3)
+    return lambdaMax
+
+def getlambdacontrol(zactmat_):
+    significance_ = PCA()
+    significance_.fit(zactmat_.T)
+    lambdamax_ = np.max(significance_.explained_variance_)
+    return lambdamax_
+
+def binshuffling(zactmat,significance):
+    np.random.seed()
+    lambdamax_ = np.zeros(significance.nshu)
+    for shui in range(significance.nshu):
+        zactmat_ = np.copy(zactmat)
+        for (neuroni,activity) in enumerate(zactmat_):
+            randomorder = np.argsort(np.random.rand(significance.nbins))
+            zactmat_[neuroni,:] = activity[randomorder]
+        lambdamax_[shui] = getlambdacontrol(zactmat_)
+    lambdaMax = np.percentile(lambdamax_,significance.percentile)
+    return lambdaMax
+
+def circshuffling(zactmat,significance):
+    np.random.seed()
+    lambdamax_ = np.zeros(significance.nshu)
+    for shui in range(significance.nshu):
+        zactmat_ = np.copy(zactmat)
+        for (neuroni,activity) in enumerate(zactmat_):
+            cut = int(np.random.randint(significance.nbins*2))
+            zactmat_[neuroni,:] = np.roll(activity,cut)
+        lambdamax_[shui] = getlambdacontrol(zactmat_)
+    lambdaMax = np.percentile(lambdamax_,significance.percentile)
+    return lambdaMax
+
+def runSignificance(zactmat,significance):
+    if significance.nullhyp == 'mp':
+        lambdaMax = marcenkopastur(significance)
+    elif significance.nullhyp == 'bin':
+        lambdaMax = binshuffling(zactmat,significance)
+    elif significance.nullhyp == 'circ':
+        lambdaMax = circshuffling(zactmat,significance)
+    else:
+        print('ERROR !')
+        print('    nyll hypothesis method '+str(nullhyp)+' not understood')
+        significance.nassemblies = np.nan
+    nassemblies = np.sum(significance.explained_variance_>lambdaMax)
+    significance.nassemblies = nassemblies
+    return significance
+
+def extractPatterns(actmat,significance,method):
+    nassemblies = significance.nassemblies
+    if method == 'pca':
+        idxs = np.argsort(-significance.explained_variance_)[0:nassemblies]
+        patterns = significance.components_[idxs,:]
+    elif method == 'ica':
+        from sklearn.decomposition import FastICA
+        ica = FastICA(n_components=nassemblies, max_iter=1000)
+        ica.fit(actmat.T)
+        patterns = ica.components_
+    else:
+        print('ERROR !')
+        print('    assembly extraction method '+str(method)+' not understood')
+        patterns = np.nan
+    if patterns is not np.nan:
+        patterns = patterns.reshape(nassemblies,-1)
+        norms = np.linalg.norm(patterns,axis=1)
+        patterns /= np.matlib.repmat(norms,np.size(patterns,1),1).T
+    return patterns
+
+def runPatterns(actmat, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False):
+    nneurons = np.size(actmat,0)
+    nbins = np.size(actmat,1)
+    silentneurons = np.var(actmat,axis=1)==0
+    actmat_ = actmat[~silentneurons,:]
+    zactmat_ = stats.zscore(actmat_,axis=1)
+    significance = PCA()
+    significance.fit(zactmat_.T)
+    significance.nneurons = nneurons
+    significance.nbins = nbins
+    significance.nshu = nshu
+    significance.percentile = percentile
+    significance.tracywidom = tracywidom
+    significance.nullhyp = nullhyp
+    significance = runSignificance(zactmat_,significance)
+    if np.isnan(significance.nassemblies):
+        patterns = []
+        zactmat = []
+        significance = []
+        #return
+    if significance.nassemblies<1:
+        print('WARNING 1!')
+        print('    no assembly detected!')
+        patterns = []
+        zactmat = []
+        significance = []
+    else:
+        patterns_ = extractPatterns(zactmat_,significance,method)
+        if patterns_ is np.nan:
+            patterns = []
+            zactmat = []
+            significance = []
+            #return
+        patterns = np.zeros((np.size(patterns_,0),nneurons))
+        patterns[:,~silentneurons] = patterns_
+        zactmat = np.copy(actmat)
+        zactmat[~silentneurons,:] = zactmat_
+    return patterns,significance,zactmat
+
+def computeAssemblyActivity(patterns,zactmat,zerodiag = True):
+    if len(patterns) == 0:
+        print('WARNING 2!')
+        print('    no assembly detecded!')
+        assemblyAct = []
+    else:
+        nassemblies = len(patterns)
+        nbins = np.size(zactmat,1)
+        assemblyAct = np.zeros((nassemblies,nbins))
+        for (assemblyi,pattern) in enumerate(patterns):
+            projMat = np.outer(pattern,pattern)
+            projMat -= zerodiag*np.diag(np.diag(projMat))
+            for bini in range(nbins):
+                assemblyAct[assemblyi,bini] = np.dot(np.dot(zactmat[:,bini],projMat),zactmat[:,bini])
+    return assemblyAct
 
 #######################################################################################
                 # Load sleep score and Ca2+ time series numpy arrays #
@@ -102,7 +270,7 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/1_VigSt_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/1_VigSt_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/VigSt_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/VigSt_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -123,6 +291,11 @@ VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','S
                                                         'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'NormalizedAUC_calcium', 'DeconvSpikeMeanActivity', 
                                                         'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz', 'TotCaPopCoupling', 
                                                         'TotZ_CaPopCoupling', 'TotSpPopCoupling', 'TotZ_SpPopCoupling'])
+counter2=0
+CellAssembly_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','Session', 'Session_Date', 'Session_Time', 'Assembly_ID', 'Assembly_size', 
+                                                        'Cells_in_Assembly','ExpeType', 'Drug', 'Substate', 'SubstateDuration', 'Session_ID', 
+                                                        'Avg_Activity', 'EventFreq', 'EventTime' ])
+
 for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
 
     mappfile = open(dpath.parents[0]/ f'mappingsAB.pkl', 'rb')
@@ -159,6 +332,9 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
     dict_TodropFile = {}
     dict_StampsMiniscope = {}
 
+    CellAssembly_patterns=pd.DataFrame()  
+    MazeCellAssembly_patterns=pd.DataFrame()
+
     TotCaCorr=[]
     TotSpCorr=[]
 
@@ -182,8 +358,7 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
 
     minian_folders = [f for f in dpath.parents[0].rglob('minian') if f.is_dir()]
 
-    for minianpath in minian_folders: # for each minian folders found in this mouse
-        drug= 'baseline' 
+    for minianpath in minian_folders: # for each minian folders found in this mouse 
 
         if 1==1: # any(p in all_expe_types for p in minianpath.parts): # have to be to the expe_types
 
@@ -365,6 +540,76 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
             sentence1= f"... kept values = {kept_uniq_unit_List}"
             print(sentence1)
 
+            # Define cell assemblies
+            target_rate = 20 #Hz == 50ms bins
+            #Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
+            Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
+            patterns,significance,zactmat= runPatterns(Array_bin.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)       
+            all_patterns = pd.DataFrame({ass: patterns[ass].tolist() for ass in np.arange(np.shape(patterns)[0])}, index=kept_uniq_unit_List).add_prefix(f"{session_time}_CellAss")
+            CellAssembly_patterns = CellAssembly_patterns.join(all_patterns, how="outer") if not CellAssembly_patterns.empty else all_patterns
+            if session_type == 'Cheeseboard':
+                MazeCellAssembly_patterns = MazeCellAssembly_patterns.join(all_patterns, how="outer") if not MazeCellAssembly_patterns.empty else all_patterns
+
+            dN = zscore(Array_bin)
+            if len(patterns)>0:
+                patterns_th = patterns.copy()
+                for ass in np.arange(np.shape(patterns)[0]):
+                    template = np.add.outer(abs(patterns[ass]),abs(patterns[ass]))         
+                    template = template - np.diag(np.diag(template))
+                    tmp = dN @ template 
+                    Reactivation_Strength= np.nansum(tmp * dN, axis=1) 
+                    Reactivation_Strength = zscore(Reactivation_Strength)
+
+                    thresh = np.mean(patterns_th[ass])+3*np.std(patterns_th[ass])
+                    patterns_th[ass][abs(patterns_th[ass])<thresh]=np.nan
+                    non_nan_indices = np.where(~np.isnan(patterns_th[ass]))[0] 
+                    if len(non_nan_indices)>1:
+                        cells_in_assembly=np.array(kept_uniq_unit_List)[non_nan_indices].tolist()
+                        if any(CellAssembly_GlobalResults['Cells_in_Assembly'].apply(lambda cell: np.array_equal(cell, cells_in_assembly))):
+                            assembly_ID = CellAssembly_GlobalResults[CellAssembly_GlobalResults['Cells_in_Assembly'].apply(lambda cell: np.array_equal(cell, cells_in_assembly))]['Assembly_ID'].iloc[0]
+                        else: 
+                            assembly_nb += 1
+                            assembly_ID = f'Assembly_{mice}_{assembly_nb}'                        
+
+                        scale_factor=target_rate/0.2  #cause scoring was done in 5 seconds bin, ie 0.2 Hz   
+                        SleepScoredTS_binned = np.repeat(SleepScoredTS, scale_factor, axis=0)
+                        StartTime_binned=round(StartTime*target_rate)
+                        SleepScoredTS_binned=SleepScoredTS_binned[StartTime_binned:StartTime_binned+(rec_dur_sec*target_rate).astype(int)] 
+                        SleepScoredTS_binned=SleepScoredTS_binned.astype(int)           
+
+                        for m in mapp:  
+                            Bool = (SleepScoredTS_binned == m)
+                            Reactivation_Strength_VigSpe = Reactivation_Strength.copy()
+                            Reactivation_Strength_VigSpe = Reactivation_Strength_VigSpe[0:np.shape(SleepScoredTS_binned)[0]] # if Calcium imaging longer than LFP rec
+                            Reactivation_Strength_VigSpe[~Bool] = np.nan
+                            sizeVigSt=len(Reactivation_Strength_VigSpe[Bool])
+                            mean_act_ass = np.nanmean(Reactivation_Strength_VigSpe)
+                            
+                            peaks, properties = find_peaks(Reactivation_Strength_VigSpe, prominence=2) # 2 standard deviations away from the mean
+
+                            CellAssembly_GlobalResults.loc[counter2, 'Mice'] = mice
+                            CellAssembly_GlobalResults.loc[counter2, 'NeuronType'] = NeuronType
+                            
+                            CellAssembly_GlobalResults.loc[counter2, 'Session'] = session
+                            CellAssembly_GlobalResults.loc[counter2, 'Session_Date'] = session_date 
+                            CellAssembly_GlobalResults.loc[counter2, 'Session_Time'] = session_time                    
+
+                            CellAssembly_GlobalResults.loc[counter2, 'Assembly_ID'] = assembly_ID
+                            CellAssembly_GlobalResults.loc[counter2, 'Assembly_size'] = len(non_nan_indices)
+                            CellAssembly_GlobalResults.loc[counter2, 'Cells_in_Assembly'] = cells_in_assembly
+                            
+                            CellAssembly_GlobalResults.loc[counter2, 'ExpeType'] =  session_type
+                            CellAssembly_GlobalResults.loc[counter2, 'Drug'] =  drug
+
+                            CellAssembly_GlobalResults.loc[counter2, 'Substate'] = mapp[m]
+                            CellAssembly_GlobalResults.loc[counter2, 'SubstateDuration'] = sizeVigSt/minian_freq
+                            CellAssembly_GlobalResults.loc[counter2, 'Session_ID'] = session_date + '_' + session_time
+
+                            CellAssembly_GlobalResults.loc[counter2, 'Avg_Activity'] = mean_act_ass
+                            CellAssembly_GlobalResults.loc[counter2, 'EventFreq'] = len(peaks)/(sizeVigSt/minian_freq) if sizeVigSt>0 else 0
+                            CellAssembly_GlobalResults.loc[counter2, 'EventTime'] = str(np.round(peaks/minian_freq+StartTime, 2))
+
+                            counter2+=1
             for m in mapp:
 
                 # Correlation between each neurons according to vigilance states 
@@ -735,14 +980,35 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(VigilanceState_GlobalResults, pickle_file)
 
+    filenameOut = folder_to_save / f'CellAssembly_Global_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(CellAssembly_GlobalResults, pickle_file)
+
+    filenameOut = folder_to_save / f'CellAssembly_patterns_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(CellAssembly_patterns, pickle_file)
+    
+    filenameOut = folder_to_save / f'MazeCellAssembly_patterns_{mice}.pkl'
+    with open(filenameOut, 'wb') as pickle_file:
+        pickle.dump(MazeCellAssembly_patterns, pickle_file)
+
+
 filenameOut = folder_to_save / f'VigStates_Global.pkl'
 with open(filenameOut, 'wb') as pickle_file:
     pickle.dump(VigilanceState_GlobalResults, pickle_file)
+
+filenameOut = folder_to_save / f'CellAssembly_Global.pkl'
+with open(filenameOut, 'wb') as pickle_file:
+    pickle.dump(CellAssembly_GlobalResults, pickle_file)
 
 if saveexcel: 
     filenameOut = folder_to_save / f'VigStates_Global.xlsx'
     writer = pd.ExcelWriter(filenameOut)
     VigilanceState_GlobalResults.to_excel(writer)
+    writer.close()
+    filenameOut = folder_to_save / f'CellAssembly_Global.xlsx'
+    writer = pd.ExcelWriter(filenameOut)
+    CellAssembly_GlobalResults.to_excel(writer)
     writer.close()
 
 sys.stdout = sys.__stdout__
