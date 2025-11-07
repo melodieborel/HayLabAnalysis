@@ -6,7 +6,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/RC/PlaceCells_experiment/"
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/RC/Tests/11_34_42/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -27,8 +27,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
         pathtofolder_len=$(echo "$pathtofolder" | awk -F'/' '{print NF}')
 
         mouse_name=$(echo "$pathtofolder" | awk -F'/' '{print $7}')
-        session_name=$(echo "$pathtofolder" | awk -F'/' '{print $13}')
-        session_name=$(echo "$pathtofolder" | awk -F'/' '{print $11}')
+        session_name=$(echo "$pathtofolder" | awk -F'/' '{print $9}')
+        session_name=$(echo "$pathtofolder" | awk -F'/' '{print $9}')
 
         #if [ "$pathtofolder_len" -eq 12 ]; then          
         #    session_name=$(echo "$pathtofolder" | awk -F'/' '{print $11}')

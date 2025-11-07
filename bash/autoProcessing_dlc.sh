@@ -6,6 +6,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/"
+START_DIR="/crnldata/forgetting/Aurelie/TEST/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -17,7 +18,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
     
     #if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* && ! -d "$pathtofolder/plot-poses" ]]; then #only process cheeseboard movies that were not already processed
     #if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/MemoryTest/"* && "$pathtofolder" == *"/Cheeseboard/"* && ! -d "$pathtofolder/plot-poses" ]]; then #only process cheeseboard movies that were not already processed
-    if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* ]]; then  #only process cheeseboard movies 
+    #if [[ "$pathtofolder" == *"My_First_WebCam"* && "$pathtofolder" == *"/Cheeseboard/"* ]]; then  #only process cheeseboard movies 
+    if [[ "$pathtofolder" == *"My_First_WebCam"* ]]; then  #only process cheeseboard movies 
 
         echo "Found folder: $pathtofolder"
 
