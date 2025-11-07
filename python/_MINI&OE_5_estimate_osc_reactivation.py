@@ -501,7 +501,7 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
                                 
                             
                                 if TooEarlySpdl or TooLateSpdl:
-                                    print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None            
+                                    print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if cellAss_count==1 else None            
                                 else:
 
                                     if ctxSpi=='S1':
@@ -513,7 +513,7 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
 
                                     # Find the index of the closest value in the column
                                     Frame_Spindle_start_all = (TS_bin - startSpi).abs().idxmin()
-                                    Frame_Spindle_start=Frame_Spindle_start_all-nb_of_previousframe
+                                    Frame_Spindle_start=Frame_Spindle_start_all#-nb_of_previousframe
 
                                     Trace = list(Reactivation_Strength[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl])
 
@@ -529,6 +529,7 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
                                     Spdl_statut= 'UnCoupled'
                                     cUnCoupled+=1 if cellAss_count==1 else 0
                                     ctxSWR=''
+                                    IsTrue= False
                                     if len(startSWRList)>0:                                        
                                         # if there is a SWR during the Spdl
                                         startClosest_SWR_idx= next((i for i, x in enumerate((startSWRList - startSpi)) if x >= 0), -1) #(np.abs(startSpiList - startSwr)).argmin()
@@ -589,12 +590,6 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
                                     
                                     durOsc=round(durationSpdl*target_rate)  
                                     
-                                    
-                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumBaseline'] = np.trapz(Trace[:round(durOsc/2)],np.arange(0,len(Trace[:round(durOsc/2)]),1))*2 # *2 cause 2 times shorter in lenght than the other
-                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumBefore'] = np.trapz(Trace[:durOsc],np.arange(0,len(Trace[:durOsc]),1))
-                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumDuring'] = np.trapz(Trace[durOsc:durOsc*2],np.arange(0,len(Trace[durOsc:durOsc*2]),1))          
-                                    Spindles_GlobalResults.loc[counter, 'AUC_calciumAfter'] = np.trapz(Trace[durOsc*2:durOsc*3],np.arange(0,len(Trace[durOsc*2:durOsc*3]),1))          
-
                                     Spindles_GlobalResults.loc[counter, 'AUC_1stQuarter'] = 2 * np.trapz(Trace[:round(durOsc/2)],np.arange(0,len(Trace[:round(durOsc/2)]),1)) # *2 cause to be per sec
                                     Spindles_GlobalResults.loc[counter, 'AUC_2ndQuarter'] = 2 * np.trapz(Trace[round(durOsc/2):durOsc],np.arange(0,len(Trace[round(durOsc/2):durOsc]),1))
                                     Spindles_GlobalResults.loc[counter, 'AUC_3rdQuarter'] = 2 * np.trapz(Trace[durOsc:durOsc+round(durOsc/2)],np.arange(0,len(Trace[durOsc:durOsc+round(durOsc/2)]),1))    
@@ -680,7 +675,7 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
                                         cGlobalSWR+=1 if cellAss_count==1 else 0    
 
                                     Frame_SWR_start_all = (TS_bin - startSwr).abs().idxmin()
-                                    Frame_SWR_start=Frame_SWR_start_all-nb_of_previousframe
+                                    Frame_SWR_start=Frame_SWR_start_all#-nb_of_previousframe
 
                                     Trace = list(Reactivation_Strength[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR])
 
@@ -697,6 +692,7 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
                                     SWR_statut= 'UnCoupled'
                                     cUnCoupledSWR+=1 if cellAss_count==1 else 0
                                     ctxSpi=''
+                                    IsTrue= False
                                     if len(startSpiList)>0:
                                         # if there is a spindle start before the SWR
                                         startClosest_Spdl_idx= next((i for i in range(len((startSpiList - startSwr)) - 1, -1, -1) if (startSpiList - startSwr)[i] < 0), -1)
@@ -824,14 +820,9 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
             for coup in Coupling:
                 for drug in drugs:      
                     dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR{ctx2}_{drug}']
-                    filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
+                    filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{ctx2}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
                     with open(filenameOut, 'wb') as pickle_file:
                         pickle.dump(dict_All_Activity, pickle_file)
-                    if coup=='PreCoupled' or coup == 'PostCoupled' or coup == 'PrePostCoupled': 
-                        dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR{ctx2}_{drug}']
-                        filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{ctx2}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
-                        with open(filenameOut, 'wb') as pickle_file:
-                            pickle.dump(dict_All_Activity, pickle_file)
 
     start8 = time.time()
     
@@ -853,22 +844,16 @@ for data in Data:
         for coup in Coupling:
             for drug in drugs:      
                 dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SPDL{ctx}_{drug}']
-                filenameOut = folder_to_save / f'Spdl_{data}PSTH_{coup}{ctx}{drug}_{mice}.pkl' #keep each responses of each cells for all rec Spdl
+                filenameOut = folder_to_save / f'Spdl_{data}PSTH_{coup}{ctx}{drug}.pkl' #keep each responses of each cells for all rec Spdl
                 with open(filenameOut, 'wb') as pickle_file:
                     pickle.dump(dict_All_Activity, pickle_file)
     for ctx2 in CTX2: 
         for coup in Coupling:
             for drug in drugs:                
                 dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR{ctx2}_{drug}']
-                filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
+                filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{ctx2}{drug}.pkl' #keep each responses of each cells for all rec SWR
                 with open(filenameOut, 'wb') as pickle_file:
                     pickle.dump(dict_All_Activity, pickle_file)
-                if coup=='PreCoupled' or coup == 'PostCoupled' or coup == 'PrePostCoupled': 
-                    dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR{ctx2}_{drug}']
-                    filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{ctx2}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
-                    with open(filenameOut, 'wb') as pickle_file:
-                        pickle.dump(dict_All_Activity, pickle_file)
-
 
 with open(folder_to_save / f'Spdl_Global.pkl', 'wb') as pickle_file:
         pickle.dump(Spindles_GlobalResults, pickle_file)   
