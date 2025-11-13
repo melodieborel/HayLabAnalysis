@@ -167,8 +167,8 @@ sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
 
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/HayLabAnalysis/python/_MINI&OE_5_estimate_Osc_reactivation.py" if local else "/home/aurelie.brecier/HayLabAnalysis/python/_MINI&OE_5_estimate_Osc_reactivation.py"
-destination_file_path = f"{destination_folder}/_MINI&OE_5_estimate_Osc_reactivation.txt"
+source_script = "C:/Users/Manip2/SCRIPTS/HayLabAnalysis/python/_MINI&OE_4_estimate_osc_reactivation.py" if local else "/home/aurelie.brecier/HayLabAnalysis/python/_MINI&OE_4_estimate_osc_reactivation.py"
+destination_file_path = f"{destination_folder}/_MINI&OE_4_estimate_osc_reactivation.txt"
 shutil.copy(source_script, destination_file_path)
 
 data = {}        
@@ -192,6 +192,15 @@ with open(filenameOut, 'rb') as pickle_file:
 filenameOut =  f'//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/{Cell_Assembly_folder}/CellAssembly_members.pkl'
 with open(filenameOut, 'rb') as pickle_file:
     CellAssembly_members = pickle.load(pickle_file)
+
+
+for drug in drugs: 
+    for coup in Coupling:            
+        for ctx in CTX:            
+            locals()[f'dict_All_ActivityCa_{coup}SPDL{ctx}_{drug}']={}
+        for ctx2 in CTX2:       
+            locals()[f'dict_All_ActivityCa_{coup}SWR{ctx2}_{drug}']={}     
+            
 
 for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
 
@@ -222,17 +231,6 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
     dict_StampsMiniscope = {}
     dict_SWRprop = {}
     dict_Spindleprop = {}
-
-    for drug in drugs: 
-        for coup in Coupling:            
-            for ctx in CTX:            
-                locals()[f'dict_All_ActivityCa_{coup}SPDL{ctx}_{drug}']={}
-                if coup=='PreCoupled' or coup == 'PostCoupled' or coup == 'PrePostCoupled': 
-                    locals()[f'dict_All_ActivityCa_{coup}SWR{ctx}_{drug}']={}
-            for ctx2 in CTX2:       
-                locals()[f'dict_All_ActivityCa_{coup}SWR{ctx2}_{drug}']={}     
-                if coup=='PreCoupled' or coup == 'PostCoupled' or coup == 'PrePostCoupled': 
-                    locals()[f'dict_All_ActivityCa_{coup}SWR{ctx2}_{drug}']={}     
 
     previousEndTime=0
     InitialStartTime=0
@@ -805,24 +803,6 @@ for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
                             # Save Spindles & SWR analysis #
     #######################################################################################
     # Do average Calcium & Spike results for Spindles & SWR Peristimulus Time Histogram 
-    start7 = time.time()
-
-    Data=['Ca']
-    for data in Data:   
-        for ctx in CTX: 
-            for coup in Coupling:
-                for drug in drugs:      
-                    dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SPDL{ctx}_{drug}']
-                    filenameOut = folder_to_save / f'Spdl_{data}PSTH_{coup}{ctx}{drug}_{mice}.pkl' #keep each responses of each cells for all rec Spdl
-                    with open(filenameOut, 'wb') as pickle_file:
-                        pickle.dump(dict_All_Activity, pickle_file)
-        for ctx2 in CTX2: 
-            for coup in Coupling:
-                for drug in drugs:      
-                    dict_All_Activity=locals()[f'dict_All_Activity{data}_{coup}SWR{ctx2}_{drug}']
-                    filenameOut = folder_to_save / f'SWR_{data}PSTH_{coup}{ctx2}{drug}_{mice}.pkl' #keep each responses of each cells for all rec SWR
-                    with open(filenameOut, 'wb') as pickle_file:
-                        pickle.dump(dict_All_Activity, pickle_file)
 
     start8 = time.time()
     
