@@ -158,7 +158,7 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/4_OscReactivation_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/4_OscReactivation_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/4_OscReactivation_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/4_OscReactivation_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -185,11 +185,11 @@ SWR_GlobalResults= pd.DataFrame(data, columns=['Mice', 'NeuronType','Session','S
                                                         'FR_1stQuarter','FR_2ndQuarter','FR_3rdQuarter','FR_4thQuarter',])
 
 
-filenameOut =  f'//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/{Cell_Assembly_folder}/CellAssembly_dict.pkl'
+filenameOut =  f'//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/{Cell_Assembly_folder}/CellAssembly_dict.pkl'
 with open(filenameOut, 'rb') as pickle_file:
     CellAssembly_dict = pickle.load(pickle_file)
 
-filenameOut =  f'//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/{Cell_Assembly_folder}/CellAssembly_members.pkl'
+filenameOut =  f'//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/{Cell_Assembly_folder}/CellAssembly_members.pkl'
 with open(filenameOut, 'rb') as pickle_file:
     CellAssembly_members = pickle.load(pickle_file)
 
@@ -202,7 +202,7 @@ for drug in drugs:
             locals()[f'dict_All_ActivityCa_{coup}SWR{ctx2}_{drug}']={}     
             
 
-for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
+for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
 
     mappfile = open(dpath.parents[0]/ f'mappingsAB.pkl', 'rb')
     mapping = pickle.load(mappfile)

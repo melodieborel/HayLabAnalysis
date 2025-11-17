@@ -102,7 +102,7 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/1_VigSt_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/PlaceCells_experiment/1_VigSt_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/1_VigSt_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/1_VigSt_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -123,7 +123,7 @@ VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','S
                                                         'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'NormalizedAUC_calcium', 'DeconvSpikeMeanActivity', 
                                                         'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz', 'TotCaPopCoupling', 
                                                         'TotZ_CaPopCoupling', 'TotSpPopCoupling', 'TotZ_SpPopCoupling'])
-for dpath in Path(dir).glob('**/PlaceCells_experiment/mappingsAB.pkl'):
+for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
 
     mappfile = open(dpath.parents[0]/ f'mappingsAB.pkl', 'rb')
     mapping = pickle.load(mappfile)
