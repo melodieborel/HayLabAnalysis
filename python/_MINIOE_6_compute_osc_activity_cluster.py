@@ -6,7 +6,7 @@
 
 DrugExperiment = 0 # = 1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID = '_calcium_nozscore' 
+AnalysisID = '' 
 
 local = False
 
@@ -38,9 +38,6 @@ durationSWR = 1 # number of sec before and after the SWR onset taken into acount
 import os
 import numpy as np
 from scipy import signal
-import quantities as pq
-import math 
-import neo
 import json
 from pathlib import Path
 import xarray as xr
@@ -50,7 +47,6 @@ from matplotlib.widgets import Slider, Button, Cursor
 import pickle
 import sys 
 from datetime import datetime
-import shutil
 from ast import literal_eval
 from scipy.signal import find_peaks
 from scipy.stats import zscore
@@ -79,6 +75,7 @@ import random
 import time
 from concurrent.futures import ProcessPoolExecutor
 import multiprocessing
+from collections import Counter, defaultdict
 
 warnings.filterwarnings("ignore")
 import sys
@@ -203,11 +200,7 @@ def process_file(dpath):
     centroids_sess = centroids['session']   
 
     mice = dpath.parents[1].parts[-1]
-    NeuronType = dpath.parents[2].parts[-1]
-    
-    print(f"####################################################################################")
-    print(f"################################### {mice} ####################################")
-    print(f"####################################################################################")
+    NeuronType = 'L2_3_mice' #dpath.parents[2].parts[-1]
 
     nb_minian_total=0
     dict_Calcium = {}
@@ -269,9 +262,7 @@ def process_file(dpath):
 
             if session_type == 'SleepAfter':
 
-                start = time.time()
-
-                print(f"Processing {session_type} session: {session} on the {session_date}, subfolders = {V4subfolder}")
+                print(f"Processing {session_type} session of {mice}: {session} on the {session_date}, subfolders = {V4subfolder}")
 
                 minian_ds = open_minian(minianpath)
                 dict_Calcium[session] = minian_ds['C'] # calcium traces 
@@ -288,9 +279,7 @@ def process_file(dpath):
                             dict_TodropFile[session]  = unit_to_drop
                     nb_minian_total+=1
                 except:
-                    print(' !!!! Minian session not validated !!!!')
                     continue
-                print(session_path)
 
 
                 SWRlist= pd.read_csv(session_path.parent / f'OpenEphys/SWRCA1&RSC_finedetection.csv' ) 
@@ -358,11 +347,9 @@ def process_file(dpath):
 
                 nb_unit=len(Calcium)
                 if nb_unit==0:
-                    print(f'no cells kept in the session: {session}')
                     continue  # next iteration
 
                 Carray=Calcium.values.T.astype(float)
-                Darray=Deconv.values.T.astype(float)
 
                 StartFrame_msec=TimeStamps_miniscope['Time Stamp (ms)'][TimeStamps_miniscope['Frame Number'][firstframe]]
                 LastFrame_msec=TimeStamps_miniscope['Time Stamp (ms)'][TimeStamps_miniscope['Frame Number'][firstframe+len(Calcium.T)-1]]
@@ -408,28 +395,17 @@ def process_file(dpath):
                 nb_swr = SWRpropTrunc.shape[0]
                 
 
-                print(session, ': starts at', round(StartTime,1), 's & ends at', round(EndTime,1), 's (', round(rec_dur_sec,1), 's duration, ', numbdropfr, 'dropped frames, minian frequency =', minian_freq, 'Hz, experiment type = ', session_type, ')...') 
-                sentence1= f"... kept values = {kept_uniq_unit_List}"
-                print(sentence1)
-
-
-                print(f"... Loading time = {time.time() - start:.2f} seconds")
-                start2 = time.time()
-
-
                 for unit in range(nb_unit): 
                     indexMapp = np.where(mapping_sess[session] == Calcium.index[unit])[0]
                     
                     if len(indexMapp)>0 : # The neuron needs to be in the cross-registration
                         
                         Carray_unit =Carray[:,unit]
-                        Darray_unit =Darray[:,unit]
 
                         for coup in Coupling:
                             for ctx in CTX:            
                                 locals()[f'ActivityCa_{coup}Spin{ctx}']=[] #For each cell assembly 
                         
-                        start3 = time.time()
                         prevspin=[]
 
                         for Pspin in SpipropTrunc.index: 
@@ -453,9 +429,7 @@ def process_file(dpath):
                                 TooLateSpdl=startSpi+durationSpdl*1000>LastFrame_msec # too close to the end of the recording
                                 
                             
-                                if TooEarlySpdl or TooLateSpdl:
-                                    print("/!\ Spindle too close to the begining/end of the recording,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit==1 else None            
-                                else:
+                                if not( TooEarlySpdl or TooLateSpdl):
 
                                     if ctxSpi=='S1':
                                         cLocalS1+=1 if unit==1 else 0
@@ -569,7 +543,6 @@ def process_file(dpath):
                             #    print("/!\ Spindle too close to the end of the previous one,", session, ", Spdl n°", Pspin, ", Start Spdl =", round(startSpi/1000,1), "s") if unit_count==1 else None
                         
                         ## Peristimulus Time Histogram 
-                        start4 = time.time()
                         for ctx in CTX: 
                             for coup in Coupling: 
                                 # All Ca traces for each spindles per Unique unit (according to cross-registration)
@@ -592,8 +565,6 @@ def process_file(dpath):
                                             key=mice + str(indexMapp).replace('[','').replace(']','')
                                             dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(resampled_data), axis=0) if key in dict_All_ActivityCa else np.array(resampled_data)
 
-                        print(f'... {len(SpipropTrunc)} Spdl processed in {time.time() - start3:.2f} & PSTH done in {time.time() - start4:.2f} seconds for one cell') if unit==1 else None
-
                         #######################################################################################
                                                             # for SWRs #
                         #######################################################################################
@@ -601,8 +572,6 @@ def process_file(dpath):
                         for coup in Coupling:
                             for ctx2 in CTX2:                                     
                                 locals()[f'ActivityCa_{coup}swr{ctx2}']=[] #For each unit 
-
-                        start5 = time.time()
 
                         prevSWR=[]
                         for Pswr in SWRpropTrunc.index: 
@@ -625,9 +594,7 @@ def process_file(dpath):
                                 TooEarlySWR=startSwr-durationSWR*1000<StartFrame_msec # too close to the begining of the recording
                                 TooLateSWR=startSwr+durationSWR*1000>LastFrame_msec # too close to the end of the recording
                                 
-                                if TooEarlySWR or TooLateSWR:
-                                    print("/!\ SWR too close to the begining/end of the recording,", session, ", SWR n°", Pswr, ", Start SWR =",  round(startSwr/1000,1), "s") if unit==1 else None 
-                                else:
+                                if not (TooEarlySWR or TooLateSWR):
 
                                     if ctxSWR=='CA1':
                                         cLocalCA1+=1 if unit==1 else 0
@@ -639,7 +606,7 @@ def process_file(dpath):
                                     Frame_SWR_start_all = (TS_miniscope_sub - startSwr).abs().idxmin()
                                     Frame_SWR_start=Frame_SWR_start_all-nb_of_previousframe
 
-                                    CaTrace = list(Carray_unit[Frame_Spindle_start-HalfSpdl:Frame_Spindle_start+HalfSpdl])
+                                    CaTrace = list(Carray_unit[Frame_SWR_start-HalfSWR:Frame_SWR_start+HalfSWR])
 
                                     ActivityCa_Spin=locals()[f'ActivityCa_Spin{ctxSpi}']
                                     ActivityCa_Spin.append(CaTrace)
@@ -742,7 +709,6 @@ def process_file(dpath):
                             #    print("/!\ SWR too close to the end of the previous one,", session, ", SWR n°", Pswr, ", Start SWR =",  round(startSwr/1000,1), "s") if unit==0 else None
 
                         ## Peristimulus Time Histogram 
-                        start6 = time.time()                        
                         for ctx2 in CTX2: 
                             for coup in Coupling:                                                                                              
                                 # All Ca traces for each spindles per Unique unit (according to cross-registration)
@@ -764,28 +730,16 @@ def process_file(dpath):
                                         key=mice + str(indexMapp).replace('[','').replace(']','')
                                         dict_All_ActivityCa[key] = np.append(dict_All_ActivityCa[key], np.array(resampled_data), axis=0) if key in dict_All_ActivityCa else np.array(resampled_data)
                 
-                        print(f'... {len(SWRpropTrunc)} SWR processed in {time.time() - start5:.2f} seconds & PSTH done in {time.time() - start6:.2f} seconds for one cell') if unit==1 else None
-
-                print(f"... The {unit} cells of {session} analyzed in {time.time() - start2:.2f} seconds")
-
-                sentence2=f"... {cPreCoupled+cPostCoupled+cPrePostCoupled+cUnCoupled}/{nb_spindle} spindles kept ({cPreCoupled} PreCoupled & {cPostCoupled} PostCoupled & {cPrePostCoupled} PrePostCoupled & {cUnCoupled} Uncoupled Spdl // {cGlobal} Global, {cLocalS1} LocalS1 & {cLocalPFC} LocalPFC) and {cPreCoupledSWR+cPostCoupledSWR+cPrePostCoupledSWR+cUnCoupledSWR}/{nb_swr} SWR kept ({cPreCoupledSWR} PreCoupled & {cPostCoupledSWR} PostCoupled & {cPrePostCoupledSWR} PrePostcoupled & {cUnCoupledSWR} Uncoupled SWR // {cGlobalSWR} Global, {cLocalCA1} LocalCA1 & {cLocalRSC} LocalRSC)"
-                print(sentence2) 
-
     #######################################################################################
                             # Save Spindles & SWR analysis #
     #######################################################################################
     # Do average Calcium & Spike results for Spindles & SWR Peristimulus Time Histogram 
-
-    start8 = time.time()
     
     with open(folder_to_save / f'Spdl_Global_{mice}.pkl', 'wb') as pickle_file:
         pickle.dump(Spindles_GlobalResults, pickle_file)   
 
     with open(folder_to_save / f'SWR_Global_{mice}.pkl', 'wb') as pickle_file:
         pickle.dump(SWR_GlobalResults, pickle_file)
-
-    
- 
 
     Data=['Ca']
     for data in Data:   
@@ -804,12 +758,6 @@ def process_file(dpath):
                     with open(filenameOut, 'wb') as pickle_file:
                         pickle.dump(dict_All_Activity, pickle_file)
 
-    print(f"Global matrix saved in {time.time() - start8:.2f} seconds")
-
-    sentence3=f"{mice} data saved in {time.time() - start2:.2f} seconds"
-    print(sentence3) 
-
-
 if __name__ == "__main__":
 
     paths = list(Path(dir).glob('**/Exploration_task/mappingsAB.pkl'))
@@ -823,14 +771,43 @@ if __name__ == "__main__":
         results = list(ex.map(process_file, paths))
 
 
+    Data='Ca'
+    Drug=''
+    Couplings={'', 'Precoupled', 'PrePostcoupled', 'Postcoupled', 'UnCoupled'}
+    mice={'BC', 'RC', 'RL', 'YL'}
 
-    """
-    with open(folder_to_save / f'Spdl_Global.pkl', 'wb') as pickle_file:
-            pickle.dump(Spindles_GlobalResults, pickle_file)   
+    destination_folder2= f"/mnt/data/AurelieB_other/5_OscActivity_{AnalysisID}"
+    os.makedirs(destination_folder2)
+    folder_to_save2=Path(destination_folder2)
 
-    with open(folder_to_save / f'SWR_Global.pkl', 'wb') as pickle_file:
-        pickle.dump(SWR_GlobalResults, pickle_file)
-
-    sys.stdout = sys.__stdout__
-    logfile.close()
-    """
+    Oscillations={'SPDL', 'SWR'}
+    for Osc in Oscillations:
+        if Osc == 'SWR':
+            Ctx= {'CA1', 'RSC','CA1RSC'}
+        elif Osc == 'SPDL': 
+            Ctx= {'S1', 'PFC','S1PFC'}
+        for ctx in Ctx:
+            pooled2 = {}
+            for Coupling in Couplings:
+                pooled = {}
+                for mouse in mice: 
+                    filename=f"{folder_to_save}/{Osc}_{Data}PSTH_{Coupling}{ctx}{mouse}.pkl"
+                    with open(filename, 'rb') as pickle_file:
+                        data = pickle.load(pickle_file)  # assume dict of dicts
+                    for key, value in data.items():
+                        pooled[key]=value            
+                        pooled2[key] = np.concatenate((value, pooled2[key]))  if key in pooled2 else np.array(value)   
+                with open(os.path.join(folder_to_save2, f"{Osc}_{Data}PSTH_{Coupling}{ctx}.pkl"), "wb") as f:
+                    pickle.dump(pooled, f)
+            with open(os.path.join(folder_to_save2, f"{Osc}_{Data}PSTH_{ctx}.pkl"), "wb") as f:
+                pickle.dump(pooled2, f)
+                
+    Oscillations={'Spdl', 'SWR'}
+    for Osc in Oscillations:
+        pooled=pd.DataFrame()
+        for mouse in mice: 
+            with open(f"{folder_to_save}/{Osc}_Global_{mouse}.pkl", "rb") as f:
+                data = pickle.load(f)
+            pooled= pd.concat([pooled, data], ignore_index=True)          
+        with open(os.path.join(folder_to_save2, f"{Osc}_Global.pkl"), "wb") as f:
+            pickle.dump(pooled, f)
