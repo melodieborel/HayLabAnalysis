@@ -39,16 +39,10 @@ durationSWR = 1 # number of sec before and after the SWR onset taken into acount
 
 import os
 import numpy as np
-from scipy import signal
-import quantities as pq
-import math 
-import neo
 import json
 from pathlib import Path
 import xarray as xr
 import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.widgets import Slider, Button, Cursor
 import pickle
 import sys 
 from datetime import datetime
@@ -165,7 +159,7 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/4_OscReactivation_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/4_OscReactivation_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/4_OscReactivation_{FolderNameSave}{AnalysisID}" if local else f"/mnt/data/AurelieB_other/4_OscReactivation_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -458,15 +452,16 @@ def process_file(dpath):
                     for ass in np.arange(np.shape(patterns)[0]):
                         
                         assembly_ID = assemblies_ID[ass]
-                        assembly_session = assembly_ID.str.rsplit('_', n=1).str[0]
+                        assembly_session = "_".join(assembly_ID.split('_')[:-1])
     
                         matches = []
-                        for root, dirs, files in os.walk(dpath):
+                        for root, dirs, files in os.walk(Path(dpath).parent):
                             if assembly_session in dirs:
                                 matches.append(os.path.join(root, assembly_session))
-                        assembly_date = Path(matches[0]).parents[2].name
+                        parts = os.path.normpath(matches[0]).split(os.sep)
+                        assembly_date= parts[6]
 
-                        if assembly_date == session_date:
+                        if assembly_date == session_date: # make sure the cell assembly was detected on the same day
 
                             cellAss_count+=1
 
@@ -860,21 +855,21 @@ if __name__ == "__main__":
     with ProcessPoolExecutor(max_workers=cpus) as ex:
         results = list(ex.map(process_file, paths))
 
-
     Data='Ca'
     Drug=''
-    Couplings={'', 'Precoupled', 'PrePostcoupled', 'Postcoupled', 'UnCoupled'}
+    Couplings={'', 'PreCoupled', 'PrePostCoupled', 'PostCoupled', 'UnCoupled'}
     mice={'BC', 'RC', 'RL', 'YL'}
+    AnalysisID=''
 
     destination_folder2= f"/mnt/data/AurelieB_other/4_OscReactivation_{AnalysisID}"
     os.makedirs(destination_folder2)
     folder_to_save2=Path(destination_folder2)
 
-    Oscillations={'SPDL', 'SWR'}
+    Oscillations={'Spdl', 'SWR'}
     for Osc in Oscillations:
         if Osc == 'SWR':
             Ctx= {'CA1', 'RSC','CA1RSC'}
-        elif Osc == 'SPDL': 
+        elif Osc == 'Spdl': 
             Ctx= {'S1', 'PFC','S1PFC'}
         for ctx in Ctx:
             pooled2 = {}
@@ -892,7 +887,6 @@ if __name__ == "__main__":
             with open(os.path.join(folder_to_save2, f"{Osc}_{Data}PSTH_{ctx}.pkl"), "wb") as f:
                 pickle.dump(pooled2, f)
                 
-    Oscillations={'Spdl', 'SWR'}
     for Osc in Oscillations:
         pooled=pd.DataFrame()
         for mouse in mice: 
