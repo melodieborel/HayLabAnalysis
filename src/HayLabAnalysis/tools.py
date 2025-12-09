@@ -14,6 +14,20 @@ from .localConfigurations import localConf
 
 from pathlib import Path
 
+import argparse
+import requests
+
+
+NOTEBOOK_FILES = [
+   "localConfig.ini",
+   "0_RawDATANumpyViewer.ipynb",
+]
+
+#DEMO_FILES = [f"demo_movies/msCam{i}.avi" for i in range(1, 11)] + [
+#    f"demo_data/session{i}/minian.nc" for i in range(1, 3)
+#]
+
+
 class color:
    PURPLE = '\033[95m'
    CYAN = '\033[96m'
@@ -154,4 +168,28 @@ def loadExamples():
       subprocess.call("echo \"Virtual environment $VIRTUAL_ENV is active.\"", shell=True)
       subprocess.call("pip install git+https://github.com/melodieborel/minian.git@python311", shell=True)
       print(f"{color.GREEN}Installation script finished{color.END}")
+   
+   #TODO: maybe check if version is uptodate...
+
+   # Now load the examples
+   ROOT_DIR = Path(__file__).resolve().parent
+   print(f"Root dir is {ROOT_DIR}")
+   NOTEBOOK_DIR_NAME = "python"
+   for f in NOTEBOOK_FILES:
+      if f == "localConfig.ini":
+         source = ROOT_DIR / f
+         destination = Path.cwd() / f
+      else:
+         source = ROOT_DIR / NOTEBOOK_DIR_NAME / f
+         destination = Path.cwd() / NOTEBOOK_DIR_NAME / f
+      #TODO: check if path is ok
+      destination.parent.mkdir(parents=True, exist_ok=True)
+      if not destination.is_file():
+         print(f"Copying {source} to {destination}")
+         with open(source, "rb") as src_file:
+            with open(destination, "wb") as dst_file:
+               dst_file.write(src_file.read())
+      else:
+         print(f"{destination} already exists, not copying")
+
    return
