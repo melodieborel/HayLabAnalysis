@@ -1,11 +1,7 @@
 #!/bin/bash
 
 # Define the starting directory
-START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/RC/PlaceCells_experiment"
-START_DIR="/crnldata/forgetting/Aurelie/TEST/"
-
-START_DIR="//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/BC/Radial_task/"
+START_DIR="//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/PC/Exploration_task/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -25,15 +21,11 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
             echo "Found folder: $pathtofolder"
 
-
             # Define folder containing AVI files
+            INPUT_FOLDER="$pathtofolder"
             OUTPUT_FILE="$pathtofolder/0_compressed.avi"
             FILE_LIST="file_list.txt"
-
-            # Merge using ffmpeg, suppress all output
-            ffmpeg -f concat -safe 0 -i "$FILE_LIST" -c copy "$OUTPUT_FILE" > /dev/null 2>&1
-
-
+          
             # Check for ffmpeg
             if ! command -v ffmpeg &> /dev/null; then
                 echo "ffmpeg is not installed. Please install it and try again."
@@ -57,16 +49,16 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
             #find "${INPUT_FOLDER}" -type f \( -name "*.h5" -o -name "*.pickle" \) -exec rm -f {} \;
             #find "${INPUT_FOLDER}" -type d -name "plot-poses" -exec rm -rf {} \;
 
-            # Merge using ffmpeg, suppress all output
+            # Merge using ffmpeg, suppress all prompt output
             ffmpeg -f concat -safe 0 -i "$FILE_LIST" -c copy "$OUTPUT_FILE" > /dev/null 2>&1
 
-            # Cleanup: Remove the .avi files from the input folder after merging, but keep output.avi
-            find "$pathtofolder" -type f -name "*.avi" ! -name "output.avi" -exec rm -f {} \;
+            # Cleanup: Remove the .avi files from the input folder after merging, but keep 0_compressed.avi
+            find "$INPUT_FOLDER" -type f -name "*.avi" ! -name "0_compressed.avi" -exec rm -f {} \;
 
             # Remove the temporary file list
             rm -f "$FILE_LIST"
 
-            echo "Merging complete. Output file: 0.avi"
+            echo "Merging complete. Output file: 0_compressed.avi"
 
         fi
     fi
