@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the starting directory
-START_DIR="//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/PC/Exploration_task/"
+START_DIR="//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/BrC/Exploration_task/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
