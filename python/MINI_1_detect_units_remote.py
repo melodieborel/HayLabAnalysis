@@ -22,10 +22,10 @@ st = time.time()
         # PARAMETERS #
 ##################################
 # Set up Initial Basic Parameters#
-minian_path = "/home/aurelie.brecier/minian/"
+minian_path = "/home/thea.michel/minian/"
 print(minian_path)
 
-dpath='/mnt/data/AurelieB_minian/'
+dpath='/mnt/data/TheaM_minian/'
 mouse_name = [f for f in os.listdir(dpath) if os.path.isdir(os.path.join(dpath, f))]
 mouse_name = mouse_name[0]
 path_mouse = os.path.join(dpath, mouse_name)
@@ -78,7 +78,7 @@ param_init_merge = {"thres_corr": 0.8}
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
     "dl_wnd": 10, #15, #Default minian = 10 #the window size of the morphological dilation operation
-    "sparse_penal": 0.005, #0.012, #Default minian =0.01 #☻ the bigger, the smaller the ROI
+    "sparse_penal": 0.01, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI
     "size_thres": (75, 600), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None),
 }
 param_first_temporal = {
@@ -92,7 +92,7 @@ param_first_merge = {"thres_corr": 0.8}
 
 param_second_spatial = {
     "dl_wnd": 10,
-    "sparse_penal": 0.001,
+    "sparse_penal": 0.01,
     "size_thres": (75, 600),
 }
 
@@ -426,7 +426,7 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     cluster.close()
     
     # Copy the script file to the destination folder
-    source_script = "/mnt/data/home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py"
+    source_script = "/mnt/data/home/thea.michel/HayLabAnalysis/python/MINI_1_detect_units_remote.py"
     destination_file_path = f"{minian_ds_path}/MINI_1_detect_units_remote.txt"
     shutil.copy(source_script, destination_file_path)
 

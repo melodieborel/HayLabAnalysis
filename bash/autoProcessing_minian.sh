@@ -5,8 +5,7 @@
 #(minian) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_minian.sh
 
 # Define the starting directory
-START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/RC/Tests/11_34_42/"
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/OW/Allocentric_task/Training/2025_03_10/Cheeseboard/12_40_29/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -21,13 +20,12 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         echo "Found folder: $pathtofolder"
         
-        rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
+        rm -rf /mnt/data/TheaM_minian/* #empty mnt data
  
         # Use '/' as a delimiter to split the path and count the parts
         pathtofolder_len=$(echo "$pathtofolder" | awk -F'/' '{print NF}')
 
         mouse_name=$(echo "$pathtofolder" | awk -F'/' '{print $7}')
-        session_name=$(echo "$pathtofolder" | awk -F'/' '{print $9}')
         session_name=$(echo "$pathtofolder" | awk -F'/' '{print $9}')
 
         #if [ "$pathtofolder_len" -eq 12 ]; then          
@@ -40,12 +38,12 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
         echo "$mouse_name"
         echo "$session_name"
 
-        mkdir -p "/mnt/data/AurelieB_minian/$mouse_name/$session_name/"
+        mkdir -p "/mnt/data/TheaM_minian/$mouse_name/$session_name/"
 
-        cp -r "${pathtofolder}/"* /mnt/data/AurelieB_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
+        cp -r "${pathtofolder}/"* /mnt/data/TheaM_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
         
-        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
-        srun --mem=80G --cpus-per-task=10 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
+        srun --mem=250G --cpus-per-task=40 python /home/thea.michel/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
+        #srun --mem=80G --cpus-per-task=10 python /home/thea.michel/HayLabAnalysis/python/MINI_1_detect_units_remote.py 
 
         # Check the exit status of srun
         if [ $? -ne 0 ]; then
@@ -53,8 +51,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
             continue #break
         fi
 
-        cp -r /mnt/data/AurelieB_minian/$mouse_name/$session_name/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
-        rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
+        cp -r /mnt/data/TheaM_minian/$mouse_name/$session_name/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
+        rm -rf /mnt/data/TheaM_minian/* #empty mnt data
     fi
 done
 
