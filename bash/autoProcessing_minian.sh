@@ -5,7 +5,7 @@
 #(minian) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_minian.sh
 
 # Define the starting directory
-START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/OW/Allocentric_task/Training/2025_03_10/Cheeseboard/12_40_29/"
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/OW/Allocentric_task/Training/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -42,8 +42,10 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         cp -r "${pathtofolder}/"* /mnt/data/TheaM_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
         
-        srun --mem=250G --cpus-per-task=40 python /home/thea.michel/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
+        #srun --mem=250G --cpus-per-task=40 python /home/thea.michel/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
         #srun --mem=80G --cpus-per-task=10 python /home/thea.michel/HayLabAnalysis/python/MINI_1_detect_units_remote.py 
+        srun --partition=GPU --mem=20G --cpus-per-task=4 --gres=gpu:1g.20gb:1 python /home/thea.michel/HayLabAnalysis/python/MINI_1_detect_units_remote.py
+
 
         # Check the exit status of srun
         if [ $? -ne 0 ]; then

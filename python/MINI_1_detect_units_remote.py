@@ -62,11 +62,11 @@ param_estimate_motion = {"dim": "frame"}
 
 # Initialization Parameters#
 param_seeds_init = {
-    "wnd_size": 100, # 100, #Default minian = 1000
-    "method": "rolling",
-    "stp_size": 50, #50, #Default minian = 500
-    "max_wnd": 10, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15
-    "diff_thres": 3, #3
+    "wnd_size": 100, # 100, #Default minian = 1000 ( taille fenêtre temporelle petit = +sensible flash rapide mais +faux positifs)
+    "method": "rolling", # (modalité de déplacement de la fenêtre temporelle : rolling ou step)
+    "stp_size": 50, #50, #Default minian = 500 ( pas de déplacement de la fenetre temporelle en frames petit = +précis mais +lent)
+    "max_wnd": 20, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15 ( nombre max de pixels détéctables pour éviter pixels instable ou bruités grand = +permissif pour dendrites étendues)
+    "diff_thres": 2.5, #3 ( seuil de détection des pics d'activité basé sur variation du signal petit = + sensible mais +faux positifs)
 }
 param_pnr_refine = {"noise_freq": 0.06, "thres": 1}
 param_ks_refine = {"sig": 0.05}
@@ -77,9 +77,9 @@ param_init_merge = {"thres_corr": 0.8}
 # CNMF Parameters#
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
-    "dl_wnd": 10, #15, #Default minian = 10 #the window size of the morphological dilation operation
-    "sparse_penal": 0.01, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI
-    "size_thres": (75, 600), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None),
+    "dl_wnd": 10, #15, #Default minian = 10 #the window size of the morphological dilation operation ( taille du noyau de dilatation morphologique grand = ROI +large)
+    "sparse_penal": 0.01, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI ( compacité des ROI grand = ROi +petit)
+    "size_thres": (75, 600), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None), (filtre sur la taille des ROI 75 rangs inférieurs et 600 supérieur définit une fourchette valide)
 }
 param_first_temporal = {
     "noise_freq": 0.06,
