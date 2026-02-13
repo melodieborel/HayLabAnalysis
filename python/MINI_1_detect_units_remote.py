@@ -70,30 +70,30 @@ param_seeds_init = {
 }
 param_pnr_refine = {"noise_freq": 0.06, "thres": 1}
 param_ks_refine = {"sig": 0.05}
-param_seeds_merge = {"thres_dist": 10, "thres_corr": 0.8, "noise_freq": 0.06}
-param_initialize = {"thres_corr": 0.8, "wnd": 10, "noise_freq": 0.06}
-param_init_merge = {"thres_corr": 0.8}
+param_seeds_merge = {"thres_dist": 10, "thres_corr": 0.85, "noise_freq": 0.06} # à verifier 
+param_initialize = {"thres_corr": 0.85, "wnd": 10, "noise_freq": 0.06} # modif
+param_init_merge = {"thres_corr": 0.85} # à verifier 
 
 # CNMF Parameters#
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
-    "dl_wnd": 10, #15, #Default minian = 10 #the window size of the morphological dilation operation ( taille du noyau de dilatation morphologique grand = ROI +large)
-    "sparse_penal": 0.01, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI ( compacité des ROI grand = ROi +petit)
-    "size_thres": (75, 600), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None), (filtre sur la taille des ROI 75 rangs inférieurs et 600 supérieur définit une fourchette valide)
+    "dl_wnd": 20, #15, #Default minian = 10 #the window size of the morphological dilation operation ( taille du noyau de dilatation morphologique grand = ROI +large)
+    "sparse_penal": 0.005, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI ( compacité des ROI grand = ROi +petit)
+    "size_thres": (40, 600), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None), (filtre sur la taille des ROI 75 rangs inférieurs et 600 supérieur définit une fourchette valide)
 }
 param_first_temporal = {
     "noise_freq": 0.06,
     "sparse_penal": 1,
     "p": 1,
     "add_lag": 20,
-    "jac_thres": 0.2,
+    "jac_thres": 0.2, # mayba
 }
-param_first_merge = {"thres_corr": 0.8}
+param_first_merge = {"thres_corr": 0.85} # à verifier 
 
 param_second_spatial = {
-    "dl_wnd": 10,
-    "sparse_penal": 0.01,
-    "size_thres": (75, 600),
+    "dl_wnd": 20,
+    "sparse_penal": 0.005,
+    "size_thres": (40, 600),
 }
 
 param_second_temporal = {

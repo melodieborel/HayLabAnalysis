@@ -4,8 +4,7 @@
 
 # Starting directory (default is the current directory)
 
-start_directory="/crnldata/forgetting/Aurelie/CheeseboardExperiment/DAQ_data/"
-start_directory="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/RC/PlaceCells_experiment/"
+start_directory="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/OW/Allocentric_task/Training/2025_03_11/SleepAfter/13_06_20"
 
 echo "Searching for folders containing .avi files in '$start_directory'..."
 
@@ -26,8 +25,8 @@ for dir in "${!folder_count[@]}"; do
     count=${folder_count["$dir"]}
 
     # Check if the parent directory name is "V4miniscope"
-    #if [[ "$dir" == *"/My_V4_Miniscope"* && "$count" -gt 15 ]]; then 
-    if [ "$count" -gt 15 ]; then
+    if [[ "$dir" == *"/My_V4_Miniscope"* && "$count" -gt 15 ]]; then 
+    #if [ "$count" -gt 15 ]; then
 
         echo "Directory '$dir' contains $count .avi files. Creating subfolders..."
 
