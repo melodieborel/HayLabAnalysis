@@ -62,9 +62,10 @@ param_estimate_motion = {"dim": "frame"}
 
 # Initialization Parameters#
 param_seeds_init = {
-    "wnd_size": 100, # 100, #Default minian = 1000
+    "wnd_size": 2000, # 100, #Default minian = 1000
     "method": "rolling",
-    "stp_size": 50, #50, #Default minian = 500
+    'nchunk': 100, # added by AB
+    "stp_size": 1000, #50, #Default minian = 500
     "max_wnd": 10, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15
     "diff_thres": 3, #3
 }
@@ -161,10 +162,10 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     dpath = os.path.abspath(dpath)
     
     cluster = LocalCluster(
-        n_workers=int(os.getenv("MINIAN_NWORKERS", 10)), # /!\ max 40 or 64 CPUs per node in remote machine # /!\ 8 total cores in local machine 
-        memory_limit="8GB", #per worker, /!\ max 95 or 256 GB per node in remote machine # /!\ 32GB total RAM in local machine 
-        resources={"MEM": 1}, #set to 1 before
-        threads_per_worker=2,
+        n_workers=int(os.getenv("MINIAN_NWORKERS", 1)), # /!\ max 40 or 64 CPUs per node in remote machine # /!\ 8 total cores in local machine 
+        memory_limit="80GB", #per worker, /!\ max 95 or 256 GB per node in remote machine # /!\ 32GB total RAM in local machine 
+        #resources={"MEM": 1}, #set to 1 before
+        threads_per_worker=1,
         dashboard_address=None,
         #processes=False, # to avoid distributed.nanny - WARNING - Restarting worker ?
     )
@@ -174,10 +175,12 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     cluster.scheduler.add_plugin(annt_plugin)
     client = Client(cluster) 
 
+
     ##################################
             # PRE- PROCESSING #
     ##################################
     # PRE- PROCESSING
+    print("Loading videos...")
     varr = load_videos(dpath, **param_load_videos)
     chk, _ = get_optimal_chk(varr, dtype=float)
 
@@ -196,6 +199,7 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     varr_ref = varr_ref - varr_min
 
     # DENOISE & BACKGROUND REMOVAL
+    print("Denoising...")
     varr_ref = denoise(varr_ref, **param_denoise)
 
     varr_ref = remove_background(varr_ref, **param_background_removal)
@@ -205,6 +209,7 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     ##################################
             # MOTION CORRECTION #
     ##################################
+    print("Estimating motion...")
     motion = estimate_motion(varr_ref.sel(subset_mc), **param_estimate_motion)
 
     motion = save_minian(
@@ -234,9 +239,9 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     ##################################
 
     # GENERATE SEEDS 
+    print("Generating seeds...")
     seeds = seeds_init(Y_fm_chk, **param_seeds_init)
-
-    seeds.head()
+    print(len(seeds))
 
     seeds, pnr, gmm = pnr_refine(Y_hw_chk, seeds, **param_pnr_refine)
 
@@ -275,7 +280,7 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     ##################################
                 # CNMF #
     ##################################
-
+    print("Starting CNMF...")
     # ESTIMATE SPATIAL NOISE
     sn_spatial = get_noise_fft(Y_hw_chk, **param_get_noise)
     sn_spatial = save_minian(sn_spatial.rename("sn_spatial"), intpath, overwrite=True)
