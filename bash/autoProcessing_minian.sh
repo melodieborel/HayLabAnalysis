@@ -6,7 +6,7 @@
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/RC/Tests/11_34_42/"
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/PW/Allocentric_task/Probe/2025_03_14/SleepBefore/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -44,8 +44,11 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         cp -r "${pathtofolder}/"* /mnt/data/AurelieB_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
         
+        #srun python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
         #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
-        srun --mem=80G --cpus-per-task=10 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
+        srun --mem=120G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
+        #srun python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
+        #srun --mem=80G --cpus-per-task=10 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
 
         # Check the exit status of srun
         if [ $? -ne 0 ]; then
