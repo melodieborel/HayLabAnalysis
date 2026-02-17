@@ -1,4 +1,8 @@
-ipykernel
+## Warning, while creating the environment, you must choose a python location 
+# that is accessible by the cluster workers. You can use a command that lists 
+# the available python versions on the cluster, for example:
+# srun bash -lc 'echo "HOST: $HOSTNAME"; which python3 || which python || true;'
+# for instance, /usr/bin/python3 is available on the cluster, /usr/bin/python is not.
 
 ipyfilechooser
 jupyter_bokeh
@@ -7,12 +11,12 @@ ipykernel
 #pour ephysviewer:
 ephyviewer
 PySide6
-pyqtgraph
+pyqtgraph == 0.13.3 #0.13.7 fails to work with TimeFreqViewer of ephyviewer
 numpy
 scipy
 matplotlib
 Neo
-PyAV
+av
 pandas
 spikeinterface
 
@@ -24,3 +28,16 @@ open-ephys-python-tools
 
 ipympl
 openpyxl
+
+dask[dataframe]
+holoviews
+datashader
+toolz
+partd
+cloudpickle
+fsspec
+distributed
+dask_jobqueue
+
+#pour minian: ça va chercher la version de minian sur le github de melodieborel, qui est compatible avec python 3.11
+minian @ git+https://github.com/melodieborel/minian.git@python311
