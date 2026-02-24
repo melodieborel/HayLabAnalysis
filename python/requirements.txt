@@ -16,6 +16,9 @@ numpy
 scipy
 matplotlib
 Neo
+imageio-ffmpeg
+# Video/media handling - av uses pre-built wheels on macOS Intel & Linux
+# If installation fails on macOS Apple Silicon: brew install ffmpeg (via Homebrew)
 av
 pandas
 spikeinterface
