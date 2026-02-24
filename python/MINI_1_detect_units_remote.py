@@ -6,17 +6,40 @@ suffix = ''
 
 import itertools as itt
 import os
+import subprocess
 import sys
 
 import holoviews as hv
 import numpy as np
 import xarray as xr
 from dask.distributed import Client, LocalCluster
-import shutil
 import time
 from dask import config
 
 st = time.time()
+
+# Ensure FFmpeg is available (system-wide installation)
+ffmpeg_path = "/usr/local/fsl/bin/ffmpeg"
+
+# Add FFmpeg directory to PATH if not already present
+ffmpeg_dir = os.path.dirname(ffmpeg_path)
+if ffmpeg_dir not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = f"{ffmpeg_dir}{os.pathsep}{os.environ.get('PATH', '')}"
+
+# Verify FFmpeg is accessible
+try:
+    result = subprocess.run([ffmpeg_path, "-version"], capture_output=True, timeout=5)
+    if result.returncode == 0:
+        version_line = result.stdout.decode().split('\n')[0]
+        print(f"✓ FFmpeg available: {version_line}")
+    else:
+        raise RuntimeError(f"FFmpeg not responding correctly")
+except (FileNotFoundError, subprocess.TimeoutExpired, RuntimeError) as e:
+    raise RuntimeError(
+        f"FFmpeg not accessible at {ffmpeg_path}\n"
+        f"This package requires system-wide FFmpeg installation.\n"
+        f"Error: {e}"
+    )
 
 ##################################
         # PARAMETERS #
