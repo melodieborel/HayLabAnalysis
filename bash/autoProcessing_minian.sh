@@ -1,12 +1,15 @@
 #!/bin/bash
 
 # Activate "minian" environement before
+# source /home/aurelie.brecier/HayLabAnalysis/.venv/bin/activate
 # cd in /HayLabAnalysis/bash
-#(minian) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_minian.sh
+#(.venv) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_minian.sh
+
+
 
 # Define the starting directory
 START_DIR="/crnldata/forgetting/Aurelie/CheeseboardExperiment/"
-START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/PW/Allocentric_task/Probe/2025_03_14/SleepBefore/"
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/PW/Allocentric_task/Habituation/2025_03_06/SleepAfter/15-21-49_15-37-14/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -46,7 +49,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
         
         #srun python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
         #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
-        srun --mem=120G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
+        #srun --mem=120G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
+        srun --partition=GPU --mem=20G --cpus-per-task=4 --gres=gpu:1g.20gb:1 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
         #srun python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
         #srun --mem=80G --cpus-per-task=10 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
 
