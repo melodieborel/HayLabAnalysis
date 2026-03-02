@@ -7,7 +7,6 @@ suffix = ''
 import itertools as itt
 import os
 import sys
-
 import holoviews as hv
 import numpy as np
 import xarray as xr
@@ -18,6 +17,30 @@ from dask import config
 
 st = time.time()
 
+# Ensure FFmpeg is available (system-wide installation)
+ffmpeg_path = "/usr/local/fsl/bin/ffmpeg"
+
+# Add FFmpeg directory to PATH if not already present
+ffmpeg_dir = os.path.dirname(ffmpeg_path)
+if ffmpeg_dir not in os.environ.get("PATH", ""):
+    os.environ["PATH"] = f"{ffmpeg_dir}{os.pathsep}{os.environ.get('PATH', '')}"
+
+# Verify FFmpeg is accessible if GPU used
+"""
+try:
+    result = subprocess.run([ffmpeg_path, "-version"], capture_output=True, timeout=5)
+    if result.returncode == 0:
+        version_line = result.stdout.decode().split('\n')[0]
+        print(f"✓ FFmpeg available: {version_line}")
+    else:
+        raise RuntimeError(f"FFmpeg not responding correctly")
+except (FileNotFoundError, subprocess.TimeoutExpired, RuntimeError) as e:
+    raise RuntimeError(
+        f"FFmpeg not accessible at {ffmpeg_path}\n"
+        f"This package requires system-wide FFmpeg installation.\n"
+        f"Error: {e}"
+    )
+"""
 ##################################
         # PARAMETERS #
 ##################################
@@ -160,16 +183,57 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
 
     dpath = os.path.abspath(dpath)
     
-    cluster = LocalCluster(
-        n_workers=int(os.getenv("MINIAN_NWORKERS", 10)), # /!\ max 40 or 64 CPUs per node in remote machine # /!\ 8 total cores in local machine 
-        memory_limit="8GB", #per worker, /!\ max 95 or 256 GB per node in remote machine # /!\ 32GB total RAM in local machine 
-        resources={"MEM": 1}, #set to 1 before
-        threads_per_worker=2,
-        dashboard_address=None,
-        #processes=False, # to avoid distributed.nanny - WARNING - Restarting worker ?
-    )
+    
+    try:
+        from dask_jobqueue import SLURMCluster
+    except ImportError:
+        try:
+            from dask_jobqueue.slurm import SLURMCluster
+        except ImportError as exc:
+            raise ImportError("dask-jobqueue SLURMCluster not found. Install dask-jobqueue.") from exc
 
-    config.set({'interface': 'lo'}) 
+    """
+    slurm_kwargs = {
+        "queue": "GPU",
+        "cores": 8,  # more realistic per worker
+        "memory": "20GB",  # per worker, not total
+        "job_cpu": 8,  # Match cores
+        "walltime": "16:00:00",
+        "log_directory": dpath,
+        "job_extra_directives": [
+            "#SBATCH --gres=gpu:1g.20gb:1",  # Use MIG partition instead
+            "#SBATCH --gpufreq=high",
+            # Removed --exclusive=user (prevents efficient multi-job node sharing)
+        ],
+        "scheduler_options": {
+            "dashboard_address": ":0",
+            "idle_timeout": "300s",
+        },
+        "nanny": True,
+    }
+    """
+    slurm_kwargs = {
+        "queue": "CPU",
+        "cores": 10,  # CPUs
+        "memory": "32GB",  # per worker, not total
+        "job_cpu": 10,  # = cores
+        "walltime": "16:00:00",
+        "log_directory": dpath,
+        "job_extra_directives": [
+            # Removed --exclusive=user (prevents efficient multi-job node sharing)
+        ],
+        "scheduler_options": {
+            "dashboard_address": ":0",
+            "idle_timeout": "300s",
+        },
+        "nanny": True,
+    }
+    
+    cluster = SLURMCluster(**slurm_kwargs)
+    n_workers = 4  # - 4 workers × 10 cores = 40 cores total
+    cluster.scale(n_workers)
+
+
     annt_plugin = TaskAnnotation()
     cluster.scheduler.add_plugin(annt_plugin)
     client = Client(cluster) 
