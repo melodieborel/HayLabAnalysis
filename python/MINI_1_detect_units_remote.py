@@ -26,7 +26,8 @@ ffmpeg_dir = os.path.dirname(ffmpeg_path)
 if ffmpeg_dir not in os.environ.get("PATH", ""):
     os.environ["PATH"] = f"{ffmpeg_dir}{os.pathsep}{os.environ.get('PATH', '')}"
 
-# Verify FFmpeg is accessible
+# Verify FFmpeg is accessible if GPU used
+"""
 try:
     result = subprocess.run([ffmpeg_path, "-version"], capture_output=True, timeout=5)
     if result.returncode == 0:
@@ -40,7 +41,7 @@ except (FileNotFoundError, subprocess.TimeoutExpired, RuntimeError) as e:
         f"This package requires system-wide FFmpeg installation.\n"
         f"Error: {e}"
     )
-
+"""
 ##################################
         # PARAMETERS #
 ##################################
@@ -88,10 +89,9 @@ param_estimate_motion = {"dim": "frame"}
 
 # Initialization Parameters#
 param_seeds_init = {
-    "wnd_size": 2000, # 100, #Default minian = 1000
+    "wnd_size": 1000, # 100, #Default minian = 1000
     "method": "rolling",
-    'nchunk': 100, # added by AB
-    "stp_size": 1000, #50, #Default minian = 500
+    "stp_size": 500, #50, #Default minian = 500
     "max_wnd": 10, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15
     "diff_thres": 3, #3
 }
@@ -105,7 +105,7 @@ param_init_merge = {"thres_corr": 0.8}
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
     "dl_wnd": 10, #15, #Default minian = 10 #the window size of the morphological dilation operation
-    "sparse_penal": 0.005, #0.012, #Default minian =0.01 #☻ the bigger, the smaller the ROI
+    "sparse_penal": 0.005, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI
     "size_thres": (75, 600), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None),
 }
 param_first_temporal = {
@@ -197,16 +197,35 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
         except ImportError as exc:
             raise ImportError("dask-jobqueue SLURMCluster not found. Install dask-jobqueue.") from exc
 
+    """
     slurm_kwargs = {
         "queue": "GPU",
-        "cores": 16, #16
-        "memory": "128GB", #24
-        "job_cpu": 16, #16
+        "cores": 8,  # more realistic per worker
+        "memory": "20GB",  # per worker, not total
+        "job_cpu": 8,  # Match cores
         "walltime": "16:00:00",
+        "log_directory": dpath,
         "job_extra_directives": [
-            "#SBATCH --gres=gpu:1",
+            "#SBATCH --gres=gpu:1g.20gb:1",  # Use MIG partition instead
             "#SBATCH --gpufreq=high",
-            "#SBATCH --exclusive=user",
+            # Removed --exclusive=user (prevents efficient multi-job node sharing)
+        ],
+        "scheduler_options": {
+            "dashboard_address": ":0",
+            "idle_timeout": "300s",
+        },
+        "nanny": True,
+    }
+    """
+    slurm_kwargs = {
+        "queue": "CPU",
+        "cores": 40,  # CPUs
+        "memory": "240GB",  # per worker, not total
+        "job_cpu": 40,  # = cores
+        "walltime": "16:00:00",
+        "log_directory": dpath,
+        "job_extra_directives": [
+            # Removed --exclusive=user (prevents efficient multi-job node sharing)
         ],
         "scheduler_options": {
             "dashboard_address": ":0",
@@ -215,8 +234,8 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
         "nanny": True,
     }
     cluster = SLURMCluster(**slurm_kwargs)
-    n_workers = 8
-    cluster.scale(n_workers)
+    n_workers = 8  # - 4 workers × 10 cores = 40 cores total
+    #cluster.scale(n_workers)
 
 
     """
