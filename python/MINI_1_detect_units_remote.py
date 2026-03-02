@@ -8,7 +8,7 @@ import itertools as itt
 import os
 import subprocess
 import sys
-
+import shutil
 import holoviews as hv
 import numpy as np
 import xarray as xr
@@ -26,7 +26,8 @@ ffmpeg_dir = os.path.dirname(ffmpeg_path)
 if ffmpeg_dir not in os.environ.get("PATH", ""):
     os.environ["PATH"] = f"{ffmpeg_dir}{os.pathsep}{os.environ.get('PATH', '')}"
 
-# Verify FFmpeg is accessible
+# Verify FFmpeg is accessible if GPU used
+"""
 try:
     result = subprocess.run([ffmpeg_path, "-version"], capture_output=True, timeout=5)
     if result.returncode == 0:
@@ -40,11 +41,11 @@ except (FileNotFoundError, subprocess.TimeoutExpired, RuntimeError) as e:
         f"This package requires system-wide FFmpeg installation.\n"
         f"Error: {e}"
     )
-
+"""
 ##################################
         # PARAMETERS #
 ##################################
-# Set up Initial Basic Parameters#
+# Set up #
 minian_path = "/home/aurelie.brecier/minian/"
 print(minian_path)
 
@@ -59,6 +60,9 @@ dpath = os.path.join(path_mouse, session_name)
 
 minian_ds_path = os.path.join(dpath, f'minian{suffix}')
 intpath = os.path.join(dpath, f'minian_intermediate{suffix}')
+
+
+# Set up Initial Basic Parameters#
 subset = dict(frame=slice(0, None))
 subset_mc = None
 interactive = False
@@ -85,10 +89,9 @@ param_estimate_motion = {"dim": "frame"}
 
 # Initialization Parameters#
 param_seeds_init = {
-    "wnd_size": 2000, # 100, #Default minian = 1000
+    "wnd_size": 1000, # 100, #Default minian = 1000
     "method": "rolling",
-    'nchunk': 100, # added by AB
-    "stp_size": 1000, #50, #Default minian = 500
+    "stp_size": 500, #50, #Default minian = 500
     "max_wnd": 10, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15
     "diff_thres": 3, #3
 }
@@ -102,7 +105,7 @@ param_init_merge = {"thres_corr": 0.8}
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
     "dl_wnd": 10, #15, #Default minian = 10 #the window size of the morphological dilation operation
-    "sparse_penal": 0.005, #0.012, #Default minian =0.01 #☻ the bigger, the smaller the ROI
+    "sparse_penal": 0.005, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI
     "size_thres": (75, 600), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None),
 }
 param_first_temporal = {
@@ -133,6 +136,8 @@ os.environ["MKL_NUM_THREADS"] = "1"
 os.environ["OPENBLAS_NUM_THREADS"] = "1"
 os.environ["MINIAN_INTERMEDIATE"] = intpath
 
+
+# Import Minian functions
 sys.path.append(minian_path)
 from minian.cnmf import (
     compute_AtC,
@@ -183,7 +188,57 @@ from minian.visualization import (
 if __name__ == "__main__": # needed if dask client runned into a .py script    
 
     dpath = os.path.abspath(dpath)
-    
+
+    try:
+        from dask_jobqueue import SLURMCluster
+    except ImportError:
+        try:
+            from dask_jobqueue.slurm import SLURMCluster
+        except ImportError as exc:
+            raise ImportError("dask-jobqueue SLURMCluster not found. Install dask-jobqueue.") from exc
+
+    """
+    slurm_kwargs = {
+        "queue": "GPU",
+        "cores": 8,  # more realistic per worker
+        "memory": "20GB",  # per worker, not total
+        "job_cpu": 8,  # Match cores
+        "walltime": "16:00:00",
+        "log_directory": dpath,
+        "job_extra_directives": [
+            "#SBATCH --gres=gpu:1g.20gb:1",  # Use MIG partition instead
+            "#SBATCH --gpufreq=high",
+            # Removed --exclusive=user (prevents efficient multi-job node sharing)
+        ],
+        "scheduler_options": {
+            "dashboard_address": ":0",
+            "idle_timeout": "300s",
+        },
+        "nanny": True,
+    }
+    """
+    slurm_kwargs = {
+        "queue": "CPU",
+        "cores": 40,  # CPUs
+        "memory": "240GB",  # per worker, not total
+        "job_cpu": 40,  # = cores
+        "walltime": "16:00:00",
+        "log_directory": dpath,
+        "job_extra_directives": [
+            # Removed --exclusive=user (prevents efficient multi-job node sharing)
+        ],
+        "scheduler_options": {
+            "dashboard_address": ":0",
+            "idle_timeout": "300s",
+        },
+        "nanny": True,
+    }
+    cluster = SLURMCluster(**slurm_kwargs)
+    n_workers = 8  # - 4 workers × 10 cores = 40 cores total
+    #cluster.scale(n_workers)
+
+
+    """
     cluster = LocalCluster(
         n_workers=int(os.getenv("MINIAN_NWORKERS", 1)), # /!\ max 40 or 64 CPUs per node in remote machine # /!\ 8 total cores in local machine 
         memory_limit="80GB", #per worker, /!\ max 95 or 256 GB per node in remote machine # /!\ 32GB total RAM in local machine 
@@ -192,8 +247,9 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
         dashboard_address=None,
         #processes=False, # to avoid distributed.nanny - WARNING - Restarting worker ?
     )
-
     config.set({'interface': 'lo'}) 
+    """
+
     annt_plugin = TaskAnnotation()
     cluster.scheduler.add_plugin(annt_plugin)
     client = Client(cluster) 
