@@ -31,7 +31,7 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         mouse_name=$(echo "$pathtofolder" | awk -F'/' '{print $7}')
         session_name=$(echo "$pathtofolder" | awk -F'/' '{print $9}')
-        session_name=$(echo "$pathtofolder" | awk -F'/' '{print $9}')
+        session_name=$(echo "$pathtofolder" | awk -F'/' '{print $12}')
 
         #if [ "$pathtofolder_len" -eq 12 ]; then          
         #    session_name=$(echo "$pathtofolder" | awk -F'/' '{print $11}')
@@ -44,6 +44,7 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
         echo "$session_name"
 
         mkdir -p "/mnt/data/AurelieB_minian/$mouse_name/$session_name/"
+        rm -rf /mnt/data/AurelieB_minian/$mouse_name/$session_name/* #empty mnt data
 
         cp -r "${pathtofolder}/"* /mnt/data/AurelieB_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
         
@@ -58,6 +59,7 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         cp -r /mnt/data/AurelieB_minian/$mouse_name/$session_name/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
         #rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
+        rm -rf /mnt/data/AurelieB_minian/$mouse_name/$session_name/* #empty mnt data
     fi
 done
 
