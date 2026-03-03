@@ -24,7 +24,7 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         echo "Found folder: $pathtofolder"
         
-        rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
+        #rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
  
         # Use '/' as a delimiter to split the path and count the parts
         pathtofolder_len=$(echo "$pathtofolder" | awk -F'/' '{print NF}')
@@ -47,16 +47,8 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
 
         cp -r "${pathtofolder}/"* /mnt/data/AurelieB_minian/$mouse_name/$session_name/ #copy crnldata to mnt data 
         
-        srun  python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
-
-        #srun --mem=250G --cpus-per-task=40 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
-        #srun --mem=250G python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
-        #srun --mem=120G --cpus-per-task=20 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
-        
-        # FULL GPU NODE (16 CPUs, 40GB RAM, 1 A100 GPU)
-        #srun --partition=GPU --cpus-per-task=16 --gres=gpu:a100:1 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
-        # Half GPU NODE (8 CPUs, 20GB RAM, 1 g.20gb GPU)
-        #srun --partition=GPU --mem=20G --cpus-per-task=8 --gres=gpu:1g.20gb:1 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
+        #srun  python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py
+        srun --partition=GPU --gres=gpu:1g.20gb:1 python /home/aurelie.brecier/HayLabAnalysis/python/MINI_1_detect_units_remote.py #&>/dev/null
 
         # Check the exit status of srun
         if [ $? -ne 0 ]; then
@@ -65,7 +57,7 @@ for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \
         fi
 
         cp -r /mnt/data/AurelieB_minian/$mouse_name/$session_name/minian "${pathtofolder}/" #copy minian folder of mnt data to crnldata 
-        rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
+        #rm -rf /mnt/data/AurelieB_minian/* #empty mnt data
     fi
 done
 

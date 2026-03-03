@@ -41,6 +41,7 @@ cloudpickle
 fsspec
 distributed
 dask_jobqueue
+seaborn
 
 #pour minian: ça va chercher la version de minian sur le github de melodieborel, qui est compatible avec python 3.11
 minian @ git+https://github.com/melodieborel/minian.git@python311

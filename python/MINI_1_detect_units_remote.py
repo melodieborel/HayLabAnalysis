@@ -4,6 +4,8 @@
 
 suffix = ''
 
+GPU = True
+
 import itertools as itt
 import os
 import subprocess
@@ -27,21 +29,21 @@ if ffmpeg_dir not in os.environ.get("PATH", ""):
     os.environ["PATH"] = f"{ffmpeg_dir}{os.pathsep}{os.environ.get('PATH', '')}"
 
 # Verify FFmpeg is accessible if GPU used
-"""
-try:
-    result = subprocess.run([ffmpeg_path, "-version"], capture_output=True, timeout=5)
-    if result.returncode == 0:
-        version_line = result.stdout.decode().split('\n')[0]
-        print(f"✓ FFmpeg available: {version_line}")
-    else:
-        raise RuntimeError(f"FFmpeg not responding correctly")
-except (FileNotFoundError, subprocess.TimeoutExpired, RuntimeError) as e:
-    raise RuntimeError(
-        f"FFmpeg not accessible at {ffmpeg_path}\n"
-        f"This package requires system-wide FFmpeg installation.\n"
-        f"Error: {e}"
-    )
-"""
+if GPU:
+    try:
+        result = subprocess.run([ffmpeg_path, "-version"], capture_output=True, timeout=5)
+        if result.returncode == 0:
+            version_line = result.stdout.decode().split('\n')[0]
+            print(f"✓ FFmpeg available: {version_line}")
+        else:
+            raise RuntimeError(f"FFmpeg not responding correctly")
+    except (FileNotFoundError, subprocess.TimeoutExpired, RuntimeError) as e:
+        raise RuntimeError(
+            f"FFmpeg not accessible at {ffmpeg_path}\n"
+            f"This package requires system-wide FFmpeg installation.\n"
+            f"Error: {e}"
+        )
+
 ##################################
         # PARAMETERS #
 ##################################
@@ -80,8 +82,8 @@ param_load_videos = {
     "downsample": dict(frame=1, height=1, width=1),
     "downsample_strategy": "subset",
 }
-param_denoise = {"method": "median", "ksize": 7} #5 #Default minian ={"method": "median", "ksize": 7}
-param_background_removal = {"method": "tophat", "wnd": 25} #15 Default minian
+param_denoise = {"method": "median", "ksize": 3} #5 #Default minian ={"method": "median", "ksize": 7}
+param_background_removal = {"method": "tophat", "wnd": 10} #15 Default minian
 
 # Motion Correction Parameters#
 subset_mc = None
@@ -119,7 +121,7 @@ param_first_merge = {"thres_corr": 0.8}
 
 param_second_spatial = {
     "dl_wnd": 10,
-    "sparse_penal": 0.001,
+    "sparse_penal": 0.005,
     "size_thres": (75, 600),
 }
 
@@ -197,58 +199,46 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
         except ImportError as exc:
             raise ImportError("dask-jobqueue SLURMCluster not found. Install dask-jobqueue.") from exc
 
-    """
-    slurm_kwargs = {
-        "queue": "GPU",
-        "cores": 8,  # more realistic per worker
-        "memory": "20GB",  # per worker, not total
-        "job_cpu": 8,  # Match cores
-        "walltime": "16:00:00",
-        "log_directory": dpath,
-        "job_extra_directives": [
-            "#SBATCH --gres=gpu:1g.20gb:1",  # Use MIG partition instead
-            "#SBATCH --gpufreq=high",
-            # Removed --exclusive=user (prevents efficient multi-job node sharing)
-        ],
-        "scheduler_options": {
-            "dashboard_address": ":0",
-            "idle_timeout": "300s",
-        },
-        "nanny": True,
-    }
-    """
-    slurm_kwargs = {
-        "queue": "CPU",
-        "cores": 40,  # CPUs
-        "memory": "240GB",  # per worker, not total
-        "job_cpu": 40,  # = cores
-        "walltime": "16:00:00",
-        "log_directory": dpath,
-        "job_extra_directives": [
-            # Removed --exclusive=user (prevents efficient multi-job node sharing)
-        ],
-        "scheduler_options": {
-            "dashboard_address": ":0",
-            "idle_timeout": "300s",
-        },
-        "nanny": True,
-    }
+    if GPU: 
+        slurm_kwargs = {
+            "queue": "GPU",
+            "cores": 8,  # more realistic per worker
+            "memory": "20GB",  # per worker, not total
+            "job_cpu": 8,  # Match cores
+            "walltime": "16:00:00",
+            "log_directory": dpath,
+            "job_extra_directives": [
+                "#SBATCH --gres=gpu:1g.20gb:1",  # Use MIG partition instead
+                "#SBATCH --gpufreq=high",
+                # Removed --exclusive=user (prevents efficient multi-job node sharing)
+            ],
+            "scheduler_options": {
+                "dashboard_address": ":0",
+                "idle_timeout": "300s",
+            },
+            "nanny": True,
+        }
+    else:
+        slurm_kwargs = {
+            "queue": "CPU",
+            "cores": 30,  # more realistic per worker
+            "memory": "250GB",  # per worker, not total
+            "job_cpu": 30,  # = cores
+            "walltime": "16:00:00",
+            "log_directory": dpath,
+            "job_extra_directives": [
+                # Removed --exclusive=user (prevents efficient multi-job node sharing)
+            ],
+            "scheduler_options": {
+                "dashboard_address": ":0",
+                "idle_timeout": "300s",
+            },
+            "nanny": True,
+        }
+
     cluster = SLURMCluster(**slurm_kwargs)
     n_workers = 8  # - 4 workers × 10 cores = 40 cores total
-    #cluster.scale(n_workers)
-
-
-    """
-    cluster = LocalCluster(
-        n_workers=int(os.getenv("MINIAN_NWORKERS", 1)), # /!\ max 40 or 64 CPUs per node in remote machine # /!\ 8 total cores in local machine 
-        memory_limit="80GB", #per worker, /!\ max 95 or 256 GB per node in remote machine # /!\ 32GB total RAM in local machine 
-        #resources={"MEM": 1}, #set to 1 before
-        threads_per_worker=1,
-        dashboard_address=None,
-        #processes=False, # to avoid distributed.nanny - WARNING - Restarting worker ?
-    )
-    config.set({'interface': 'lo'}) 
-    """
+    cluster.scale(n_workers)
 
     annt_plugin = TaskAnnotation()
     cluster.scheduler.add_plugin(annt_plugin)
