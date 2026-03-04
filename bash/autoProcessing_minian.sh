@@ -6,7 +6,7 @@
 #(.venv) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_minian.sh
 
 # Define the starting directory
-START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/OW/Allocentric_task/Training/2025_03_10/SleepAfter/14-01-59_14-24-52/14_02_01/"
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/OW/Allocentric_task/Training/2025_03_11/SleepAfter/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
