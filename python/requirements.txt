@@ -8,8 +8,8 @@ ipyfilechooser
 jupyter_bokeh
 ipykernel
 
-#pour ephysviewer:
-ephyviewer
+#pour ephyviewer:
+ephyviewer @ git+https://github.com/AurelieBre/ephyviewer.git@master
 PySide6
 pyqtgraph == 0.13.3 #0.13.7 fails to work with TimeFreqViewer of ephyviewer
 numpy
