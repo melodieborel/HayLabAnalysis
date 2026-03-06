@@ -29,6 +29,7 @@ if ffmpeg_dir not in os.environ.get("PATH", ""):
     os.environ["PATH"] = f"{ffmpeg_dir}{os.pathsep}{os.environ.get('PATH', '')}"
 
 # Verify FFmpeg is accessible if GPU used
+"""
 if GPU:
     try:
         result = subprocess.run([ffmpeg_path, "-version"], capture_output=True, timeout=5)
@@ -43,7 +44,7 @@ if GPU:
             f"This package requires system-wide FFmpeg installation.\n"
             f"Error: {e}"
         )
-
+"""
 ##################################
         # PARAMETERS #
 ##################################
@@ -91,9 +92,9 @@ param_estimate_motion = {"dim": "frame"}
 
 # Initialization Parameters#
 param_seeds_init = {
-    "wnd_size": 1000, # 100, #Default minian = 1000
+    "wnd_size": 100, # 100, #Default minian = 1000
     "method": "rolling",
-    "stp_size": 500, #50, #Default minian = 500
+    "stp_size": 50, #50, #Default minian = 500
     "max_wnd": 10, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15
     "diff_thres": 3, #3
 }
