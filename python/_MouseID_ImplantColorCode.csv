@@ -22,3 +22,11 @@ TriangleBleu;AHAD11.69;APPPS1;Male
 TriangleMarron;AHAD11.70;WT ;Male
 TriangleRouge;AHAD11.71;APPPS1;Male
 TriangleNoir;AHAD11.74;WT ;Male
+CarreRouge;AHAD11.101;APPPS1;Male
+CarreMarron;AHAD11.103;WT ;Male
+CarreNoir;AHAD12.104;APPPS1;Male
+CarreBlanc;AHAD12.105;WT ;Male
+CarreOrange;AHAD12.106;APPPS1;Male
+CarreVert;AHAD12.107;WT ;Female
+CarreViolet;AHAD12.108;WT ;Female
+CarreJaune;AHAD12.109;APPPS1;Female
