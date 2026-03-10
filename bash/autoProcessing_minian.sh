@@ -6,7 +6,8 @@
 #(.venv) aurelie.brecier@node14:~/HayLabAnalysis/bash$ ./autoProcessing_minian.sh
 
 # Define the starting directory
-START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/OW/Allocentric_task/Training/2025_03_11/SleepAfter/"
+#START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/OW/Allocentric_task/Training/2025_03_11/Cheeseboard/12_18_41/"#
+START_DIR="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/OW/Allocentric_task/Training/2025_03_12/Cheeseboard/12_49_16/"
 
 echo "Searching for folders containing .avi files in '$START_DIR'..." 
 
@@ -16,7 +17,7 @@ IFS=$'\n'
 # Loop through all the folders containing .avi files 
 for pathtofolder in $(find "$START_DIR" -type f -name "*.avi" -exec dirname {} \; | sort -u); do
     
-     if [[ "$pathtofolder" == *"V4_Miniscope"* && ! -d "$pathtofolder/minian" ]]; then #only process miniscope movies that were not already processed
+     if [[ "$pathtofolder" == *"V4_Miniscope"* && ! -d "$pathtofolder/minian"  ]]; then #only process miniscope movies that were not already processed  && "$pathtofolder" == *"Sleep"*
     #if [[ "$pathtofolder" == *"V4_Miniscope"* ]]; then  # process all miniscope movies 
 
         echo "Found folder: $pathtofolder"

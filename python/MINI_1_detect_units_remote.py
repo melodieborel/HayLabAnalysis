@@ -89,13 +89,13 @@ param_seeds_init = {
     "method": "rolling", # (modalité de déplacement de la fenêtre temporelle : rolling ou step)
     "stp_size": 50, #50, #Default minian = 500 ( pas de déplacement de la fenetre temporelle en frames petit = +précis mais +lent)
     "max_wnd": 20, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15 ( nombre max de pixels détéctables pour éviter pixels instable ou bruités grand = +permissif pour dendrites étendues)
-    "diff_thres": 2.5, #3 ( seuil de détection des pics d'activité basé sur variation du signal petit = + sensible mais +faux positifs)
+    "diff_thres": 2, #3 ( seuil de détection des pics d'activité basé sur variation du signal petit = + sensible mais +faux positifs)
 }
 param_pnr_refine = {"noise_freq": 0.06, "thres": 1}
 param_ks_refine = {"sig": 0.05}
-param_seeds_merge = {"thres_dist": 10, "thres_corr": 0.8, "noise_freq": 0.06} # à verifier 
-param_initialize = {"thres_corr": 0.8, "wnd": 10, "noise_freq": 0.06} # modif
-param_init_merge = {"thres_corr": 0.8} # à verifier 
+param_seeds_merge = {"thres_dist": 10, "thres_corr": 0.85, "noise_freq": 0.06} # à verifier 
+param_initialize = {"thres_corr": 0.85, "wnd": 10, "noise_freq": 0.06} # modif
+param_init_merge = {"thres_corr": 0.85} # à verifier 
 
 # CNMF Parameters#
 param_get_noise = {"noise_range": (0.06, 0.5)}
@@ -111,7 +111,7 @@ param_first_temporal = {
     "add_lag": 20,
     "jac_thres": 0.2, # mayba
 }
-param_first_merge = {"thres_corr": 0.8} # à verifier 
+param_first_merge = {"thres_corr": 0.85} # à verifier 
 
 param_second_spatial = {
     "dl_wnd": 10,
