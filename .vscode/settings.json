@@ -1,5 +1,6 @@
 {
     "python.analysis.extraPaths": [
         "./minian"
-    ]
+    ],
+    "jupyter.widgetScriptSources": ["jsdelivr.com", "unpkg.com"]
 }
