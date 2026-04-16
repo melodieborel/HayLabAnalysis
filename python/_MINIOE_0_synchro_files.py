@@ -14,11 +14,11 @@ import xarray as xr
         # DEFINE PATH #
 ##################################
 
-local = True
+local = False
 if local:
-    DIR= Path("//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/")
+    DIR= Path("//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/")
 else: 
-    DIR= Path("/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/")
+    DIR= Path("/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/")
 
 ##################################
     # CREATE SYNCHRO FILE #
