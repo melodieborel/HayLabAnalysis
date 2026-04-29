@@ -192,12 +192,12 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
         except ImportError as exc:
             raise ImportError("dask-jobqueue SLURMCluster not found. Install dask-jobqueue.") from exc
 
-    """
+    
     slurm_kwargs = {
         "queue": "GPU",
-        "cores": 8,  # more realistic per worker
-        "memory": "20GB",  # per worker, not total
-        "job_cpu": 8,  # Match cores
+        "cores": 16,  # more realistic per worker
+        "memory": "128GB",  # per worker, not total
+        "job_cpu": 16,  # Match cores
         "walltime": "16:00:00",
         "log_directory": dpath,
         "job_extra_directives": [
@@ -228,6 +228,8 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
         },
         "nanny": True,
     }
+    
+    """
     
     cluster = SLURMCluster(**slurm_kwargs)
     n_workers = 4  # - 4 workers × 10 cores = 40 cores total

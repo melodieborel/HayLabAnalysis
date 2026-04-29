@@ -8,13 +8,13 @@ DrugExperiment=0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experime
 
 AnalysisID='' 
 
-saveexcel=0
+saveexcel=1
 
-local = True
+local = False
 if local:
-    dir= "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+    dir= "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/"
 else: 
-    dir= "/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+    dir= "/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/"
 
 mapp = {1: 'AW',  2: 'QW', 3: 'NREM',  4: 'IS', 5: 'REM',  6: 'undefined'}
 drugs=['baseline']
@@ -67,6 +67,7 @@ import sys
 
 warnings.filterwarnings("ignore")
 
+
 minian_path = os.path.join(os.path.abspath('..'),'minian')
 print("The folder used for minian procedures is : {}".format(minian_path))
 sys.path.append(minian_path)
@@ -78,6 +79,7 @@ from minian.utilities import (
     open_minian,
     save_minian,
 )
+
 #######################################################################################
                                 # Define functions #
 #######################################################################################
@@ -102,17 +104,18 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/1_VigSt_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/1_VigSt_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Théa/MiniscopeOE_analysis/Exploration_task/1_VigSt_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Théa/MiniscopeOE_analysis/Exploration_task/1_VigSt_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
+
 
 logfile = open(f"{destination_folder}/output_log.txt", 'w')
 sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
 
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/HayLabAnalysis/python/_MINI&OE_1_compute_vigstates_activity.py" if local else "/home/aurelie.brecier/HayLabAnalysis/python/_MINI&OE_1_compute_vigstates_activity.py"
-destination_file_path = f"{destination_folder}/_MINI&OE_1_compute_vigstates_activity.txt"
+source_script = "C:/Users/Acquisition/HayLabAnalysis/python/_MINIOE_1_compute_vigstates_activity.py" if local else "/home/thea.michel/HayLabAnalysis/python/_MINIOE_1_compute_vig_activity.py"
+destination_file_path = f"{destination_folder}/_MINIOE_1_compute_vig_activity.txt"
 shutil.copy(source_script, destination_file_path)
 
 
@@ -123,7 +126,14 @@ VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','S
                                                         'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'NormalizedAUC_calcium', 'DeconvSpikeMeanActivity', 
                                                         'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz', 'TotCaPopCoupling', 
                                                         'TotZ_CaPopCoupling', 'TotSpPopCoupling', 'TotZ_SpPopCoupling'])
-for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
+
+#print("Testing path:", dir)
+#print("Exists:", os.path.exists(dir))
+
+#files = list(Path(dir).glob('**/mappingsAB.pkl'))
+#print("Nb files found:", len(files))
+
+for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
     mappfile = open(dpath.parents[0]/ f'mappingsAB.pkl', 'rb')
     mapping = pickle.load(mappfile)
@@ -180,9 +190,36 @@ for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
 
     assembly_nb=0
 
+
+    
     minian_folders = [f for f in dpath.parents[0].rglob('minian') if f.is_dir()]
 
+    # ordre des dossiers 
+    minian_folders = sorted(
+        minian_folders,
+        key=lambda p: (
+            p.parents[4].name if any(p.parents[1].glob('*V4_Miniscope/timeStamps.csv')) else p.parents[5].name,
+            p.parents[1].name if any(p.parents[1].glob('*V4_Miniscope/timeStamps.csv')) else p.parents[0].name
+        )
+    )
+
+    counter=0
+    counterProbe=0
+    day=1
+    trial=1
+    previousmice = None
+    previous_session_date = None
+    previous_session_time = None
+    previous_session_type = None
+
+
+
     for minianpath in minian_folders: # for each minian folders found in this mouse
+    
+        # garder uniquement Training
+        if "training" not in [p.lower() for p in minianpath.parts]:
+            continue
+
         drug= 'baseline' 
 
         if 1==1: # any(p in all_expe_types for p in minianpath.parts): # have to be to the expe_types
@@ -208,8 +245,30 @@ for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
                 session_date=minianpath.parents[5].name
                 session_time=minianpath.parents[0].name
                 session=session_time
-            print(f"Processing {session_type} session: {session} on the {session_date}, subfolders = {V4subfolder}")
 
+            
+
+
+            if mice == previousmice:   
+                if session_date == previous_session_date : 
+                    if session_type == previous_session_type : 
+                        trial+=1
+                    else : 
+                        trial = 1
+                else:
+                        day+=1
+                        trial=1
+            else:
+                day=1
+                trial=1
+
+            previousmice = mice
+            previous_session_date = session_date
+            previous_session_time = session_time
+            previous_session_type= session_type
+
+            print(f"Processing {session_type} session: {session} on the {session_date}, day {day} trial number {trial} subfolders = {V4subfolder}")
+            
             minian_ds = open_minian(minianpath)
             dict_Calcium[session] = minian_ds['C'] # calcium traces 
             dict_Deconv[session] = minian_ds['S'] # estimated spikes deconvolved activity
@@ -488,7 +547,9 @@ for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
                         
                         VigilanceState_GlobalResults.loc[counter, 'Session'] = session
                         VigilanceState_GlobalResults.loc[counter, 'Session_Date'] = session_date 
-                        VigilanceState_GlobalResults.loc[counter, 'Session_Time'] = session_time                    
+                        VigilanceState_GlobalResults.loc[counter, 'Session_Time'] = session_time
+                        VigilanceState_GlobalResults.loc[counter, 'Day'] = int(day)
+                        VigilanceState_GlobalResults.loc[counter, 'Trial'] = int(trial)                    
 
                         VigilanceState_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
                         VigilanceState_GlobalResults.loc[counter, 'UnitNumber'] = unit
@@ -735,6 +796,15 @@ for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(VigilanceState_GlobalResults, pickle_file)
 
+    if saveexcel:
+        filenameOut = folder_to_save / f'VigStates_Global_{mice}.xlsx'
+        writer = pd.ExcelWriter(filenameOut)
+
+        VigilanceState_GlobalResults[
+        VigilanceState_GlobalResults["Mice"] == mice
+        ].to_excel(writer, index=False)
+        writer.close()  
+
 filenameOut = folder_to_save / f'VigStates_Global.pkl'
 with open(filenameOut, 'wb') as pickle_file:
     pickle.dump(VigilanceState_GlobalResults, pickle_file)
@@ -747,3 +817,4 @@ if saveexcel:
 
 sys.stdout = sys.__stdout__
 logfile.close()
+
