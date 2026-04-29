@@ -91,17 +91,17 @@ param_seeds_init = {
     "max_wnd": 20, #20,#generally 10 updated here to 20 to account for L1 wide dendritic trees #Default minian =15 ( nombre max de pixels détéctables pour éviter pixels instable ou bruités grand = +permissif pour dendrites étendues)
     "diff_thres": 2.5, #3 ( seuil de détection des pics d'activité basé sur variation du signal petit = + sensible mais +faux positifs)
 }
-param_pnr_refine = {"noise_freq": 0.06, "thres": 1} #'auto'
+param_pnr_refine = {"noise_freq": 0.06, "thres": 1}
 param_ks_refine = {"sig": 0.05}
-param_seeds_merge = {"thres_dist": 10, "thres_corr": 0.8, "noise_freq": 0.06} # à verifier 
-param_initialize = {"thres_corr": 0.8, "wnd": 10, "noise_freq": 0.06} # modif
-param_init_merge = {"thres_corr": 0.8} # à verifier 
+param_seeds_merge = {"thres_dist": 10, "thres_corr": 0.85, "noise_freq": 0.06} # à verifier 
+param_initialize = {"thres_corr": 0.85, "wnd": 10, "noise_freq": 0.06} # modif
+param_init_merge = {"thres_corr": 0.85} # à verifier 
 
 # CNMF Parameters#
 param_get_noise = {"noise_range": (0.06, 0.5)}
 param_first_spatial = {
-    "dl_wnd": 5, #5 #15, #Default minian = 10 #the window size of the morphological dilation operation ( taille du noyau de dilatation morphologique grand = ROI +large)
-    "sparse_penal": 0.01, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI ( compacité des ROI grand = ROi +petit)
+    "dl_wnd": 20, #15, #Default minian = 10 #the window size of the morphological dilation operation ( taille du noyau de dilatation morphologique grand = ROI +large)
+    "sparse_penal": 0.005, #0.012, #Default minian =0.01 # the bigger, the smaller the ROI ( compacité des ROI grand = ROi +petit)
     "size_thres": (40, 600), # range of area (number of non-zero pixels) of the spatial footprints that will be accepted #(1, None), (filtre sur la taille des ROI 75 rangs inférieurs et 600 supérieur définit une fourchette valide)
 }
 param_first_temporal = {
@@ -111,11 +111,11 @@ param_first_temporal = {
     "add_lag": 20,
     "jac_thres": 0.2, # mayba
 }
-param_first_merge = {"thres_corr": 0.8} # à verifier 
+param_first_merge = {"thres_corr": 0.85} # à verifier 
 
 param_second_spatial = {
-    "dl_wnd": 1, #1
-    "sparse_penal": 0.01,
+    "dl_wnd": 20,
+    "sparse_penal": 0.005,
     "size_thres": (40, 600),
 }
 
@@ -124,7 +124,7 @@ param_second_temporal = {
     "sparse_penal": 1,
     "p": 1,
     "add_lag": 20,
-    "jac_thres": 0.2,
+    "jac_thres": 0.4,
 }
 
 os.environ["OMP_NUM_THREADS"] = "1"
@@ -214,9 +214,9 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     """
     slurm_kwargs = {
         "queue": "CPU",
-        "cores": 20,  # CPUs
-        "memory": "150GB",  # per worker, not total
-        "job_cpu": 20,  # = cores
+        "cores": 10,  # CPUs
+        "memory": "32GB",  # per worker, not total
+        "job_cpu": 10,  # = cores
         "walltime": "16:00:00",
         "log_directory": dpath,
         "job_extra_directives": [
@@ -232,7 +232,7 @@ if __name__ == "__main__": # needed if dask client runned into a .py script
     """
     
     cluster = SLURMCluster(**slurm_kwargs)
-    n_workers = 8  # - 4 workers × 10 cores = 40 cores total
+    n_workers = 4  # - 4 workers × 10 cores = 40 cores total
     cluster.scale(n_workers)
 
 
