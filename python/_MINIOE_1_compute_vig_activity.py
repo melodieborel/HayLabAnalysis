@@ -108,6 +108,7 @@ destination_folder= f"//10.69.168.1/crnldata/forgetting/Théa/MiniscopeOE_analys
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
+
 logfile = open(f"{destination_folder}/output_log.txt", 'w')
 sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
 
@@ -189,7 +190,29 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
     assembly_nb=0
 
+
+    
     minian_folders = [f for f in dpath.parents[0].rglob('minian') if f.is_dir()]
+
+    # ordre des dossiers 
+    minian_folders = sorted(
+        minian_folders,
+        key=lambda p: (
+            p.parents[4].name if any(p.parents[1].glob('*V4_Miniscope/timeStamps.csv')) else p.parents[5].name,
+            p.parents[1].name if any(p.parents[1].glob('*V4_Miniscope/timeStamps.csv')) else p.parents[0].name
+        )
+    )
+
+    counter=0
+    counterProbe=0
+    day=1
+    trial=1
+    previousmice = None
+    previous_session_date = None
+    previous_session_time = None
+    previous_session_type = None
+
+
 
     for minianpath in minian_folders: # for each minian folders found in this mouse
     
@@ -222,9 +245,30 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 session_date=minianpath.parents[5].name
                 session_time=minianpath.parents[0].name
                 session=session_time
-            print(f"Processing {session_type} session: {session} on the {session_date}, subfolders = {V4subfolder}")
+
             
 
+
+            if mice == previousmice:   
+                if session_date == previous_session_date : 
+                    if session_type == previous_session_type : 
+                        trial+=1
+                    else : 
+                        trial = 1
+                else:
+                        day+=1
+                        trial=1
+            else:
+                day=1
+                trial=1
+
+            previousmice = mice
+            previous_session_date = session_date
+            previous_session_time = session_time
+            previous_session_type= session_type
+
+            print(f"Processing {session_type} session: {session} on the {session_date}, day {day} trial number {trial} subfolders = {V4subfolder}")
+            
             minian_ds = open_minian(minianpath)
             dict_Calcium[session] = minian_ds['C'] # calcium traces 
             dict_Deconv[session] = minian_ds['S'] # estimated spikes deconvolved activity
@@ -503,7 +547,9 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         
                         VigilanceState_GlobalResults.loc[counter, 'Session'] = session
                         VigilanceState_GlobalResults.loc[counter, 'Session_Date'] = session_date 
-                        VigilanceState_GlobalResults.loc[counter, 'Session_Time'] = session_time                    
+                        VigilanceState_GlobalResults.loc[counter, 'Session_Time'] = session_time
+                        VigilanceState_GlobalResults.loc[counter, 'Day'] = int(day)
+                        VigilanceState_GlobalResults.loc[counter, 'Trial'] = int(trial)                    
 
                         VigilanceState_GlobalResults.loc[counter, 'Unique_Unit'] = indexMapp 
                         VigilanceState_GlobalResults.loc[counter, 'UnitNumber'] = unit
@@ -749,6 +795,15 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
     filenameOut = folder_to_save / f'VigStates_Global_{mice}.pkl'
     with open(filenameOut, 'wb') as pickle_file:
         pickle.dump(VigilanceState_GlobalResults, pickle_file)
+
+    if saveexcel:
+        filenameOut = folder_to_save / f'VigStates_Global_{mice}.xlsx'
+        writer = pd.ExcelWriter(filenameOut)
+
+        VigilanceState_GlobalResults[
+        VigilanceState_GlobalResults["Mice"] == mice
+        ].to_excel(writer, index=False)
+        writer.close()  
 
 filenameOut = folder_to_save / f'VigStates_Global.pkl'
 with open(filenameOut, 'wb') as pickle_file:

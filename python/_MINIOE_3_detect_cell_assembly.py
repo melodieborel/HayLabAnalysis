@@ -6,15 +6,15 @@
 
 DrugExperiment = 0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID = '_spikes_200ms' 
+AnalysisID = 'Deconv' 
 
 saveexcel = 0
 
-local = True
+local = False
 if local:
     dir = "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
 else: 
-    dir = "/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+    dir = "/mnt/data/AurelieB_other/"
 
 drugs = ['baseline']
 
@@ -264,17 +264,16 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/2_CellAssemblies_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/2_CellAssemblies_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/3_CellAssemblies_{FolderNameSave}_{AnalysisID}" if local else f"/mnt/data/AurelieB_other/3_CellAssemblies_{FolderNameSave}_{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
 logfile = open(f"{destination_folder}/output_log.txt", 'w')
 sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
 
-
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/HayLabAnalysis/python/_MINI&OE_2_detect_cell_assembly.py" if local else "/home/aurelie.brecier/HayLabAnalysis/python/_MINI&OE_2_detect_cell_assembly.py"
-destination_file_path = f"{destination_folder}/_MINI&OE_2_detect_cell_assembly.txt"
+source_script = "C:/Users/Manip2/SCRIPTS/AHay2025_RSPpyrCheeseboard_Aurelie/scripts_python/_MINIOE_3_detect_cell_assembly.py" if local else "/home/aurelie.brecier/AHay2025_RSPpyrCheeseboard_Aurelie/scripts_python/_MINIOE_3_detect_cell_assembly.py"
+destination_file_path = f"{destination_folder}/_MINIOE_3_detect_cell_assembly.txt"
 shutil.copy(source_script, destination_file_path)
 
 CellAssembly_dict={}
@@ -465,8 +464,8 @@ for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
                 # Define cell assemblies
             
                 target_rate = 20 # 20 Hz == 50 ms bins
-                Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
-                #Array_bin = resample_matrix(Darray, orig_rate=minian_freq, target_rate=target_rate)
+                #Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
+                Array_bin = resample_matrix(Darray, orig_rate=minian_freq, target_rate=target_rate)
                 #Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
                 patterns,significance,zactmat= runPatterns(Array_bin.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)       
                 all_patterns = pd.DataFrame({ass: patterns[ass].tolist() for ass in np.arange(np.shape(patterns)[0])}, index=kept_uniq_unit_List).add_prefix(f"{session_time}_CellAss")

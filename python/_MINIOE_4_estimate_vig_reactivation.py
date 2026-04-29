@@ -6,15 +6,15 @@
 
 DrugExperiment = 0 # = 1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID = '_calcium_nozscore' 
+AnalysisID = 'Ca' 
 
-Cell_Assembly_folder = "2_CellAssemblies_2025-10-25_22_07_22_calcium"
+Cell_Assembly_folder = "3_CellAssemblies_2026-04-23_09_59_54_Ca"
 
-local = True
+local = False
 if local:
     dir = "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
 else: 
-    dir = "/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+    dir = "/mnt/data/AurelieB_other/"
 
 mapp = {1: 'AW',  2: 'QW', 3: 'NREM',  4: 'IS', 5: 'REM',  6: 'undefined'}
 drugs = ['baseline']
@@ -135,7 +135,7 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/3_Reactivation_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/3_Reactivation_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/4_Reactivation_{FolderNameSave}_{AnalysisID}" if local else f"/mnt/data/AurelieB_other/4_Reactivation_{FolderNameSave}_{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -144,8 +144,8 @@ sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
 
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/HayLabAnalysis/python/_MINI&OE_3_estimate_reactivation_strenght.py" if local else "/home/aurelie.brecier/HayLabAnalysis/python/_MINI&OE_3_estimate_reactivation_strenght.py"
-destination_file_path = f"{destination_folder}/_MINI&OE_3_estimate_reactivation_strenght.txt"
+source_script = "C:/Users/Manip2/SCRIPTS/HayLabAnalysis/python/_MINIOE_4_estimate_vig_reactivation.py" if local else "/home/aurelie.brecier/HayLabAnalysis/python/_MINIOE_4_estimate_vig_reactivation.py"
+destination_file_path = f"{destination_folder}/_MINIOE_4_estimate_vig_reactivation.txt"
 shutil.copy(source_script, destination_file_path)
 
 data = {}
@@ -154,11 +154,11 @@ CellAssembly_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','Ses
                                                         'Cells_in_Assembly','ExpeType', 'Drug', 'Substate', 'SubstateDuration', 'Session_ID', 
                                                         'Avg_ReactStr', 'EventFreq', 'EventTime' ])
 
-filenameOut =  f'//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/{Cell_Assembly_folder}/CellAssembly_dict.pkl'
+filenameOut =  f'//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/{Cell_Assembly_folder}/CellAssembly_dict.pkl' if local else f"/mnt/data/AurelieB_other/{Cell_Assembly_folder}/CellAssembly_dict.pkl"
 with open(filenameOut, 'rb') as pickle_file:
     CellAssembly_dict = pickle.load(pickle_file)
 
-filenameOut =  f'//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/{Cell_Assembly_folder}/CellAssembly_members.pkl'
+filenameOut =  f'//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/{Cell_Assembly_folder}/CellAssembly_members.pkl' if local else f"/mnt/data/AurelieB_other/{Cell_Assembly_folder}/CellAssembly_members.pkl"
 with open(filenameOut, 'rb') as pickle_file:
     CellAssembly_members = pickle.load(pickle_file)
 
@@ -382,10 +382,9 @@ for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
             #Array_bin = resample_matrix(Darray, orig_rate=minian_freq, target_rate=target_rate)
             #Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
             
-            # Add missing cells from indexMapp
-            dN_=  zscore(Array_bin)
-            df_array=pd.DataFrame(dN_.T, index=kept_uniq_unit_List)
-            dN = df_array.reindex(CellAssembly_dict[mice].index, fill_value=0).to_numpy().T
+            # Add missing cells from indexMapp # old method         
+            #df_array=pd.DataFrame(dN.T, index=kept_uniq_unit_List)
+            #dN = df_array.reindex(CellAssembly_dict[mice].index, fill_value=0).to_numpy().T
 
             patterns = CellAssembly_dict[mice].to_numpy().T
             all_cells = CellAssembly_dict[mice].index.tolist()
@@ -396,54 +395,86 @@ for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
                 for ass in np.arange(np.shape(patterns)[0]):
                     
                     assembly_ID = assemblies_ID[ass]
-                    cells_in_assembly = CellAssembly_members[mice][assembly_ID]
+                    assembly_session = "_".join(assembly_ID.split('_')[:-1])
 
-                    template = np.add.outer(abs(patterns[ass]),abs(patterns[ass]))      
-                    template = np.nan_to_num(template, nan=0)
-                    template = template - np.diag(np.diag(template))
-                    tmp = dN @ template 
-                    Reactivation_Strength= np.nansum(tmp * dN, axis=1) 
-                    #Reactivation_Strength = zscore(Reactivation_Strength)
+                    matches = []
+                    for root, dirs, files in os.walk(Path(dpath).parent):
+                        if assembly_session in dirs:
+                            matches.append(os.path.join(root, assembly_session))
+                    parts = os.path.normpath(matches[0]).split(os.sep)
+                    assembly_date= parts[6]
 
-                    scale_factor=target_rate/0.2  #cause scoring was done in 5 seconds bin, ie 0.2 Hz   
-                    SleepScoredTS_binned = np.repeat(SleepScoredTS, scale_factor, axis=0)
-                    StartTime_binned=round(StartTime*target_rate)
-                    SleepScoredTS_binned=SleepScoredTS_binned[StartTime_binned:StartTime_binned+(rec_dur_sec*target_rate).astype(int)] 
-                    SleepScoredTS_binned=SleepScoredTS_binned.astype(int)           
-
-                    for m in mapp:  
-                        Bool = (SleepScoredTS_binned == m)
-                        Reactivation_Strength_VigSpe = Reactivation_Strength.copy()
-                        Reactivation_Strength_VigSpe = Reactivation_Strength_VigSpe[0:np.shape(SleepScoredTS_binned)[0]] # if Calcium imaging longer than LFP rec
-                        Reactivation_Strength_VigSpe[~Bool] = np.nan
-                        sizeVigSt=len(Reactivation_Strength_VigSpe[Bool])
-                        mean_act_ass = np.nanmean(Reactivation_Strength_VigSpe)
+                    if assembly_date == session_date: # make sure the cell assembly was detected on the same day
+                    
+                        cells_in_assembly = CellAssembly_members[mice][assembly_ID]
                         
-                        peaks, properties = find_peaks(Reactivation_Strength_VigSpe, prominence=2) # 2 standard deviations away from the mean
+                        # remove cell from template not present in this recording
+                        bool_commoncell= [cell in kept_uniq_unit_List for cell in all_cells] 
+                        tp = patterns[ass][bool_commoncell]
+                        all_cellsnp= np.array(all_cells)
+                        cells_in_tp = all_cellsnp[bool_commoncell]
 
-                        CellAssembly_GlobalResults.loc[counter, 'Mice'] = mice
-                        CellAssembly_GlobalResults.loc[counter, 'NeuronType'] = NeuronType
+                        # set cell not present when this cell assembly was created to 0
+                        tp2 = np.nan_to_num(tp, nan=0) 
+                        template = np.add.outer((tp2), (tp2))    
+                        # old method
+                        #template = np.add.outer(abs(patterns[ass]),abs(patterns[ass]))      
+                        #template = np.nan_to_num(template, nan=0)
+                        template = template - np.diag(np.diag(template))
+
+                        # remove cell from recordings not present in the template
+                        bool_commoncell= [cell in cells_in_tp for cell in kept_uniq_unit_List] 
+                        Array_bin2 = Array_bin[:,bool_commoncell]
+                        kept_uniq_unit_Listnp= np.array(kept_uniq_unit_List)
+                        kept_uniq_unit_Listnp2 = kept_uniq_unit_Listnp[bool_commoncell]
+                        dN =  zscore(Array_bin2)
+
+                        tmp = dN @ template 
+                        Reactivation_Strength= np.nansum(tmp * dN, axis=1)                     
+                        #Reactivation_Strength = zscore(Reactivation_Strength)
                         
-                        CellAssembly_GlobalResults.loc[counter, 'Session'] = session
-                        CellAssembly_GlobalResults.loc[counter, 'Session_Date'] = session_date 
-                        CellAssembly_GlobalResults.loc[counter, 'Session_Time'] = session_time                    
+                        signcells_in_template = [cell in cells_in_tp.tolist() for cell in cells_in_assembly] 
 
-                        CellAssembly_GlobalResults.loc[counter, 'Assembly_ID'] = assembly_ID
-                        CellAssembly_GlobalResults.loc[counter, 'Assembly_size'] = len(cells_in_assembly)
-                        CellAssembly_GlobalResults.loc[counter, 'Cells_in_Assembly'] = cells_in_assembly
-                        
-                        CellAssembly_GlobalResults.loc[counter, 'ExpeType'] =  session_type
-                        CellAssembly_GlobalResults.loc[counter, 'Drug'] =  drug
+                        scale_factor=target_rate/0.2  #cause scoring was done in 5 seconds bin, ie 0.2 Hz   
+                        SleepScoredTS_binned = np.repeat(SleepScoredTS, scale_factor, axis=0)
+                        StartTime_binned=round(StartTime*target_rate)
+                        SleepScoredTS_binned=SleepScoredTS_binned[StartTime_binned:StartTime_binned+(rec_dur_sec*target_rate).astype(int)] 
+                        SleepScoredTS_binned=SleepScoredTS_binned.astype(int)           
 
-                        CellAssembly_GlobalResults.loc[counter, 'Substate'] = mapp[m]
-                        CellAssembly_GlobalResults.loc[counter, 'SubstateDuration'] = sizeVigSt/minian_freq
-                        CellAssembly_GlobalResults.loc[counter, 'Session_ID'] = session_date + '_' + session_time
+                        for m in mapp:  
+                            Bool = (SleepScoredTS_binned == m)
+                            Reactivation_Strength_VigSpe = Reactivation_Strength.copy()
+                            Reactivation_Strength_VigSpe = Reactivation_Strength_VigSpe[0:np.shape(SleepScoredTS_binned)[0]] # if Calcium imaging longer than LFP rec
+                            Reactivation_Strength_VigSpe[~Bool] = np.nan
+                            sizeVigSt=len(Reactivation_Strength_VigSpe[Bool])
+                            mean_act_ass = np.nanmean(Reactivation_Strength_VigSpe)
+                            
+                            peaks, properties = find_peaks(Reactivation_Strength_VigSpe, prominence=2) # 2 standard deviations away from the mean
 
-                        CellAssembly_GlobalResults.loc[counter, 'Avg_ReactStr'] = mean_act_ass
-                        CellAssembly_GlobalResults.loc[counter, 'EventFreq'] = len(peaks)/(sizeVigSt/minian_freq) if sizeVigSt>0 else 0
-                        CellAssembly_GlobalResults.loc[counter, 'EventTime'] = str(np.round(peaks/minian_freq+StartTime, 2))
+                            CellAssembly_GlobalResults.loc[counter, 'Mice'] = mice
+                            CellAssembly_GlobalResults.loc[counter, 'NeuronType'] = NeuronType
+                            
+                            CellAssembly_GlobalResults.loc[counter, 'Session'] = session
+                            CellAssembly_GlobalResults.loc[counter, 'Session_Date'] = session_date 
+                            CellAssembly_GlobalResults.loc[counter, 'Session_Time'] = session_time                    
 
-                        counter+=1
+                            CellAssembly_GlobalResults.loc[counter, 'Assembly_ID'] = assembly_ID
+                            CellAssembly_GlobalResults.loc[counter, 'Assembly_size'] = len(cells_in_assembly)
+                            CellAssembly_GlobalResults.loc[counter, 'Cells_in_Assembly'] = str(cells_in_assembly)
+                            CellAssembly_GlobalResults.loc[counter, 'Cells_in_Assembly_in_rec'] = str(signcells_in_template)
+                            
+                            CellAssembly_GlobalResults.loc[counter, 'ExpeType'] =  session_type
+                            CellAssembly_GlobalResults.loc[counter, 'Drug'] =  drug
+
+                            CellAssembly_GlobalResults.loc[counter, 'Substate'] = mapp[m]
+                            CellAssembly_GlobalResults.loc[counter, 'SubstateDuration'] = sizeVigSt/minian_freq
+                            CellAssembly_GlobalResults.loc[counter, 'Session_ID'] = session_date + '_' + session_time
+
+                            CellAssembly_GlobalResults.loc[counter, 'Avg_ReactStr'] = mean_act_ass
+                            CellAssembly_GlobalResults.loc[counter, 'EventFreq'] = len(peaks)/(sizeVigSt/minian_freq) if sizeVigSt>0 else 0
+                            CellAssembly_GlobalResults.loc[counter, 'EventTime'] = str(np.round(peaks/minian_freq+StartTime, 2))
+
+                            counter+=1
             
     filenameOut = folder_to_save / f'CellAssembly_Global_{mice}.pkl'
     with open(filenameOut, 'wb') as pickle_file:
