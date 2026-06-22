@@ -6,13 +6,13 @@
 
 DrugExperiment = 0 # =1 if CGP Experiment // DrugExperiment=0 if Baseline Experiment
 
-AnalysisID = 'Deconv' 
+AnalysisID = 'Ca_activity_20bins_mp' 
 
 saveexcel = 0
 
-local = False
+local = True
 if local:
-    dir = "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+    dir = "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/"
 else: 
     dir = "/mnt/data/AurelieB_other/"
 
@@ -264,7 +264,7 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_analysis/Exploration_task/3_CellAssemblies_{FolderNameSave}_{AnalysisID}" if local else f"/mnt/data/AurelieB_other/3_CellAssemblies_{FolderNameSave}_{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Théa/MiniscopeOE_analysis/Exploration_task/_CellAssemblies_{FolderNameSave}_{AnalysisID}" if local else f"/crnldata/forgetting/Théa/MiniscopeOE_analysis/Exploration_task/_CellAssemblies_{FolderNameSave}_{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -272,14 +272,14 @@ logfile = open(f"{destination_folder}/output_log.txt", 'w')
 sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Manip2/SCRIPTS/AHay2025_RSPpyrCheeseboard_Aurelie/scripts_python/_MINIOE_3_detect_cell_assembly.py" if local else "/home/aurelie.brecier/AHay2025_RSPpyrCheeseboard_Aurelie/scripts_python/_MINIOE_3_detect_cell_assembly.py"
+source_script = "C:/Users/Acquisition/HayLabAnalysis/python/_MINIOE_3_detect_cell_assembly.py" if local else "/home/thea.michel/HayLabAnalysis/python/_MINIOE_3_detect_cell_assembly.py"
 destination_file_path = f"{destination_folder}/_MINIOE_3_detect_cell_assembly.txt"
 shutil.copy(source_script, destination_file_path)
 
 CellAssembly_dict={}
 CellAssembly_members={}
 
-for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
+for dpath in Path(dir).glob('**/mappingsAB.pkl'):
 
     mappfile = open(dpath.parents[0]/ f'mappingsAB.pkl', 'rb')
     mapping = pickle.load(mappfile)
@@ -463,22 +463,33 @@ for dpath in Path(dir).glob('**/Exploration_task/mappingsAB.pkl'):
 
                 # Define cell assemblies
             
-                target_rate = 20 # 20 Hz == 50 ms bins
-                #Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
-                Array_bin = resample_matrix(Darray, orig_rate=minian_freq, target_rate=target_rate)
-                #Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)            
-                patterns,significance,zactmat= runPatterns(Array_bin.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)       
-                all_patterns = pd.DataFrame({ass: patterns[ass].tolist() for ass in np.arange(np.shape(patterns)[0])}, index=kept_uniq_unit_List).add_prefix(f"{session_time}_CellAss")
-                CellAssembly_patterns = CellAssembly_patterns.join(all_patterns, how="outer") if not CellAssembly_patterns.empty else all_patterns
+                target_rate = 20 # 20 Hz == 50 ms bins 5 Hz = 200ms
+                Array_bin = resample_matrix(Carray, orig_rate=minian_freq, target_rate=target_rate)
+                #Array_bin = resample_matrix(Darray, orig_rate=minian_freq, target_rate=target_rate)
+                #Array_bin = bin_sum_fractional(Sarray, minian_freq, target_rate)
+                 
+                # Identify cell assembly
+                patterns,significance,zactmat= runPatterns(Array_bin.T, method='ica', nullhyp = 'mp', nshu = 1000, percentile = 99, tracywidom = False)        
+
+                # reverse negative patterns
+                if len(patterns) > 0:
+                    for ass in np.arange(np.shape(patterns)[0]):
+                        if np.mean(patterns[ass]) < 0:
+                            patterns[ass] = -patterns[ass]
+ 
                 
+                all_patterns = pd.DataFrame({ass: patterns[ass].tolist() for ass in np.arange(np.shape(patterns)[0])}, index=kept_uniq_unit_List).add_prefix(f"{session_time}_CellAss")
+                CellAssembly_patterns = CellAssembly_patterns.join(all_patterns, how="outer") if  not CellAssembly_patterns.empty else all_patterns  
+
                 if len(patterns)>0:
                     patterns_th = patterns.copy()
-                    for ass in np.arange(np.shape(patterns)[0]):
-                        thresh = np.mean(patterns_th[ass]) + 3 * np.std(patterns_th[ass])
-                        patterns_th[ass][abs(patterns_th[ass])<thresh]=np.nan
-                        non_nan_indices = np.where(~np.isnan(patterns_th[ass]))[0] 
+                    for ass in np.arange(np.shape(patterns)[0]) :
+                        thresh =  np.mean(patterns_th[ass]) +  2 * np.std(patterns_th[ass])
+                        patterns_th[ass][(patterns_th[ass])<thresh]=np.nan
+                        #patterns_th[ass][(patterns_th[ass])<thresh]=np.nan # only positive weight
+                        non_nan_indices =  np.where(~np.isnan(patterns_th[ass]))[0]
                         assembly_ID = all_patterns.columns.tolist()[ass]
-                        cells_in_assembly=np.array(kept_uniq_unit_List)[non_nan_indices].tolist()  
+                        cells_in_assembly=np.array(kept_uniq_unit_List)[non_nan_indices].tolist()
                         CellAssembly_members[mice][assembly_ID]=cells_in_assembly
                 
     CellAssembly_dict[mice]= CellAssembly_patterns

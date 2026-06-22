@@ -121,7 +121,7 @@ shutil.copy(source_script, destination_file_path)
 
 data = {}
 counter=0
-VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','Session', 'Session_Date', 'Session_Time', 'Unique_Unit','UnitNumber','UnitValue','Unit_ID', 'UnitLocation',
+VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','Session', 'Session_Date', 'Session_Time', 'Day','Trial', 'Unique_Unit','UnitNumber','UnitValue','Unit_ID', 'UnitLocation',
                                                         'ExpeType', 'Drug', 'Substate','Substate_ID','Session_ID','SubstateNumber','DurationSubstate', 'CalciumActivity', 
                                                         'Avg_CalciumActivity', 'AUC_calcium','Avg_AUC_calcium', 'NormalizedAUC_calcium', 'DeconvSpikeMeanActivity', 
                                                         'Avg_DeconvSpikeActivity', 'SpikeActivityHz', 'Avg_SpikeActivityHz', 'TotCaPopCoupling', 

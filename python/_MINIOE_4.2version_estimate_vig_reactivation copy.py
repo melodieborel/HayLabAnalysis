@@ -144,7 +144,7 @@ sys.stdout = Tee(sys.stdout, logfile)  # print goes to both
 
 
 # Copy the script file to the destination folder
-source_script = "C:/Users/Acquisition/HayLabAnalysis/python/_MINIOE_4_estimate_vig_reactivation.py" if local else "/home/thea.michel/HayLabAnalysis/python/_MINIOE_4_estimate_vig_reactivation.py"
+source_script = "C:/Users/Acquisition/HayLabAnalysis/python/_MINIOE_4_ tempo_estimate_vig_reactivation copy.py" if local else "/home/thea.michel/HayLabAnalysis/python/_MINIOE_4_ tempo_estimate_vig_reactivation copy.py"
 destination_file_path = f"{destination_folder}/_MINIOE_4_estimate_vig_reactivation.txt"
 shutil.copy(source_script, destination_file_path)
 
@@ -450,26 +450,33 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                         
                         # remove cell from template not present in this recording
                         bool_commoncell= [cell in kept_uniq_unit_List for cell in all_cells] 
-                        tp = patterns[ass][bool_commoncell]
-                        all_cellsnp= np.array(all_cells)
-                        cells_in_tp = all_cellsnp[bool_commoncell]
 
-                        # set cell not present when this cell assembly was created to 0
-                        tp2 = np.nan_to_num(tp, nan=0) 
-                        template = np.add.outer((tp2), (tp2))    
-                        # old method
-                        #template = np.add.outer(abs(patterns[ass]),abs(patterns[ass]))      
-                        #template = np.nan_to_num(template, nan=0)
-                        template = template - np.diag(np.diag(template))
+                        cells_in_assembly = CellAssembly_members[mice][assembly_ID]
 
-                        # remove cell from recordings not present in the template
-                        bool_commoncell= [cell in cells_in_tp for cell in kept_uniq_unit_List] 
-                        Array_bin2 = Array_bin[:,bool_commoncell]
-                        kept_uniq_unit_Listnp= np.array(kept_uniq_unit_List)
-                        kept_uniq_unit_Listnp2 = kept_uniq_unit_Listnp[bool_commoncell]
-                        dN =  zscore(Array_bin2)
+                        # IMPORTANT: intersection des 3 espaces
+                        common_cells = list(set(kept_uniq_unit_List) & set(all_cells) & set(cells_in_assembly))
 
+                        if len(common_cells) == 0:
+                            continue
+
+                        # garder un ordre stable (sinon bugs silencieux)
+                        common_cells = np.array(common_cells)
+
+                        # -------- activity matrix aligned --------
+                        Array_bin_df = pd.DataFrame(Array_bin, columns=kept_uniq_unit_List)
+                        Array_bin2 = Array_bin_df.reindex(columns=common_cells).fillna(0).values
+                        dN = zscore(Array_bin2, axis=0)
+
+                        # -------- template aligned --------
+                        tp_series = pd.Series(patterns[ass], index=all_cells)
+                        tp = tp_series.reindex(common_cells).fillna(0).values
+
+                        template = np.outer(tp, tp)
+                        np.fill_diagonal(template, 0)
+
+                        # -------- reactivation (UNCHANGED LOGIC) --------
                         tmp = dN @ template 
+
                         Reactivation_Strength= np.nansum(tmp * dN, axis=1)                     
                         #Reactivation_Strength = zscore(Reactivation_Strength)
                         
