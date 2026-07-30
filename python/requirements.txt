@@ -7,12 +7,12 @@ ipykernel
 #pour ephysviewer:
 ephyviewer @ git+https://github.com/melodieborel/ephyviewer.git
 PySide6
-pyqtgraph == 0.13.3 #0.13.7 fails to work with TimeFreqViewer of ephyviewer
+pyqtgraph
 numpy
 scipy
 matplotlib
 Neo
-PyAV
+av
 pandas
 spikeinterface
 
@@ -25,6 +25,5 @@ open-ephys-python-tools
 ipympl
 openpyxl
 
-#-r ./../minian/requirements/requirements-base.txt
-minian @ git+https://github.com/melodieborel/minian.git@python311
+minian
 # --global-option=build_ext --global-option="-Wno-implicit-function-declaration" --global-option="-L/opt/homebrew/include" --global-option="-I/usr/local/include"

@@ -2,14 +2,14 @@
 # README
 
 ## General info
-This repository contains jupyter notebooks to analyze ePhys and calcium imaging data. It uses the [Miniscope pipeline Minian](https://github.com/melodieborel/minian)
+This repository contains jupyter notebooks to analyze ePhys and calcium imaging data. It uses the [Miniscope pipeline Minian](https://github.com/miniscope/minian)
 
 
 ## Requirements
 For easiest use of the notebooks, make sure to have installed on your computer:
 - [git](https://git-scm.com/downloads)
 - vscode
-- python 3.11 (with or without anaconda)
+- python 3.13 (with or without anaconda)
 
 
 ## Installation
@@ -32,7 +32,7 @@ In order to use the notebooks located in the python subfolder you will need to i
 
 
 ### With venv (recommended)
-On the top right, with a notebook open (for instance python/0_RawDATANumpyViewer.ipynb) you have to select a kernel > Python environments > create python environment > venv > (recreate >) python 3.11.*
+On the top right, with a notebook open (for instance python/0_RawDATANumpyViewer.ipynb) you have to select a kernel > Python environments > create python environment > venv > (recreate >) python 3.13.*
 then select python/requirements.txt
 
 VSCode will create a subfolder .venv, download and install all packages that are needed to use the notebooks.
@@ -44,28 +44,14 @@ VSCode will create a subfolder .venv, download and install all packages that are
 
 ### With conda
 
-> [!CAUTION]
-> Hopefully, the folder downloaded will contain a directory name "minian". If this isn't the case, I have to figure out how subtrees work...
-And you will have to manually add the subtree with the command:
->
-> ```
-> git subtree add --prefix minian git@github.com:melodieborel/minian.git python311 --squash
-> ```
-
-
-Once done, we create a fresh conda environment that won't screw up any other environment you might use. Make sure to use this command on the Anaconda terminal if conda isn't added to your path:
+Create a fresh conda environment that won't screw up any other environment you might use. Make sure to use this command on the Anaconda terminal if conda isn't added to your path:
 
 ```
-conda env create -n minian311 -f minian/environment.yml
-```
-
-
-After the environment is created, you can activate it, install an extra package that wasn't included in the minian requirements, and export the environment to be used in jupyter:
-
-```
-conda activate minian311
-conda install conda-forge::ipyfilechooser
-python -m ipykernel install --user --name=minian311
+conda create -n minian313 python=3.13
+conda activate minian313
+conda install -c conda-forge minian
+pip install -r python/requirements.txt
+python -m ipykernel install --user --name=minian313
 ```
 
 
