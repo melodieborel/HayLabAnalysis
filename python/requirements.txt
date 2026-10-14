@@ -25,5 +25,5 @@ open-ephys-python-tools
 ipympl
 openpyxl
 
-# detection ML des SWR (CPU) - installation : python/SWRdetection_ML_Carla_adapté.ipynb, section 0
-haylab-tools[swr,cluster] @ git+ssh://git@10.69.168.17/haygroup/haylab-tools.git@v0.16.1
+# detection ML des SWR - installee et tenue a jour (serie 0.18) par la section 0 de python/SWRdetection_ML_Carla_adapté.ipynb
+haylab-tools[swr,cluster] @ git+ssh://git@10.69.168.17/haygroup/haylab-tools.git@v0.18.0
