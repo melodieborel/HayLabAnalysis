@@ -48,7 +48,8 @@ except (FileNotFoundError, subprocess.TimeoutExpired, RuntimeError) as e:
 minian_path = "/home/thea.michel/minian/"
 print(minian_path)
 
-dpath='/mnt/data/TheaM_minian/'
+#dpath='/mnt/data/TheaM_minian/'
+dpath = "/mnt/data/crnldata/Aurelie/MiniscopeOE_data/L1NDNF_mice/OW/Allocentric_task/Training/2025_03_10/SleepAfter/"
 mouse_name = [f for f in os.listdir(dpath) if os.path.isdir(os.path.join(dpath, f))]
 mouse_name = mouse_name[0]
 path_mouse = os.path.join(dpath, mouse_name)

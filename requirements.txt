@@ -8,7 +8,12 @@ ipyfilechooser
 jupyter_bokeh
 ipykernel
 
-#pour ephysviewer:
+# Shared Hay Lab tools (includes SWR ML detector in ePhy.swr)
+haylab-tools[swr] @ git+ssh://git@10.69.168.17/haygroup/haylab-tools.git@v0.4.0
+torch==2.3.1
+torchvision==0.18.1
+
+#pour ephyviewer:
 ephyviewer
 PySide6
 pyqtgraph == 0.13.3 #0.13.7 fails to work with TimeFreqViewer of ephyviewer
@@ -41,6 +46,19 @@ cloudpickle
 fsspec
 distributed
 dask_jobqueue
+seaborn
 
 #pour minian: ça va chercher la version de minian sur le github de melodieborel, qui est compatible avec python 3.11
 minian @ git+https://github.com/melodieborel/minian.git@python311
+
+# few edits have been made to pynapple, so we use the version on my github for now
+pynapple @ git+https://github.com/AurelieBre/pynapple.git@main 
+tables
+
+# for specific plots
+upsetplot
+matplotlib_venn
+diptest
+
+umap-learn
+hdbscan

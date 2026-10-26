@@ -14,7 +14,7 @@ local = False
 if local:
     dir= "//10.69.168.1/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/"
 else: 
-    dir= "/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/"
+    dir= "/mnt/data/TheaM_other/" # a changer pour mnt
 
 mapp = {1: 'AW',  2: 'QW', 3: 'NREM',  4: 'IS', 5: 'REM',  6: 'undefined'}
 drugs=['baseline']
@@ -104,7 +104,7 @@ all_expe_types=['baseline','preCGP', 'postCGP'] if DrugExperiment else ['baselin
 FolderNameSave=str(datetime.now())[:19]
 FolderNameSave = FolderNameSave.replace(" ", "_").replace(".", "_").replace(":", "_")
 
-destination_folder= f"//10.69.168.1/crnldata/forgetting/Théa/MiniscopeOE_analysis/Exploration_task/1_VigSt_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Théa/MiniscopeOE_analysis/Exploration_task/1_VigSt_{FolderNameSave}{AnalysisID}"
+destination_folder= f"//10.69.168.1/crnldata/forgetting/Théa/MiniscopeOE_analysis/Allocentrick_task/1_VigSt_{FolderNameSave}{AnalysisID}" if local else f"/crnldata/forgetting/Théa/MiniscopeOE_analysis/Allocentrick_task/1_VigSt_{FolderNameSave}{AnalysisID}"
 os.makedirs(destination_folder)
 folder_to_save=Path(destination_folder)
 
@@ -133,13 +133,13 @@ VigilanceState_GlobalResults= pd.DataFrame(data, columns=['Mice','NeuronType','S
 #files = list(Path(dir).glob('**/mappingsAB.pkl'))
 #print("Nb files found:", len(files))
 
-for dpath in Path(dir).glob('**/mappingsAB.pkl'):
+for dpath in Path(dir).glob('**/mappings_Oct10_edited.pkl'):
 
-    mappfile = open(dpath.parents[0]/ f'mappingsAB.pkl', 'rb')
+    mappfile = open(dpath.parents[0]/ f'mappings_Oct10_edited.pkl', 'rb')
     mapping = pickle.load(mappfile)
     mapping_sess = mapping['session']   
 
-    centroidfile = open(dpath.parents[0]/ f'centsAB.pkl', 'rb')
+    centroidfile = open(dpath.parents[0]/ f'cents_Oct10.pkl', 'rb')
     centroids = pickle.load(centroidfile)
     centroids_sess = centroids['session']   
 
@@ -236,7 +236,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                     session_type=minianpath.parents[2].name
                     session_date=minianpath.parents[3].name
                     session_time=minianpath.parents[1].name
-                session=session_time        
+                session= session_date + '_' +session_time        
             elif any(minianpath.parents[2].glob('*V4_Miniscope/timeStamps.csv')):
                 session_path=minianpath.parents[2]      
                 tsmini= pd.read_csv(list(session_path.glob('*V4_Miniscope/timeStamps.csv'))[0])['Time Stamp (ms)']                      
@@ -244,7 +244,7 @@ for dpath in Path(dir).glob('**/mappingsAB.pkl'):
                 session_type=minianpath.parents[4].name
                 session_date=minianpath.parents[5].name
                 session_time=minianpath.parents[0].name
-                session=session_time
+                session=session_date + '_' + session_time
 
             
 

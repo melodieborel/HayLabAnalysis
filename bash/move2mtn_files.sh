@@ -1,23 +1,28 @@
 #!/bin/bash
 
+# cd bash
+# ./move2mtn_files.sh
+
 # Define the starting directory
-SRC="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L2_3_mice/"
+SRC="/crnldata/forgetting/Aurelie/MiniscopeOE_data/L1NDNF_mice/"
 
 echo "Searching for folders in '$SRC'..." 
 
 # Adjust Internal Field Separator to handle spaces in folder names
 IFS=$'\n' 
 
-DEST="/mnt/data/AurelieB_other/"
+DEST="/mnt/data/TheaM_other/"
 
 cd "$SRC"
 
 find . \
     -type f \
-    -path "*/Exploration_task/*" \
-    -path "*/Cheeseboard/*" \
-    ! -path "*/OpenEphys/*" \
     ! -name "*.avi" \
+    ! -path "*/BW_notused/*" \
+    ! -path "*/NO_nodata/*" \
+    ! -path "*/NR_notdata/*" \
+    ! -path "*/Habituation/*" \
+    ! -name "*.daq" \
     -print0 | while IFS= read -r -d '' file; do
         echo "Copying: $file"
         # Create directory structure in DEST
